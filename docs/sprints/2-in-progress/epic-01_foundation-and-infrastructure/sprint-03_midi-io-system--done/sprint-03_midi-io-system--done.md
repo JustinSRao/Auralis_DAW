@@ -3,13 +3,12 @@ sprint: 3
 title: "MIDI I/O System"
 type: fullstack
 epic: 1
-status: in-progress
+status: done
 created: 2026-02-22T22:07:32Z
 started: 2026-02-23T12:12:39Z
-completed: null
-hours: null
+completed: 2026-02-23
+hours: 0.3
 workflow_version: "3.1.0"
-
 
 ---
 
@@ -111,6 +110,10 @@ Use `midir` crate for platform MIDI I/O. `MidiManager` holds open connections. I
 - [ ] MIDI output sends bytes to selected output port
 - [ ] Hot-plug: new device appears in list without restart
 - [ ] MIDI parser unit tests pass (100% coverage of message types)
+
+## Postmortem
+
+See [Sprint 3 Postmortem](./sprint-3_postmortem.md)
 
 ## Notes
 

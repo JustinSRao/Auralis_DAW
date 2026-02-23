@@ -1,6 +1,6 @@
 {
   "counters": {
-    "next_sprint": 35,
+    "next_sprint": 37,
     "next_epic": 12
   },
   "sprints": {
@@ -26,13 +26,13 @@
     },
     "3": {
       "title": "MIDI I/O System",
-      "status": "planning",
+      "status": "done",
       "epic": 1,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-02-23",
+      "hours": 8.3
     },
     "4": {
       "title": "Project File System",
@@ -343,6 +343,26 @@
       "started": null,
       "completed": null,
       "hours": null
+    },
+    "35": {
+      "title": "MIDI Recording",
+      "status": "planning",
+      "epic": 4,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "36": {
+      "title": "MIDI Recording",
+      "status": "planning",
+      "epic": 4,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
     }
   },
   "epics": {
@@ -353,7 +373,7 @@
       "started": "2026-02-22",
       "completed": null,
       "totalSprints": 7,
-      "completedSprints": 2
+      "completedSprints": 3
     },
     "2": {
       "title": "Authentication & User Management",
@@ -379,7 +399,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 7,
+      "totalSprints": 9,
       "completedSprints": 0
     },
     "5": {
@@ -447,5 +467,5 @@
     }
   },
   "nextEpicNumber": 12,
-  "nextSprintNumber": 35
+  "nextSprintNumber": 37
 }

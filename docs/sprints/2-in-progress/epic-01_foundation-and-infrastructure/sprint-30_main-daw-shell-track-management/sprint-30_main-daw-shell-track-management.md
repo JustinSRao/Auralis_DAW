@@ -49,6 +49,7 @@ Sprint 1 produced a blank Tauri window with a React scaffold. Every subsequent s
 - [ ] Reorder tracks: drag-and-drop track headers up/down
 - [ ] Track color: click color swatch → color picker
 - [ ] Track state persisted in Zustand `trackStore` and saved to the project file (Sprint 4)
+- [ ] Global keyboard shortcuts registered in `DawLayout`: Space = play/stop, R = record arm toggle, Ctrl+S = save project, Delete = delete selection, Ctrl+D = duplicate selection, Ctrl+N = new project, F = follow playhead toggle, M = mute selected track, S = solo selected track, L = loop toggle
 
 ### Non-Functional Requirements
 
@@ -71,6 +72,8 @@ Sprint 1 produced a blank Tauri window with a React scaffold. Every subsequent s
 - `src/components/daw/TrackHeader.tsx` — individual track row header (name, mute, solo, arm, color)
 - `src/components/daw/MenuBar.tsx` — application menu bar
 - `src/stores/trackStore.ts` — Zustand store: `tracks[]`, `createTrack()`, `deleteTrack()`, `renameTrack()`, `reorderTracks()`
+- `src/hooks/useGlobalKeyboard.ts` — global `keydown` listener registered in `DawLayout`, dispatches to transport, track, and project stores
+- `src/stores/keyboardStore.ts` — Zustand store mapping shortcut keys to actions (enables future remapping in Sprint 27)
 
 ### Out of Scope
 
@@ -101,12 +104,17 @@ Sprint 1 produced a blank Tauri window with a React scaffold. Every subsequent s
 - [ ] Implement drag-to-reorder in track list
 - [ ] Build `trackStore.ts` with all CRUD actions
 - [ ] Wire color picker (Radix UI Popover + color input)
+- [ ] Implement `useGlobalKeyboard` hook with `keydown` listener on `DawLayout`
+- [ ] Build `keyboardStore` mapping key combos to action names
+- [ ] Wire default shortcuts: Space (play/stop), R (record arm), Ctrl+S (save), Delete (delete selection), Ctrl+D (duplicate), F (follow playhead), M (mute), S (solo), L (loop toggle)
 
 ### Phase 3: Validation
 - [ ] Unit test: `create_track` returns a track with correct defaults for each type
 - [ ] Unit test: `reorder_tracks` correctly updates order and rejects invalid indices
 - [ ] Component test: track list renders N tracks from mock store
 - [ ] Component test: double-click rename enters edit mode, Enter confirms, Escape cancels
+- [ ] Unit test: `useGlobalKeyboard` dispatches correct action for each default shortcut
+- [ ] Unit test: shortcuts do not fire when an input/textarea is focused (prevents conflict with rename)
 - [ ] Manual: drag three tracks, confirm order change persists after project save/load
 
 ### Phase 4: Documentation
@@ -121,6 +129,7 @@ Sprint 1 produced a blank Tauri window with a React scaffold. Every subsequent s
 - [ ] Tracks can be renamed, reordered, muted, soloed, armed, and recolored
 - [ ] Track list with 10 tracks persists through project save/load cycle
 - [ ] Menu bar File menu invokes correct Tauri commands
+- [ ] Global keyboard shortcuts (Space, R, Ctrl+S, Delete, Ctrl+D, M, S, L, F) trigger their respective actions
 - [ ] All tests pass
 
 ## Notes

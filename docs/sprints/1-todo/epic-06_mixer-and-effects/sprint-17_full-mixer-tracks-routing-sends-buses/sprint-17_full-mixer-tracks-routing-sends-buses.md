@@ -51,6 +51,7 @@ Every DAW needs a mixer to balance, pan, and route audio from multiple tracks an
 - [ ] Mixing graph evaluated in topological order each audio callback — no circular routing
 - [ ] All channel parameter changes (fader, pan) applied via `AtomicF32` — glitch-free during playback
 - [ ] Master bus output peak level emitted as Tauri event at 30 Hz for level meters in UI
+- [ ] Per-channel peak level (L/R) emitted as Tauri event at 30 Hz for individual channel strip meters
 - [ ] Mixer supports up to 64 channels without CPU spike
 
 ## Dependencies
@@ -68,8 +69,10 @@ Every DAW needs a mixer to balance, pan, and route audio from multiple tracks an
 - `src-tauri/src/audio/mixer/master.rs` — `MasterBus` (final sum, output to audio engine)
 - Tauri commands for all channel/bus parameter mutations
 - Tauri event: `master_level_changed` (peak L/R for master bus meter)
+- Tauri event: `channel_level_changed` (channel_id, peak L/R for per-channel meters at 30 Hz)
+- Per-channel peak/RMS computation in each `MixerChannel` during audio callback (same pattern as master bus)
 - React `MixerView`: scrollable row of vertical channel strips with fader, pan knob, mute/solo buttons, send knobs, channel name label
-- React `LevelMeter` component: animated bar showing peak level, with clip indicator (red if > 0 dBFS)
+- React `LevelMeter` component: animated bar showing peak level, with clip indicator (red if > 0 dBFS) — instantiated per channel strip AND on master bus
 
 ### Out of Scope
 
@@ -93,6 +96,7 @@ Every DAW needs a mixer to balance, pan, and route audio from multiple tracks an
 - [ ] Implement `MixerChannel` with fader, pan (equal-power), mute/solo atomics, send levels
 - [ ] Implement `AuxBus` accumulator with its own fader
 - [ ] Implement `MasterBus` with peak level computation and event emission
+- [ ] Implement per-channel peak level computation in `MixerChannel` and `channel_level_changed` event emission at 30 Hz
 - [ ] Implement `Mixer` aggregating all channels, buses, master in correct signal order
 - [ ] Register all instrument outputs as mixer channel inputs in AudioGraph
 - [ ] Implement all Tauri commands for channel/bus parameter control
@@ -108,6 +112,7 @@ Every DAW needs a mixer to balance, pan, and route audio from multiple tracks an
 - [ ] Solo a channel — only that channel heard; press solo again to deactivate
 - [ ] Send to aux bus at 50% — aux bus receives half the channel signal
 - [ ] Master level meter responds in real time to audio level changes
+- [ ] Per-channel level meters on each channel strip display peak levels in real time
 
 ### Phase 4: Documentation
 - [ ] Rustdoc on `Mixer`, `MixerChannel`, `AuxBus`, `MasterBus`, pan law formula
@@ -121,6 +126,7 @@ Every DAW needs a mixer to balance, pan, and route audio from multiple tracks an
 - [ ] Solo silences all non-soloed channels
 - [ ] Send routing feeds signal into aux buses at the configured send level
 - [ ] Master bus level meter displays peak level in real time
+- [ ] Each channel strip displays its own peak level meter updated in real time
 - [ ] All mixer parameters persist in the project file
 
 ## Notes
