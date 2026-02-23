@@ -10,9 +10,9 @@
       "epic": 1,
       "type": "fullstack",
       "created": "2026-02-22",
-      "started": null,
+      "started": "2026-02-22",
       "completed": "2026-02-22",
-      "hours": 8.3
+      "hours": 0.3
     },
     "2": {
       "title": "Core Audio Engine (ASIO/WASAPI)",
@@ -248,11 +248,11 @@
   "epics": {
     "1": {
       "title": "Foundation & Infrastructure",
-      "status": "planning",
+      "status": "in-progress",
       "created": "2026-02-22",
-      "started": null,
+      "started": "2026-02-22",
       "completed": null,
-      "totalSprints": 8,
+      "totalSprints": 4,
       "completedSprints": 1
     },
     "2": {
@@ -261,7 +261,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 2,
+      "totalSprints": 1,
       "completedSprints": 0
     },
     "3": {
@@ -270,7 +270,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 8,
+      "totalSprints": 4,
       "completedSprints": 0
     },
     "4": {
@@ -279,7 +279,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 10,
+      "totalSprints": 5,
       "completedSprints": 0
     },
     "5": {
@@ -288,7 +288,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 4,
+      "totalSprints": 2,
       "completedSprints": 0
     },
     "6": {
@@ -297,7 +297,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 10,
+      "totalSprints": 5,
       "completedSprints": 0
     },
     "7": {
@@ -306,7 +306,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 2,
+      "totalSprints": 1,
       "completedSprints": 0
     },
     "8": {
@@ -315,7 +315,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 4,
+      "totalSprints": 2,
       "completedSprints": 0
     }
   },
