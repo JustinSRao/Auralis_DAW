@@ -3,14 +3,16 @@ sprint: 2
 title: "Core Audio Engine (ASIO/WASAPI)"
 type: backend
 epic: 1
-status: planning
+status: done
 created: 2026-02-22T22:07:26Z
-started: null
-completed: null
-hours: null
+started: 2026-02-23T02:00:33Z
+completed: 2026-02-23T04:30:00Z
+hours: 2.5
 workflow_version: "3.1.0"
 coverage_threshold: 60
 # Justification: Real-time audio thread not unit-testable; verified via smoke/integration tests
+
+
 ---
 
 # Sprint 2: Core Audio Engine (ASIO/WASAPI)
@@ -120,3 +122,7 @@ Use `cpal` crate with the `asio` Cargo feature (Windows-only). The engine runs i
 ## Notes
 
 Created: 2026-02-22
+
+## Postmortem
+
+See [Sprint 2 Postmortem](./sprint-2_postmortem.md)

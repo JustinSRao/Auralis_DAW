@@ -6,6 +6,8 @@ pub mod midi;
 pub mod project;
 pub mod vst3;
 
+use std::sync::{Arc, Mutex};
+
 use tauri::Manager;
 
 #[tauri::command]
@@ -14,7 +16,8 @@ fn get_version() -> String {
 }
 
 /// Entry point for the Tauri application.
-/// Initializes logging, the SQLite database, and the Tauri runtime with all IPC handlers.
+/// Initializes logging, the SQLite database, the audio engine, and the Tauri runtime
+/// with all IPC handlers.
 pub fn run() {
     env_logger::init();
 
@@ -37,6 +40,13 @@ pub fn run() {
                 .expect("failed to initialize database");
 
             log::info!("Database initialized at {:?}", db_path);
+
+            // Initialize audio engine with default config
+            let audio_engine: audio::commands::AudioEngineState =
+                Arc::new(Mutex::new(audio::engine::AudioEngine::new()));
+            app.manage(audio_engine);
+            log::info!("Audio engine initialized");
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -45,6 +55,13 @@ pub fn run() {
             auth::commands::register,
             auth::commands::logout,
             auth::commands::list_users,
+            audio::commands::get_audio_devices,
+            audio::commands::get_engine_status,
+            audio::commands::start_engine,
+            audio::commands::stop_engine,
+            audio::commands::set_audio_device,
+            audio::commands::set_engine_config,
+            audio::commands::set_test_tone,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

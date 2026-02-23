@@ -1,4 +1,5 @@
-// Placeholder — DAW shell, populated sprint by sprint
+import { AudioSettingsPanel } from "@/components/audio/AudioSettingsPanel";
+
 export function DAWLayout() {
   return (
     <div className="flex flex-col h-full bg-[#1a1a1a]">
@@ -17,8 +18,8 @@ export function DAWLayout() {
 
         {/* Center — Timeline / Piano Roll */}
         <div className="flex-1 flex flex-col">
-          <div className="flex-1 bg-[#1a1a1a] flex items-center justify-center">
-            <span className="text-[#888888] text-xs">Song Timeline</span>
+          <div className="flex-1 bg-[#1a1a1a] p-4 overflow-y-auto">
+            <AudioSettingsPanel />
           </div>
           {/* Bottom — Mixer */}
           <div className="h-48 bg-[#242424] border-t border-[#3a3a3a] flex items-center justify-center">

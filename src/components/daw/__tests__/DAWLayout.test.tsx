@@ -12,9 +12,9 @@ describe("DAWLayout", () => {
     expect(screen.getByText("Instrument Browser")).toBeInTheDocument();
   });
 
-  it("renders the Song Timeline panel", () => {
+  it("renders the Audio Settings panel", () => {
     render(<DAWLayout />);
-    expect(screen.getByText("Song Timeline")).toBeInTheDocument();
+    expect(screen.getByText("Audio Settings")).toBeInTheDocument();
   });
 
   it("renders the Mixer panel", () => {
