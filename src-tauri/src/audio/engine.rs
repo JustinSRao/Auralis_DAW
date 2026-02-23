@@ -10,6 +10,7 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 use super::devices;
 use super::graph::{AudioGraph, SineTestNode, TripleBuffer};
 use super::types::*;
+use crate::midi::types::TimestampedMidiEvent;
 
 /// Commands sent from the main thread to the audio callback.
 ///
@@ -35,6 +36,8 @@ pub struct AudioEngine {
     /// Shared amplitude control for the test tone node.
     /// Set to 0.3 to enable, 0.0 to disable. Lock-free.
     test_tone_amplitude: Arc<AtomicF32>,
+    /// Receiver for MIDI events from MidiManager (set before starting engine).
+    midi_event_rx: Option<Receiver<TimestampedMidiEvent>>,
 }
 
 impl AudioEngine {
@@ -48,6 +51,7 @@ impl AudioEngine {
             command_tx: None,
             test_tone_active: false,
             test_tone_amplitude: Arc::new(AtomicF32::new(0.0)),
+            midi_event_rx: None,
         }
     }
 
@@ -194,6 +198,14 @@ impl AudioEngine {
         Ok(())
     }
 
+    /// Sets the MIDI event receiver. Must be called before starting the engine.
+    ///
+    /// The receiver is moved into the audio callback closure when the engine starts,
+    /// so MIDI events are drained each audio buffer alongside `AudioCommand`s.
+    pub fn set_midi_receiver(&mut self, rx: Receiver<TimestampedMidiEvent>) {
+        self.midi_event_rx = Some(rx);
+    }
+
     /// Toggles the 440 Hz test tone on or off.
     ///
     /// This is lock-free — it writes to a shared `AtomicF32` that the audio
@@ -260,12 +272,13 @@ impl AudioEngine {
         let sr = self.config.sample_rate;
         let ch = channels;
         let state = self.state.clone();
+        let midi_rx = self.midi_event_rx.take();
 
         let stream = device
             .build_output_stream(
                 &stream_config,
                 move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                    audio_callback(data, &mut triple_buf, &command_rx, sr, ch, &state);
+                    audio_callback(data, &mut triple_buf, &command_rx, midi_rx.as_ref(), sr, ch, &state);
                 },
                 move |err| {
                     log::error!("Audio stream error: {}", err);
@@ -303,12 +316,13 @@ unsafe impl Sync for AudioEngine {}
 /// The real-time audio callback. Runs on cpal's audio thread.
 ///
 /// This function must NEVER allocate, block, or use mutexes.
-/// It drains the command channel, swaps the graph if needed,
+/// It drains the command channel and MIDI events, swaps the graph if needed,
 /// and processes the current graph.
 fn audio_callback(
     data: &mut [f32],
     triple_buf: &mut TripleBuffer,
     command_rx: &Receiver<AudioCommand>,
+    midi_rx: Option<&Receiver<TimestampedMidiEvent>>,
     sample_rate: u32,
     channels: u16,
     _state: &AtomicU8,
@@ -319,6 +333,15 @@ fn audio_callback(
             AudioCommand::SwapGraph(new_graph) => {
                 triple_buf.publish(new_graph);
             }
+        }
+    }
+
+    // Drain MIDI events (non-blocking)
+    // For now, events are consumed but not routed to instruments (no instruments yet).
+    // This proves the pipeline works end-to-end. Routing comes in Sprints 6-9.
+    if let Some(rx) = midi_rx {
+        while let Ok(_midi_event) = rx.try_recv() {
+            // Events consumed — instrument routing will be added in future sprints
         }
     }
 

@@ -1,4 +1,5 @@
 import { AudioSettingsPanel } from "@/components/audio/AudioSettingsPanel";
+import { MidiSettingsPanel } from "@/components/midi/MidiSettingsPanel";
 
 export function DAWLayout() {
   return (
@@ -18,8 +19,9 @@ export function DAWLayout() {
 
         {/* Center — Timeline / Piano Roll */}
         <div className="flex-1 flex flex-col">
-          <div className="flex-1 bg-[#1a1a1a] p-4 overflow-y-auto">
+          <div className="flex-1 bg-[#1a1a1a] p-4 overflow-y-auto space-y-4">
             <AudioSettingsPanel />
+            <MidiSettingsPanel />
           </div>
           {/* Bottom — Mixer */}
           <div className="h-48 bg-[#242424] border-t border-[#3a3a3a] flex items-center justify-center">

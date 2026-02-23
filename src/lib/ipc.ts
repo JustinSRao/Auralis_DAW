@@ -126,3 +126,52 @@ export async function setEngineConfig(
 export async function setTestTone(enabled: boolean): Promise<void> {
   return invoke<void>("set_test_tone", { enabled });
 }
+
+// --- MIDI types (mirror Rust midi::types) ---
+
+export interface MidiDeviceInfo {
+  name: string;
+  is_input: boolean;
+  is_output: boolean;
+}
+
+export interface MidiStatus {
+  active_input: string | null;
+  active_output: string | null;
+}
+
+// --- MIDI commands ---
+
+/** Enumerates all available MIDI input and output devices. */
+export async function getMidiDevices(): Promise<MidiDeviceInfo[]> {
+  return invoke<MidiDeviceInfo[]>("get_midi_devices");
+}
+
+/** Returns the current MIDI connection status. */
+export async function getMidiStatus(): Promise<MidiStatus> {
+  return invoke<MidiStatus>("get_midi_status");
+}
+
+/** Connects to a MIDI input port by name. */
+export async function connectMidiInput(
+  portName: string,
+): Promise<MidiStatus> {
+  return invoke<MidiStatus>("connect_midi_input", { portName });
+}
+
+/** Disconnects the active MIDI input port. */
+export async function disconnectMidiInput(): Promise<MidiStatus> {
+  return invoke<MidiStatus>("disconnect_midi_input");
+}
+
+/** Connects to a MIDI output port by name. */
+export async function connectMidiOutput(
+  portName: string,
+): Promise<MidiStatus> {
+  return invoke<MidiStatus>("connect_midi_output", { portName });
+}
+
+/** Disconnects the active MIDI output port. */
+export async function disconnectMidiOutput(): Promise<MidiStatus> {
+  return invoke<MidiStatus>("disconnect_midi_output");
+}

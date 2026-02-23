@@ -41,11 +41,31 @@ pub fn run() {
 
             log::info!("Database initialized at {:?}", db_path);
 
-            // Initialize audio engine with default config
+            // Initialize MIDI manager and get the event receiver
+            let (midi_manager, midi_rx) = midi::manager::MidiManager::new();
+
+            // Initialize audio engine with MIDI event receiver
+            let mut audio_engine = audio::engine::AudioEngine::new();
+            audio_engine.set_midi_receiver(midi_rx);
+
             let audio_engine: audio::commands::AudioEngineState =
-                Arc::new(Mutex::new(audio::engine::AudioEngine::new()));
+                Arc::new(Mutex::new(audio_engine));
             app.manage(audio_engine);
             log::info!("Audio engine initialized");
+
+            // Manage MIDI state and start hot-plug scanner
+            let midi_state: midi::commands::MidiManagerState =
+                Arc::new(Mutex::new(midi_manager));
+            {
+                let mut mgr = midi_state
+                    .lock()
+                    .map_err(|e| format!("failed to lock MIDI manager: {e}"))?;
+                if let Err(e) = mgr.start_hotplug_scanner(app.handle().clone()) {
+                    log::warn!("Failed to start MIDI hot-plug scanner: {}", e);
+                }
+            }
+            app.manage(midi_state);
+            log::info!("MIDI manager initialized");
 
             Ok(())
         })
@@ -62,6 +82,12 @@ pub fn run() {
             audio::commands::set_audio_device,
             audio::commands::set_engine_config,
             audio::commands::set_test_tone,
+            midi::commands::get_midi_devices,
+            midi::commands::get_midi_status,
+            midi::commands::connect_midi_input,
+            midi::commands::disconnect_midi_input,
+            midi::commands::connect_midi_output,
+            midi::commands::disconnect_midi_output,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
