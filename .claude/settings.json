@@ -1,0 +1,10 @@
+{
+  "workflow_version": "2.1",
+  "sprint_counter_file": "docs/sprints/next-sprint.txt",
+  "sprint_directories": {
+    "todo": "docs/sprints/1-todo",
+    "in_progress": "docs/sprints/2-in-progress",
+    "done": "docs/sprints/3-done",
+    "aborted": "docs/sprints/5-aborted"
+  }
+}

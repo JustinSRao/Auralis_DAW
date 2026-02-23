@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git clone:*)",
+      "Bash(cd /c/Users/nitsu/claude-maestro && bash install.sh --copy 2>&1)",
+      "Bash(echo:*)",
+      "Bash(gh repo:*)",
+      "Bash(curl -s https://api.github.com/repos/JustinSRao/Music_Application 2>/dev/null | python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'Repo: {d.get\\(\\\\\"full_name\\\\\"\\)}\\\\nEmpty: {d.get\\(\\\\\"size\\\\\"\\) == 0}\\\\nDefault branch: {d.get\\(\\\\\"default_branch\\\\\"\\)}\\\\nPrivate: {d.get\\(\\\\\"private\\\\\"\\)}'\\)\" 2>/dev/null)",
+      "Bash(gh auth:*)",
+      "Bash(git:*)",
+      "Bash(cargo --version && rustc --version && node --version && npm --version 2>&1)",
+      "Bash(echo Tauri CLI not installed:*)",
+      "Bash(tail:*)",
+      "Skill(project-create)",
+      "Skill(epic-new)",
+      "Skill(sprint-new)"
+    ]
+  }
+}

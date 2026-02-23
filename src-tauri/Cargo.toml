@@ -1,0 +1,70 @@
+[package]
+name = "music-application"
+version = "0.1.0"
+edition = "2021"
+description = "A desktop digital audio workstation"
+authors = ["JustinSRao"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# Tauri core
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Audio I/O — cpal with ASIO feature for Windows low-latency
+cpal = { version = "0.15", features = ["asio"] }
+
+# MIDI I/O
+midir = "0.10"
+
+# Audio decoding (WAV, MP3, FLAC, OGG)
+symphonia = { version = "0.5", features = ["all"] }
+
+# Sample rate conversion
+rubato = "0.15"
+
+# Audio DSP
+dasp = { version = "0.11", features = ["all"] }
+
+# Database — SQLite for local auth & project metadata
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Password hashing
+argon2 = "0.5"
+rand = "0.8"
+
+# Error handling
+anyhow = "1"
+thiserror = "2"
+
+# Logging
+log = "0.4"
+env_logger = "0.11"
+
+# UUID generation
+uuid = { version = "1", features = ["v4"] }
+
+# Crossbeam for lock-free audio thread communication
+crossbeam-channel = "0.5"
+crossbeam-queue = "0.3"
+
+# Atomic float for real-time safe parameter updates
+atomic_float = "1.1"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+[features]
+# Enable custom protocol for security
+custom-protocol = ["tauri/custom-protocol"]

@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  :root {
+    --daw-bg: #1a1a1a;
+    --daw-surface: #242424;
+    --daw-panel: #2d2d2d;
+    --daw-border: #3a3a3a;
+    --daw-accent: #6c63ff;
+    --daw-text: #e8e8e8;
+    --daw-text-muted: #888888;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background-color: var(--daw-bg);
+    color: var(--daw-text);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 13px;
+    user-select: none;
+  }
+
+  /* Custom scrollbar for DAW feel */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--daw-bg);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--daw-border);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--daw-text-muted);
+  }
+}
+
+@layer utilities {
+  .daw-panel {
+    @apply bg-[#2d2d2d] border border-[#3a3a3a];
+  }
+
+  .daw-button {
+    @apply px-3 py-1.5 rounded text-sm font-medium transition-colors;
+  }
+
+  .daw-button-primary {
+    @apply daw-button bg-[#6c63ff] hover:bg-[#7c73ff] text-white;
+  }
+
+  .daw-button-ghost {
+    @apply daw-button bg-transparent hover:bg-[#3a3a3a] text-[#e8e8e8];
+  }
+
+  .daw-input {
+    @apply bg-[#1a1a1a] border border-[#3a3a3a] rounded px-2 py-1 text-sm text-[#e8e8e8]
+           focus:outline-none focus:border-[#6c63ff] transition-colors;
+  }
+}

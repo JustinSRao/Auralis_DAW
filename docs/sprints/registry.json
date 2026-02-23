@@ -1,0 +1,324 @@
+{
+  "counters": {
+    "next_sprint": 25,
+    "next_epic": 1
+  },
+  "sprints": {
+    "1": {
+      "title": "Project Scaffold & Build Pipeline",
+      "status": "planning",
+      "epic": 1,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "2": {
+      "title": "Core Audio Engine (ASIO/WASAPI)",
+      "status": "planning",
+      "epic": 1,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "3": {
+      "title": "MIDI I/O System",
+      "status": "planning",
+      "epic": 1,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "4": {
+      "title": "Project File System",
+      "status": "planning",
+      "epic": 1,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "5": {
+      "title": "Local Authentication System",
+      "status": "planning",
+      "epic": 2,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "6": {
+      "title": "Subtractive Synthesizer",
+      "status": "planning",
+      "epic": 3,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "7": {
+      "title": "Sample Player & Sampler",
+      "status": "planning",
+      "epic": 3,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "8": {
+      "title": "Drum Machine",
+      "status": "planning",
+      "epic": 3,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "9": {
+      "title": "Audio Recording (Live Input)",
+      "status": "planning",
+      "epic": 3,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "10": {
+      "title": "Step Sequencer",
+      "status": "planning",
+      "epic": 4,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "11": {
+      "title": "Piano Roll Editor",
+      "status": "planning",
+      "epic": 4,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "12": {
+      "title": "Pattern System",
+      "status": "planning",
+      "epic": 4,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "13": {
+      "title": "Song Timeline & Playlist",
+      "status": "planning",
+      "epic": 4,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "14": {
+      "title": "Automation Editor",
+      "status": "planning",
+      "epic": 4,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "15": {
+      "title": "Waveform Editor (Cut, Trim, Reverse, Splice)",
+      "status": "planning",
+      "epic": 5,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "16": {
+      "title": "Time Stretch & Pitch Shift",
+      "status": "planning",
+      "epic": 5,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "17": {
+      "title": "Full Mixer (Tracks, Routing, Sends, Buses)",
+      "status": "planning",
+      "epic": 6,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "18": {
+      "title": "EQ & Filter Effects",
+      "status": "planning",
+      "epic": 6,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "19": {
+      "title": "Reverb & Delay Effects",
+      "status": "planning",
+      "epic": 6,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "20": {
+      "title": "Compression & Dynamics",
+      "status": "planning",
+      "epic": 6,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "21": {
+      "title": "Effect Chain & Modular Routing",
+      "status": "planning",
+      "epic": 6,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "22": {
+      "title": "Audio Export (Stereo Mix & Stems)",
+      "status": "planning",
+      "epic": 7,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "23": {
+      "title": "VST3 Plugin Host (Rust)",
+      "status": "planning",
+      "epic": 8,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "24": {
+      "title": "VST3 UI Bridge & Plugin Management",
+      "status": "planning",
+      "epic": 8,
+      "type": "fullstack",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "hours": null
+    }
+  },
+  "epics": {
+    "1": {
+      "title": "Foundation & Infrastructure",
+      "status": "planning",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "totalSprints": 8,
+      "completedSprints": 0
+    },
+    "2": {
+      "title": "Authentication & User Management",
+      "status": "planning",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "totalSprints": 2,
+      "completedSprints": 0
+    },
+    "3": {
+      "title": "Software Instruments",
+      "status": "planning",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "totalSprints": 8,
+      "completedSprints": 0
+    },
+    "4": {
+      "title": "Composition Tools",
+      "status": "planning",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "totalSprints": 10,
+      "completedSprints": 0
+    },
+    "5": {
+      "title": "Audio Editing",
+      "status": "planning",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "totalSprints": 4,
+      "completedSprints": 0
+    },
+    "6": {
+      "title": "Mixer & Effects",
+      "status": "planning",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "totalSprints": 10,
+      "completedSprints": 0
+    },
+    "7": {
+      "title": "Export & Finalization",
+      "status": "planning",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "totalSprints": 2,
+      "completedSprints": 0
+    },
+    "8": {
+      "title": "VST3 Plugin Support",
+      "status": "planning",
+      "created": "2026-02-22",
+      "started": null,
+      "completed": null,
+      "totalSprints": 4,
+      "completedSprints": 0
+    }
+  },
+  "nextEpicNumber": 9,
+  "nextSprintNumber": 25
+}
