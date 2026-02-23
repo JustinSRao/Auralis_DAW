@@ -21,6 +21,9 @@ Establishes the complete technical foundation for the Music Application DAW. Thi
 - [ ] MIDI input/output devices enumerated and usable
 - [ ] Project files save and load all state correctly
 - [ ] No audio glitches at 256 sample buffer size
+- [ ] Master transport (play/stop/BPM/time signature) drives all timing-dependent components
+- [ ] Global undo/redo (Ctrl+Z / Ctrl+Shift+Z) works across all operations app-wide
+- [ ] Main DAW window layout with track management (create, delete, rename, reorder, type)
 
 ## Sprints
 
@@ -30,6 +33,9 @@ Establishes the complete technical foundation for the Music Application DAW. Thi
 | 02 | Core Audio Engine (ASIO/WASAPI) | planned |
 | 03 | MIDI I/O System | planned |
 | 04 | Project File System | planned |
+| 25 | Transport & Tempo Engine | planned |
+| 26 | Global Undo/Redo System | planned |
+| 30 | Main DAW Shell & Track Management | planned |
 
 ## Backlog
 

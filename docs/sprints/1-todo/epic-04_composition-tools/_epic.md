@@ -20,6 +20,8 @@ Delivers all sequencing and arrangement tools that allow a musician to compose f
 - [ ] Patterns can be created, named, duplicated, and browsed via a pattern panel
 - [ ] Song timeline arranges patterns across all tracks with drag-and-drop and loop region support
 - [ ] Automation lanes record and play back any parameter change with linear, exponential, and step curve types
+- [ ] Arrangement clips play back in sequence from the audio engine when transport is running
+- [ ] Standard MIDI (.mid) files can be imported as patterns
 
 ## Sprints
 
@@ -30,6 +32,8 @@ Delivers all sequencing and arrangement tools that allow a musician to compose f
 | 12 | Pattern System | planned |
 | 13 | Song Timeline & Playlist | planned |
 | 14 | Automation Editor | planned |
+| 31 | Arrangement Playback Engine | planned |
+| 32 | MIDI File Import | planned |
 
 ## Backlog
 

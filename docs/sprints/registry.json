@@ -1,7 +1,7 @@
 {
   "counters": {
-    "next_sprint": 25,
-    "next_epic": 1
+    "next_sprint": 35,
+    "next_epic": 12
   },
   "sprints": {
     "1": {
@@ -16,13 +16,13 @@
     },
     "2": {
       "title": "Core Audio Engine (ASIO/WASAPI)",
-      "status": "planning",
+      "status": "done",
       "epic": 1,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-02-23",
+      "hours": 8.4
     },
     "3": {
       "title": "MIDI I/O System",
@@ -243,6 +243,106 @@
       "started": null,
       "completed": null,
       "hours": null
+    },
+    "25": {
+      "title": "Transport & Tempo Engine",
+      "status": "planning",
+      "epic": 1,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "26": {
+      "title": "Global Undo/Redo System",
+      "status": "planning",
+      "epic": 1,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "27": {
+      "title": "Settings & Preferences UI",
+      "status": "planning",
+      "epic": 9,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "28": {
+      "title": "Sample & Content Browser",
+      "status": "planning",
+      "epic": 10,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "29": {
+      "title": "MIDI Learn & Hardware Controller Mapping",
+      "status": "planning",
+      "epic": 10,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "30": {
+      "title": "Main DAW Shell & Track Management",
+      "status": "planning",
+      "epic": 1,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "31": {
+      "title": "Arrangement Playback Engine",
+      "status": "planning",
+      "epic": 4,
+      "type": "backend",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "32": {
+      "title": "MIDI File Import",
+      "status": "planning",
+      "epic": 4,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "33": {
+      "title": "LFO Modulation Routing",
+      "status": "planning",
+      "epic": 3,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "34": {
+      "title": "Instrument & Effect Presets",
+      "status": "planning",
+      "epic": 11,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
     }
   },
   "epics": {
@@ -252,8 +352,8 @@
       "created": "2026-02-22",
       "started": "2026-02-22",
       "completed": null,
-      "totalSprints": 4,
-      "completedSprints": 1
+      "totalSprints": 7,
+      "completedSprints": 2
     },
     "2": {
       "title": "Authentication & User Management",
@@ -270,7 +370,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 4,
+      "totalSprints": 5,
       "completedSprints": 0
     },
     "4": {
@@ -279,7 +379,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 5,
+      "totalSprints": 7,
       "completedSprints": 0
     },
     "5": {
@@ -317,8 +417,35 @@
       "completed": null,
       "totalSprints": 2,
       "completedSprints": 0
+    },
+    "9": {
+      "title": "Settings & Preferences",
+      "status": "planning",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "totalSprints": 1,
+      "completedSprints": 0
+    },
+    "10": {
+      "title": "Workflow & Productivity",
+      "status": "planning",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "totalSprints": 2,
+      "completedSprints": 0
+    },
+    "11": {
+      "title": "Preset Management System",
+      "status": "planning",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "totalSprints": 1,
+      "completedSprints": 0
     }
   },
-  "nextEpicNumber": 9,
-  "nextSprintNumber": 25
+  "nextEpicNumber": 12,
+  "nextSprintNumber": 35
 }

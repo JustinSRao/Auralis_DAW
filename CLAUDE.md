@@ -113,12 +113,15 @@ src/                    # React/TypeScript frontend
   styles/               # Global CSS + Tailwind config
 
 src-tauri/src/          # Rust backend
-  audio/                # Audio engine, device management, graph
-  midi/                 # MIDI I/O and event bus
-  instruments/          # DSP: synth, sampler, drum machine
+  audio/                # Audio engine, device management, graph, transport clock, scheduler
+  midi/                 # MIDI I/O, event bus, CC mapping (Sprint 29), MIDI import (Sprint 32)
+  instruments/          # DSP: synth, sampler, drum machine, LFO (Sprint 33)
   effects/              # DSP: EQ, reverb, compressor, delay
-  project/              # Project file save/load (.mapp format)
+  project/              # Project file save/load (.mapp format), track types (Sprint 30)
   auth/                 # SQLite auth (commands, db, models)
+  config/               # App preferences persistence (Sprint 27)
+  browser/              # File system browser + audio preview (Sprint 28)
+  presets/              # Instrument & effect preset management (Sprint 34)
   vst3/                 # VST3 plugin host
 
 docs/sprints/           # Maestro sprint workflow
@@ -162,10 +165,20 @@ docs/sprints/           # Maestro sprint workflow
 
 Sprints must be executed roughly in order due to dependencies:
 1. Sprint 1 → 2 → 3 → 4 (Foundation — all others depend on these)
-2. Sprint 5 (Auth — can run parallel with 2-4)
-3. Sprints 6-9 (Instruments — need Sprint 2 audio engine)
-4. Sprints 10-14 (Composition — need Sprints 3, 6-8)
-5. Sprints 15-16 (Audio Editing — need Sprints 9, 13)
-6. Sprints 17-21 (Mixer/Effects — need Sprints 2, 6-9)
-7. Sprint 22 (Export — needs Sprints 17-21)
-8. Sprints 23-24 (VST3 — needs Sprint 2 audio engine)
+2. Sprint 30 (DAW Shell & Track Management — needs Sprint 1; run before any track-touching sprint)
+3. Sprint 26 (Undo/Redo — needs Sprint 1; parallel with Sprint 2)
+4. Sprint 25 (Transport & Tempo — needs Sprint 2 audio engine)
+5. Sprint 5 (Auth — can run parallel with foundation sprints)
+6. Sprints 6-9 (Instruments — need Sprint 2 audio engine)
+7. Sprint 33 (LFO Modulation — needs Sprint 6 synth)
+8. Sprints 10-14 (Composition — need Sprints 3, 6-8, 25 for tempo, 30 for track types)
+9. Sprint 31 (Arrangement Playback Engine — needs Sprints 2, 12, 13, 25)
+10. Sprint 32 (MIDI File Import — needs Sprints 11, 12)
+11. Sprints 15-16 (Audio Editing — need Sprints 9, 13)
+12. Sprints 17-21 (Mixer/Effects — need Sprints 2, 6-9, 30 for track types)
+13. Sprint 34 (Instrument & Effect Presets — needs Sprints 6-8, 18-20)
+14. Sprint 22 (Export — needs Sprints 17-21)
+15. Sprints 23-24 (VST3 — needs Sprint 2 audio engine)
+16. Sprint 27 (Settings UI — needs Sprints 2, 3)
+17. Sprint 28 (Sample Browser — needs Sprint 7 sampler)
+18. Sprint 29 (MIDI Learn — needs Sprint 3 MIDI I/O)

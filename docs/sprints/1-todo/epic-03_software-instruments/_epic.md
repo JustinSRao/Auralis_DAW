@@ -20,6 +20,7 @@ Implements all built-in sound-generating instruments for the DAW. This epic cove
 - [ ] Drum machine plays a 16-step pattern per pad in sync with the master tempo
 - [ ] Live audio recording captures microphone/line-in input and places the result on an audio track
 - [ ] All instruments integrate with the AudioGraph from Sprint 2 and respond to automation
+- [ ] LFO modulation routes to synth parameters (filter cutoff, pitch, amplitude) with all waveforms
 
 ## Sprints
 
@@ -29,6 +30,7 @@ Implements all built-in sound-generating instruments for the DAW. This epic cove
 | 7 | Sample Player & Sampler | planned |
 | 8 | Drum Machine | planned |
 | 9 | Audio Recording (Live Input) | planned |
+| 33 | LFO Modulation Routing | planned |
 
 ## Backlog
 
