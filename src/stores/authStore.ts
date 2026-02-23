@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
 
 interface User {
   id: string;
@@ -15,12 +16,20 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    immer((set) => ({
       isAuthenticated: false,
       currentUser: null,
-      login: (user) => set({ isAuthenticated: true, currentUser: user }),
-      logout: () => set({ isAuthenticated: false, currentUser: null }),
-    }),
+      login: (user) =>
+        set((state) => {
+          state.isAuthenticated = true;
+          state.currentUser = user;
+        }),
+      logout: () =>
+        set((state) => {
+          state.isAuthenticated = false;
+          state.currentUser = null;
+        }),
+    })),
     { name: "auth-storage" }
   )
 );

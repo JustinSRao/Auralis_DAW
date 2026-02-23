@@ -13,6 +13,8 @@ fn get_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+/// Entry point for the Tauri application.
+/// Initializes logging, the SQLite database, and the Tauri runtime with all IPC handlers.
 pub fn run() {
     env_logger::init();
 
