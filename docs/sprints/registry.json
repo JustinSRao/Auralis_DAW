@@ -6,13 +6,13 @@
   "sprints": {
     "1": {
       "title": "Project Scaffold & Build Pipeline",
-      "status": "planning",
+      "status": "done",
       "epic": 1,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-02-22",
+      "hours": 8.3
     },
     "2": {
       "title": "Core Audio Engine (ASIO/WASAPI)",
@@ -253,7 +253,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 8,
-      "completedSprints": 0
+      "completedSprints": 1
     },
     "2": {
       "title": "Authentication & User Management",

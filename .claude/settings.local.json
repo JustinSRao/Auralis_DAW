@@ -15,7 +15,19 @@
       "Bash(tail:*)",
       "Skill(project-create)",
       "Skill(epic-new)",
-      "Skill(sprint-new)"
+      "Skill(sprint-new)",
+      "Bash(node:*)",
+      "Bash(rustc:*)",
+      "Bash(winget:*)",
+      "Bash(setx LIBCLANG_PATH:*)",
+      "Bash(curl:*)",
+      "Bash(cd:*)",
+      "Bash(setx CPAL_ASIO_DIR:*)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application/src-tauri && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo check 2>&1)",
+      "Bash(python:*)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application && npm run build 2>&1)",
+      "Bash(reg query:*)",
+      "Bash(powershell:*)"
     ]
   }
 }
