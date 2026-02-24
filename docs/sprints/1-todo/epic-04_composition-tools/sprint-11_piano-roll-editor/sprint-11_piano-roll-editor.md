@@ -75,7 +75,7 @@ The piano roll is the primary interface for detailed MIDI composition — it let
 ### Out of Scope
 
 - MIDI file import/export (backlog)
-- Real-time MIDI recording into the piano roll (Sprint 35 — MIDI Recording)
+- Real-time MIDI recording into the piano roll (Sprint 36 — MIDI Recording)
 - Automation lanes inside the piano roll (Sprint 14)
 - Multiple patterns open simultaneously
 

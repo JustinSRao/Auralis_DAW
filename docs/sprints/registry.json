@@ -1,6 +1,6 @@
 {
   "counters": {
-    "next_sprint": 37,
+    "next_sprint": 47,
     "next_epic": 12
   },
   "sprints": {
@@ -344,7 +344,7 @@
       "completed": null,
       "hours": null
     },
-    "35": {
+    "36": {
       "title": "MIDI Recording",
       "status": "planning",
       "epic": 4,
@@ -354,10 +354,100 @@
       "completed": null,
       "hours": null
     },
-    "36": {
-      "title": "MIDI Recording",
+    "37": {
+      "title": "Audio Clip Playback Engine",
       "status": "planning",
       "epic": 4,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "38": {
+      "title": "Punch In/Out Recording",
+      "status": "planning",
+      "epic": 3,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "39": {
+      "title": "Sidechain Compression",
+      "status": "planning",
+      "epic": 6,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "40": {
+      "title": "Track Freeze and Bounce in Place",
+      "status": "planning",
+      "epic": 1,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "41": {
+      "title": "Tempo Automation",
+      "status": "planning",
+      "epic": 4,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "42": {
+      "title": "Sub-Group Bus Routing",
+      "status": "planning",
+      "epic": 6,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "43": {
+      "title": "MIDI Export",
+      "status": "planning",
+      "epic": 4,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "44": {
+      "title": "Loop Recording and Take Lanes",
+      "status": "planning",
+      "epic": 3,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "45": {
+      "title": "Audio Clip Fades",
+      "status": "planning",
+      "epic": 5,
+      "type": "fullstack",
+      "created": "2026-02-23",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "46": {
+      "title": "Keyboard Shortcut Remapping UI",
+      "status": "planning",
+      "epic": 9,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
@@ -372,7 +462,7 @@
       "created": "2026-02-22",
       "started": "2026-02-22",
       "completed": null,
-      "totalSprints": 7,
+      "totalSprints": 8,
       "completedSprints": 3
     },
     "2": {
@@ -390,7 +480,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 5,
+      "totalSprints": 7,
       "completedSprints": 0
     },
     "4": {
@@ -399,7 +489,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 9,
+      "totalSprints": 11,
       "completedSprints": 0
     },
     "5": {
@@ -408,7 +498,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 2,
+      "totalSprints": 3,
       "completedSprints": 0
     },
     "6": {
@@ -417,7 +507,7 @@
       "created": "2026-02-22",
       "started": null,
       "completed": null,
-      "totalSprints": 5,
+      "totalSprints": 7,
       "completedSprints": 0
     },
     "7": {
@@ -444,7 +534,7 @@
       "created": "2026-02-23",
       "started": null,
       "completed": null,
-      "totalSprints": 1,
+      "totalSprints": 2,
       "completedSprints": 0
     },
     "10": {
@@ -467,5 +557,5 @@
     }
   },
   "nextEpicNumber": 12,
-  "nextSprintNumber": 37
+  "nextSprintNumber": 47
 }
