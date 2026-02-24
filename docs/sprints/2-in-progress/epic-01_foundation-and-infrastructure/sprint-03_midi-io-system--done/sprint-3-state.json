@@ -1,0 +1,65 @@
+{
+  "sprint_number": 3,
+  "sprint_file": "docs\\sprints\\2-in-progress\\epic-01_foundation-and-infrastructure\\sprint-03_midi-io-system\\sprint-03_midi-io-system.md",
+  "sprint_title": "MIDI I/O System",
+  "status": "complete",
+  "current_phase": 4,
+  "current_step": "4.3",
+  "started_at": "2026-02-23T12:12:39Z",
+  "workflow_version": "3.0",
+  "completed_steps": [
+    {
+      "step": "1.1",
+      "completed_at": "2026-02-23T12:12:51.617530"
+    },
+    {
+      "step": "1.2",
+      "completed_at": "2026-02-23T12:15:23.654086"
+    },
+    {
+      "step": "1.3",
+      "completed_at": "2026-02-23T12:18:47.267276"
+    },
+    {
+      "step": "1.4",
+      "completed_at": "2026-02-23T12:18:53.127302"
+    },
+    {
+      "step": "2.1",
+      "completed_at": "2026-02-23T12:24:59.679684"
+    },
+    {
+      "step": "2.2",
+      "completed_at": "2026-02-23T12:25:04.179424"
+    },
+    {
+      "step": "2.3",
+      "completed_at": "2026-02-23T12:25:09.548213"
+    },
+    {
+      "step": "3.1",
+      "completed_at": "2026-02-23T12:25:09.790780"
+    },
+    {
+      "step": "3.2",
+      "completed_at": "2026-02-23T12:27:52.332527"
+    },
+    {
+      "step": "3.3",
+      "completed_at": "2026-02-23T12:27:52.551395"
+    },
+    {
+      "step": "3.4",
+      "completed_at": "2026-02-23T12:27:52.770477"
+    },
+    {
+      "step": "4.1",
+      "completed_at": "2026-02-23T12:27:52.998792"
+    },
+    {
+      "step": "4.2",
+      "completed_at": "2026-02-23T12:28:22.648023"
+    }
+  ],
+  "completed_at": "2026-02-23T12:31:41.207433-08:00"
+}

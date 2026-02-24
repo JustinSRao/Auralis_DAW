@@ -27,7 +27,22 @@
       "Bash(python:*)",
       "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application && npm run build 2>&1)",
       "Bash(reg query:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application && PYTHONIOENCODING=utf-8 python3 ~/.claude/scripts/sprint_lifecycle.py register-sprint \"Sidechain Compression\" --epic 6 --estimated-hours 0 2>&1)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application && PYTHONIOENCODING=utf-8 python3 ~/.claude/scripts/sprint_lifecycle.py register-sprint \"Track Freeze and Bounce in Place\" --epic 1 --estimated-hours 0 2>&1)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application && PYTHONIOENCODING=utf-8 python3 ~/.claude/scripts/sprint_lifecycle.py register-sprint \"Tempo Automation\" --epic 4 --estimated-hours 0 2>&1)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application && PYTHONIOENCODING=utf-8 python3 ~/.claude/scripts/sprint_lifecycle.py register-sprint \"Sub-Group Bus Routing\" --epic 6 --estimated-hours 0 2>&1)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application && PYTHONIOENCODING=utf-8 python3 ~/.claude/scripts/sprint_lifecycle.py register-sprint \"MIDI Export\" --epic 4 --estimated-hours 0 2>&1)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application && PYTHONIOENCODING=utf-8 python3 ~/.claude/scripts/sprint_lifecycle.py register-sprint \"Loop Recording and Take Lanes\" --epic 3 --estimated-hours 0 2>&1)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application && PYTHONIOENCODING=utf-8 python3 ~/.claude/scripts/sprint_lifecycle.py register-sprint \"Audio Clip Fades\" --epic 5 --estimated-hours 0 2>&1)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application && PYTHONIOENCODING=utf-8 python3 ~/.claude/scripts/sprint_lifecycle.py register-sprint \"Keyboard Shortcut Remapping UI\" --epic 9 --estimated-hours 0 2>&1)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application/src-tauri && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test --lib project 2>&1)",
+      "Bash(mv:*)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application && npx tsc --noEmit 2>&1)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application && npm test -- --run 2>&1)",
+      "Bash(PYTHONIOENCODING=utf-8 python3:*)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application/src-tauri && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test --lib 2>&1)",
+      "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application/src-tauri && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test project --lib 2>&1)"
     ]
   }
 }
