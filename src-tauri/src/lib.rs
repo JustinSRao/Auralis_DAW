@@ -10,6 +10,8 @@ use std::sync::{Arc, Mutex};
 
 use tauri::Manager;
 
+use project::commands::{ProjectManager, ProjectManagerState};
+
 #[tauri::command]
 fn get_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
@@ -67,6 +69,46 @@ pub fn run() {
             app.manage(midi_state);
             log::info!("MIDI manager initialized");
 
+            // Initialize project manager
+            let pm_state: ProjectManagerState =
+                Arc::new(Mutex::new(ProjectManager::new()));
+            app.manage(pm_state.clone());
+            log::info!("Project manager initialized");
+
+            // Spawn auto-save background task (fires every 300 seconds)
+            let pm_clone = pm_state.clone();
+            tokio::spawn(async move {
+                let mut interval =
+                    tokio::time::interval(std::time::Duration::from_secs(300));
+                loop {
+                    interval.tick().await;
+
+                    // Lock, check dirty, clone project + path if dirty, then unlock
+                    // before the potentially slow file I/O.
+                    let save_data = {
+                        let mut mgr = match pm_clone.lock() {
+                            Ok(m) => m,
+                            Err(e) => {
+                                log::warn!("Auto-save: failed to lock ProjectManager: {}", e);
+                                continue;
+                            }
+                        };
+                        mgr.take_dirty_snapshot()
+                    };
+
+                    if let Some((project, path)) = save_data {
+                        let autosave_path = path.with_extension("autosave.mapp");
+                        if let Err(e) =
+                            project::io::save_project(&project, &autosave_path, None)
+                        {
+                            log::warn!("Auto-save failed: {}", e);
+                        } else {
+                            log::info!("Auto-saved to {:?}", autosave_path);
+                        }
+                    }
+                }
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -88,6 +130,11 @@ pub fn run() {
             midi::commands::disconnect_midi_input,
             midi::commands::connect_midi_output,
             midi::commands::disconnect_midi_output,
+            project::commands::new_project,
+            project::commands::save_project,
+            project::commands::load_project,
+            project::commands::get_recent_projects,
+            project::commands::mark_project_dirty,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

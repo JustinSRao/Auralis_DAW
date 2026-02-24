@@ -1,5 +1,6 @@
 import { AudioSettingsPanel } from "@/components/audio/AudioSettingsPanel";
 import { MidiSettingsPanel } from "@/components/midi/MidiSettingsPanel";
+import { ProjectToolbar } from "@/components/daw/ProjectToolbar";
 
 export function DAWLayout() {
   return (
@@ -7,7 +8,7 @@ export function DAWLayout() {
       {/* Top toolbar */}
       <div className="h-12 bg-[#2d2d2d] border-b border-[#3a3a3a] flex items-center px-4">
         <span className="text-[#6c63ff] font-bold mr-4">MusicApp</span>
-        <span className="text-[#888888] text-xs">DAW under construction — see sprint plan</span>
+        <ProjectToolbar />
       </div>
 
       {/* Main content area */}

@@ -175,3 +175,163 @@ export async function connectMidiOutput(
 export async function disconnectMidiOutput(): Promise<MidiStatus> {
   return invoke<MidiStatus>("disconnect_midi_output");
 }
+
+// --- Project types (mirror Rust project::format) ---
+
+export interface SchemaVersion {
+  major: number;
+  minor: number;
+  patch: number;
+}
+
+export type TrackType = "Audio" | "Midi" | "Bus";
+
+export interface TransportSettings {
+  bpm: number;
+  time_sig_numerator: number;
+  time_sig_denominator: number;
+  sample_rate: number;
+  loop_enabled: boolean;
+  loop_start_beats: number;
+  loop_end_beats: number;
+}
+
+export interface MidiNoteData {
+  note: number;
+  velocity: number;
+  start_beats: number;
+  duration_beats: number;
+  channel: number;
+}
+
+export interface MidiCcData {
+  controller: number;
+  value: number;
+  position_beats: number;
+  channel: number;
+}
+
+export type ClipContent =
+  | { type: "Audio"; sample_id: string; start_offset_samples: number; gain: number }
+  | { type: "Midi"; notes: MidiNoteData[]; cc_events: MidiCcData[] }
+  | { type: "Pattern"; pattern_id: string };
+
+export interface ClipData {
+  id: string;
+  name: string;
+  start_beats: number;
+  duration_beats: number;
+  content: ClipContent;
+}
+
+export type InstrumentData =
+  | { type: "Synth"; params: Record<string, unknown> }
+  | { type: "Sampler"; params: Record<string, unknown> }
+  | { type: "DrumMachine"; params: Record<string, unknown> }
+  | { type: "Vst3Plugin"; plugin_id: string; plugin_name: string; state_base64: string };
+
+export type EffectData =
+  | { type: "Eq"; params: Record<string, unknown> }
+  | { type: "Reverb"; params: Record<string, unknown> }
+  | { type: "Compressor"; params: Record<string, unknown> }
+  | { type: "Delay"; params: Record<string, unknown> }
+  | { type: "Vst3Plugin"; plugin_id: string; plugin_name: string; state_base64: string };
+
+export interface AutomationPoint {
+  position_beats: number;
+  value: number;
+  curve: "Linear" | "Step" | "Exponential";
+}
+
+export interface AutomationLane {
+  target: string;
+  points: AutomationPoint[];
+}
+
+export interface TrackData {
+  id: string;
+  name: string;
+  track_type: TrackType;
+  color: string;
+  volume: number;
+  pan: number;
+  muted: boolean;
+  soloed: boolean;
+  armed: boolean;
+  output_bus: string | null;
+  instrument: InstrumentData | null;
+  effects: EffectData[];
+  clips: ClipData[];
+  automation: AutomationLane[];
+}
+
+export interface MasterBusData {
+  volume: number;
+  pan: number;
+  effects: EffectData[];
+}
+
+export interface SampleReference {
+  id: string;
+  original_filename: string;
+  archive_path: string;
+  sample_rate: number;
+  channels: number;
+  duration_secs: number;
+}
+
+export interface ProjectFileData {
+  schema_version: SchemaVersion;
+  id: string;
+  name: string;
+  created_at: string;
+  modified_at: string;
+  transport: TransportSettings;
+  tracks: TrackData[];
+  master: MasterBusData;
+  samples: SampleReference[];
+}
+
+export interface RecentProject {
+  name: string;
+  file_path: string;
+  modified_at: string;
+}
+
+export interface SaveResult {
+  success: boolean;
+  file_path: string;
+}
+
+// --- Project commands ---
+
+/** Creates a new empty project with the given name. */
+export async function newProject(name: string): Promise<ProjectFileData> {
+  return invoke<ProjectFileData>("new_project", { name });
+}
+
+/** Saves the project to disk as a .mapp archive. */
+export async function saveProject(
+  project: ProjectFileData,
+  filePath: string,
+): Promise<SaveResult> {
+  return invoke<SaveResult>("save_project", { project, filePath });
+}
+
+/** Loads a project from a .mapp file. */
+export async function loadProject(filePath: string): Promise<ProjectFileData> {
+  return invoke<ProjectFileData>("load_project", { filePath });
+}
+
+/** Returns the list of recently opened projects. */
+export async function getRecentProjects(): Promise<RecentProject[]> {
+  return invoke<RecentProject[]>("get_recent_projects");
+}
+
+/** Marks the project as dirty for auto-save tracking. */
+export async function markProjectDirty(
+  project: ProjectFileData,
+  filePath: string,
+): Promise<void> {
+  return invoke<void>("mark_project_dirty", { project, filePath });
+}

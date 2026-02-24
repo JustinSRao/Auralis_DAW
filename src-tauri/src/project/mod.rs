@@ -1,2 +1,17 @@
-// Project file system — implemented in Sprint 4
-// Handles: save/load project files, serialization of all project state
+//! Project file system — save, load, and manage `.mapp` project archives.
+//!
+//! # Module layout
+//!
+//! | Module | Responsibility |
+//! |--------|---------------|
+//! | [`format`] | All on-disk data structures (`ProjectFile`, tracks, clips, …) |
+//! | [`version`] | Schema versioning and forward migrations |
+//! | [`io`] | ZIP-based save/load and sample extraction |
+//! | [`recent`] | Persisted recent-projects list |
+//! | [`commands`] | Tauri IPC commands and `ProjectManagerState` |
+
+pub mod commands;
+pub mod format;
+pub mod io;
+pub mod recent;
+pub mod version;

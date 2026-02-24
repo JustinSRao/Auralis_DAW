@@ -65,6 +65,9 @@ atomic_float = "1.1"
 # Time
 chrono = { version = "0.4", features = ["serde"] }
 
+# ZIP archive for .mapp project files
+zip = "2"
+
 [dev-dependencies]
 tempfile = "3"
 
