@@ -246,13 +246,13 @@
     },
     "25": {
       "title": "Transport & Tempo Engine",
-      "status": "planning",
+      "status": "done",
       "epic": 1,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-02-27",
+      "hours": 8.6
     },
     "26": {
       "title": "Global Undo/Redo System",
@@ -463,7 +463,7 @@
       "started": "2026-02-22",
       "completed": null,
       "totalSprints": 8,
-      "completedSprints": 4
+      "completedSprints": 5
     },
     "2": {
       "title": "Authentication & User Management",
