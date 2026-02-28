@@ -3,14 +3,16 @@ sprint: 25
 title: "Transport & Tempo Engine"
 type: fullstack
 epic: 1
-status: planning
+status: in-progress
 created: 2026-02-23T00:00:00Z
-started: null
+started: 2026-02-27T16:22:28Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
 coverage_threshold: 65
 # Justification: Audio thread clock not unit-testable; BBT logic and loop region covered by unit tests; clock jitter verified by integration test
+
+
 ---
 
 # Sprint 25: Transport & Tempo Engine

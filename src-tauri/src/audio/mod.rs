@@ -4,4 +4,6 @@ pub mod commands;
 pub mod devices;
 pub mod engine;
 pub mod graph;
+pub mod metronome;
+pub mod transport;
 pub mod types;

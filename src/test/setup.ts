@@ -4,3 +4,8 @@ import "@testing-library/jest-dom";
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
 }));
+
+// Mock the Tauri event system — listen() returns an unlisten function
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn().mockResolvedValue(() => {}),
+}));

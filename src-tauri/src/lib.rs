@@ -8,8 +8,9 @@ pub mod vst3;
 
 use std::sync::{Arc, Mutex};
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
+use audio::transport::TransportSnapshot;
 use project::commands::{ProjectManager, ProjectManagerState};
 
 #[tauri::command]
@@ -50,6 +51,11 @@ pub fn run() {
             let mut audio_engine = audio::engine::AudioEngine::new();
             audio_engine.set_midi_receiver(midi_rx);
 
+            // Clone the transport snapshot Arc BEFORE moving engine into managed state.
+            // The 60 fps poller needs it without holding the engine mutex.
+            let transport_snapshot: Arc<Mutex<TransportSnapshot>> =
+                audio_engine.transport_snapshot.clone();
+
             let audio_engine: audio::commands::AudioEngineState =
                 Arc::new(Mutex::new(audio_engine));
             app.manage(audio_engine);
@@ -74,6 +80,30 @@ pub fn run() {
                 Arc::new(Mutex::new(ProjectManager::new()));
             app.manage(pm_state.clone());
             log::info!("Project manager initialized");
+
+            // Spawn ~60 fps transport state poller.
+            // Reads the shared TransportSnapshot (updated by the audio thread via try_lock)
+            // and emits a "transport-state" Tauri event only when the snapshot changes.
+            // This keeps the audio thread and the UI decoupled.
+            let app_handle_transport = app.handle().clone();
+            tokio::spawn(async move {
+                let mut last_emitted = TransportSnapshot::default();
+                let mut interval =
+                    tokio::time::interval(std::time::Duration::from_millis(16));
+                loop {
+                    interval.tick().await;
+                    let current = match transport_snapshot.lock() {
+                        Ok(snap) => snap.clone(),
+                        Err(_) => continue,
+                    };
+                    if current != last_emitted {
+                        if let Err(e) = app_handle_transport.emit("transport-state", &current) {
+                            log::warn!("Failed to emit transport-state event: {}", e);
+                        }
+                        last_emitted = current;
+                    }
+                }
+            });
 
             // Spawn auto-save background task (fires every 300 seconds)
             let pm_clone = pm_state.clone();
@@ -124,6 +154,20 @@ pub fn run() {
             audio::commands::set_audio_device,
             audio::commands::set_engine_config,
             audio::commands::set_test_tone,
+            audio::commands::get_transport_state,
+            audio::commands::transport_play,
+            audio::commands::transport_stop,
+            audio::commands::transport_pause,
+            audio::commands::set_bpm,
+            audio::commands::set_time_signature,
+            audio::commands::set_loop_region,
+            audio::commands::toggle_loop,
+            audio::commands::toggle_metronome,
+            audio::commands::set_metronome_volume,
+            audio::commands::set_metronome_pitch,
+            audio::commands::set_record_armed,
+            audio::commands::transport_record,
+            audio::commands::transport_seek,
             midi::commands::get_midi_devices,
             midi::commands::get_midi_status,
             midi::commands::connect_midi_input,

@@ -1,5 +1,5 @@
 use std::sync::atomic::{AtomicU8, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use anyhow::{bail, Context, Result};
 use atomic_float::AtomicF32;
@@ -9,16 +9,47 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 
 use super::devices;
 use super::graph::{AudioGraph, SineTestNode, TripleBuffer};
+use super::metronome::MetronomeNode;
+use super::transport::{TransportAtomics, TransportClock, TransportSnapshot};
 use super::types::*;
 use crate::midi::types::TimestampedMidiEvent;
 
 /// Commands sent from the main thread to the audio callback.
 ///
-/// These are received non-blockingly via `crossbeam_channel::try_recv()`
-/// at the top of each audio buffer.
+/// Received non-blockingly via `crossbeam_channel::try_recv()` at the top
+/// of each audio buffer. Adding new commands here keeps the command channel
+/// as the single control path into the audio thread.
 pub enum AudioCommand {
     /// Swap the audio graph with a new one via the triple buffer.
     SwapGraph(AudioGraph),
+
+    // --- Transport commands (Sprint 25) ---
+    /// Start playback from the current position.
+    TransportPlay,
+    /// Stop playback and reset the playhead to 0 (or loop start).
+    TransportStop,
+    /// Pause playback, holding the current position.
+    TransportPause,
+    /// Start recording (requires record_armed = true).
+    TransportRecord,
+    /// Change BPM. Takes effect within the next buffer period.
+    TransportSetBpm(f64),
+    /// Set time signature numerator and denominator.
+    TransportSetTimeSignature { numerator: u8, denominator: u8 },
+    /// Set loop region in beats (authoritative unit).
+    TransportSetLoopRegion { start_beats: f64, end_beats: f64 },
+    /// Enable or disable loop mode.
+    TransportToggleLoop(bool),
+    /// Enable or disable the metronome click track.
+    TransportToggleMetronome(bool),
+    /// Set metronome click volume (0.0–1.0).
+    TransportSetMetronomeVolume(f32),
+    /// Set metronome click pitch in Hz.
+    TransportSetMetronomePitch(f32),
+    /// Arm or disarm a track for recording.
+    TransportSetRecordArmed(bool),
+    /// Seek to an absolute sample position (only when stopped or paused).
+    TransportSeek(u64),
 }
 
 /// The core audio engine managing cpal stream lifecycle and the audio graph.
@@ -26,6 +57,10 @@ pub enum AudioCommand {
 /// The engine is a state machine: Stopped → Starting → Running → Stopping → Stopped.
 /// Configuration changes (device, sample rate, buffer size) require the engine to be stopped.
 /// The test tone amplitude is controlled via a shared `Arc<AtomicF32>` — no command needed.
+///
+/// The transport clock lives inside the audio stream closure. Main-thread access
+/// to transport state goes through [`AudioEngine::get_transport_snapshot`] and
+/// [`AudioEngine::send_transport_command`].
 pub struct AudioEngine {
     config: EngineConfig,
     state: Arc<AtomicU8>,
@@ -34,10 +69,12 @@ pub struct AudioEngine {
     command_tx: Option<Sender<AudioCommand>>,
     test_tone_active: bool,
     /// Shared amplitude control for the test tone node.
-    /// Set to 0.3 to enable, 0.0 to disable. Lock-free.
     test_tone_amplitude: Arc<AtomicF32>,
     /// Receiver for MIDI events from MidiManager (set before starting engine).
     midi_event_rx: Option<Receiver<TimestampedMidiEvent>>,
+    /// Shared snapshot of transport state. Updated by the audio thread via
+    /// `try_lock`; read by the 60 fps poller and `get_transport_state` IPC.
+    pub transport_snapshot: Arc<Mutex<TransportSnapshot>>,
 }
 
 impl AudioEngine {
@@ -52,6 +89,7 @@ impl AudioEngine {
             test_tone_active: false,
             test_tone_amplitude: Arc::new(AtomicF32::new(0.0)),
             midi_event_rx: None,
+            transport_snapshot: Arc::new(Mutex::new(TransportSnapshot::default())),
         }
     }
 
@@ -73,8 +111,8 @@ impl AudioEngine {
     /// Starts the audio engine with the current configuration.
     ///
     /// Resolves the output device, builds the cpal stream, creates the initial
-    /// audio graph with a sine test node (disabled by default), and begins playback.
-    /// Falls back from ASIO to WASAPI if ASIO fails.
+    /// audio graph with a sine test node (disabled by default) and a metronome
+    /// node, and begins playback. Falls back from ASIO to WASAPI if ASIO fails.
     pub fn start(&mut self) -> Result<()> {
         let current = self.state.load(Ordering::Relaxed);
         if current != STATE_STOPPED {
@@ -106,6 +144,9 @@ impl AudioEngine {
     }
 
     /// Stops the audio engine and releases the audio stream.
+    ///
+    /// The transport clock is dropped with the stream. The snapshot is updated
+    /// to reflect the stopped state so IPC callers see accurate state.
     pub fn stop(&mut self) -> Result<()> {
         let current = self.state.load(Ordering::Relaxed);
         if current != STATE_RUNNING {
@@ -118,12 +159,19 @@ impl AudioEngine {
         self.state.store(STATE_STOPPING, Ordering::Release);
         log::info!("Stopping audio engine");
 
-        // Drop the stream to stop audio
+        // Drop the stream — this drops the TransportClock inside the closure too
         self.stream = None;
         self.command_tx = None;
         self.active_host_type = None;
         self.test_tone_active = false;
         self.test_tone_amplitude.store(0.0, Ordering::Release);
+
+        // Reset the transport snapshot to reflect stopped state
+        if let Ok(mut snap) = self.transport_snapshot.lock() {
+            snap.state = "stopped".to_string();
+            snap.position_samples = 0;
+            snap.bbt = crate::audio::transport::BbtPosition::origin();
+        }
 
         self.state.store(STATE_STOPPED, Ordering::Release);
         log::info!("Audio engine stopped");
@@ -208,8 +256,7 @@ impl AudioEngine {
 
     /// Toggles the 440 Hz test tone on or off.
     ///
-    /// This is lock-free — it writes to a shared `AtomicF32` that the audio
-    /// thread reads on every buffer. No command channel needed.
+    /// Lock-free — writes to a shared `AtomicF32` read by the audio thread.
     pub fn set_test_tone(&mut self, enabled: bool) -> Result<()> {
         let amplitude = if enabled { 0.3 } else { 0.0 };
         self.test_tone_amplitude.store(amplitude, Ordering::Release);
@@ -218,11 +265,33 @@ impl AudioEngine {
         Ok(())
     }
 
+    /// Sends a transport command to the audio thread. Non-blocking.
+    ///
+    /// Returns an error if the engine is not running or the command channel is full.
+    pub fn send_transport_command(&self, cmd: AudioCommand) -> Result<()> {
+        let tx = self
+            .command_tx
+            .as_ref()
+            .context("Audio engine is not running — start the engine first")?;
+        tx.try_send(cmd)
+            .map_err(|e| anyhow::anyhow!("Transport command channel full: {}", e))?;
+        Ok(())
+    }
+
+    /// Returns a clone of the current transport snapshot.
+    ///
+    /// Safe to call whether the engine is running or stopped.
+    pub fn get_transport_snapshot(&self) -> Result<TransportSnapshot> {
+        self.transport_snapshot
+            .lock()
+            .map(|s| s.clone())
+            .map_err(|e| anyhow::anyhow!("Transport snapshot mutex poisoned: {}", e))
+    }
+
     /// Internal: attempts to start the engine with the preferred host.
     fn try_start_with_preferred_host(&mut self) -> Result<()> {
         let (host, host_type) = devices::get_preferred_host()?;
 
-        // Resolve output device
         let device = if let Some(ref name) = self.config.output_device {
             devices::find_output_device(&host, name)?
         } else {
@@ -244,7 +313,7 @@ impl AudioEngine {
     ) -> Result<()> {
         let sample_rate = cpal::SampleRate(self.config.sample_rate);
         let buffer_size = cpal::BufferSize::Fixed(self.config.buffer_size);
-        let channels: u16 = 2; // Stereo output
+        let channels: u16 = 2;
 
         let stream_config = cpal::StreamConfig {
             channels,
@@ -256,20 +325,28 @@ impl AudioEngine {
         let (command_tx, command_rx) = bounded::<AudioCommand>(64);
 
         // Build the initial audio graph
-        let max_buf = 1024; // Max buffer size we support
+        let max_buf = 1024;
         let max_ch = 2;
         let mut initial_graph = AudioGraph::new(max_buf, max_ch);
 
-        // Add a test tone node with shared amplitude control
-        // Starts at 0.0 (silent) — toggled via set_test_tone()
+        // Test tone node (starts silent — toggled via set_test_tone())
         self.test_tone_amplitude.store(0.0, Ordering::Release);
         let test_node = SineTestNode::with_shared_amplitude(self.test_tone_amplitude.clone());
         initial_graph.add_node(Box::new(test_node));
 
+        // Create transport atomics and clock
+        let sr = self.config.sample_rate;
+        let atomics = TransportAtomics::new(120.0, sr);
+        let snapshot_arc = self.transport_snapshot.clone();
+        let mut clock = TransportClock::new(sr, atomics.clone(), snapshot_arc);
+
+        // Add MetronomeNode to the graph — shares the transport atomics
+        let metronome = MetronomeNode::new(atomics, sr);
+        initial_graph.add_node(Box::new(metronome));
+
         // Create the triple buffer
         let mut triple_buf = TripleBuffer::new(initial_graph);
 
-        let sr = self.config.sample_rate;
         let ch = channels;
         let state = self.state.clone();
         let midi_rx = self.midi_event_rx.take();
@@ -278,14 +355,28 @@ impl AudioEngine {
             .build_output_stream(
                 &stream_config,
                 move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-                    audio_callback(data, &mut triple_buf, &command_rx, midi_rx.as_ref(), sr, ch, &state);
+                    audio_callback(
+                        data,
+                        &mut triple_buf,
+                        &mut clock,
+                        &command_rx,
+                        midi_rx.as_ref(),
+                        sr,
+                        ch,
+                        &state,
+                    );
                 },
                 move |err| {
                     log::error!("Audio stream error: {}", err);
                 },
-                None, // No timeout
+                None,
             )
             .context("Failed to build output stream")?;
+
+        // `clock` is moved into the closure; make the borrow work by using an inner scope
+        // The closure already owns clock. The variable binding above is moved.
+
+        // `clock`, `triple_buf`, `command_rx`, `midi_rx` are all moved into the closure.
 
         stream.play().context("Failed to start audio stream")?;
 
@@ -305,22 +396,18 @@ impl Default for AudioEngine {
 }
 
 // Safety: On Windows, cpal::Stream is safe to move between threads.
-// The `!Send` marker in cpal is a blanket safety measure across all platforms.
-// AudioEngine is only accessed through a Mutex, ensuring exclusive access.
+// AudioEngine is only ever accessed through a Mutex.
 unsafe impl Send for AudioEngine {}
-// Safety: AudioEngine is always accessed through Arc<Mutex<>>,
-// which provides synchronization. The Mutex ensures only one thread
-// accesses the engine at a time.
 unsafe impl Sync for AudioEngine {}
 
 /// The real-time audio callback. Runs on cpal's audio thread.
 ///
-/// This function must NEVER allocate, block, or use mutexes.
-/// It drains the command channel and MIDI events, swaps the graph if needed,
-/// and processes the current graph.
+/// This function must NEVER allocate, block, or use mutexes except via
+/// `try_lock` (which is non-blocking).
 fn audio_callback(
     data: &mut [f32],
     triple_buf: &mut TripleBuffer,
+    clock: &mut TransportClock,
     command_rx: &Receiver<AudioCommand>,
     midi_rx: Option<&Receiver<TimestampedMidiEvent>>,
     sample_rate: u32,
@@ -333,23 +420,52 @@ fn audio_callback(
             AudioCommand::SwapGraph(new_graph) => {
                 triple_buf.publish(new_graph);
             }
+            // --- Transport commands ---
+            AudioCommand::TransportPlay => clock.apply_play(),
+            AudioCommand::TransportStop => clock.apply_stop(),
+            AudioCommand::TransportPause => clock.apply_pause(),
+            AudioCommand::TransportRecord => clock.apply_record(),
+            AudioCommand::TransportSetBpm(bpm) => clock.apply_set_bpm(bpm),
+            AudioCommand::TransportSetTimeSignature {
+                numerator,
+                denominator,
+            } => clock.apply_set_time_signature(numerator, denominator),
+            AudioCommand::TransportSetLoopRegion {
+                start_beats,
+                end_beats,
+            } => clock.apply_set_loop_region(start_beats, end_beats),
+            AudioCommand::TransportToggleLoop(enabled) => clock.apply_toggle_loop(enabled),
+            AudioCommand::TransportToggleMetronome(enabled) => {
+                clock.apply_toggle_metronome(enabled)
+            }
+            AudioCommand::TransportSetMetronomeVolume(vol) => {
+                clock.apply_set_metronome_volume(vol)
+            }
+            AudioCommand::TransportSetMetronomePitch(pitch) => {
+                clock.apply_set_metronome_pitch(pitch)
+            }
+            AudioCommand::TransportSetRecordArmed(armed) => {
+                clock.apply_set_record_armed(armed)
+            }
+            AudioCommand::TransportSeek(pos) => clock.apply_seek(pos),
         }
     }
 
     // Drain MIDI events (non-blocking)
-    // For now, events are consumed but not routed to instruments (no instruments yet).
-    // This proves the pipeline works end-to-end. Routing comes in Sprints 6-9.
     if let Some(rx) = midi_rx {
         while let Ok(_midi_event) = rx.try_recv() {
-            // Events consumed — instrument routing will be added in future sprints
+            // Events consumed — instrument routing added in future sprints
         }
     }
+
+    // Advance the transport clock by this buffer's frame count
+    let buffer_frames = data.len() / channels as usize;
+    clock.advance(buffer_frames);
 
     // Process the current graph
     if let Some(graph) = triple_buf.read() {
         graph.process(data, sample_rate, channels);
     } else {
-        // No graph available — output silence
         for s in data.iter_mut() {
             *s = 0.0;
         }
@@ -399,12 +515,10 @@ mod tests {
         let mut engine = AudioEngine::new();
         let result = engine.set_config(Some(96000), None);
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Invalid sample rate")
-        );
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid sample rate"));
     }
 
     #[test]
@@ -412,12 +526,10 @@ mod tests {
         let mut engine = AudioEngine::new();
         let result = engine.set_config(None, Some(64));
         assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Invalid buffer size")
-        );
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid buffer size"));
     }
 
     #[test]
@@ -461,21 +573,49 @@ mod tests {
     #[test]
     fn test_set_config_partial_update() {
         let mut engine = AudioEngine::new();
-        // Only update sample rate
         engine.set_config(Some(48000), None).unwrap();
         assert_eq!(engine.config.sample_rate, 48000);
-        assert_eq!(engine.config.buffer_size, 256); // unchanged
+        assert_eq!(engine.config.buffer_size, 256);
 
-        // Only update buffer size
         engine.set_config(None, Some(1024)).unwrap();
-        assert_eq!(engine.config.sample_rate, 48000); // unchanged
+        assert_eq!(engine.config.sample_rate, 48000);
         assert_eq!(engine.config.buffer_size, 1024);
+    }
+
+    #[test]
+    fn test_send_transport_command_when_stopped_errors() {
+        let engine = AudioEngine::new();
+        let result = engine.send_transport_command(AudioCommand::TransportPlay);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("not running"));
+    }
+
+    #[test]
+    fn test_get_transport_snapshot_when_stopped() {
+        let engine = AudioEngine::new();
+        let snap = engine.get_transport_snapshot().unwrap();
+        assert_eq!(snap.state, "stopped");
+        assert_eq!(snap.bpm, 120.0);
+    }
+
+    #[test]
+    fn test_transport_snapshot_initialized() {
+        let engine = AudioEngine::new();
+        let snap = engine.get_transport_snapshot().unwrap();
+        assert_eq!(snap.state, "stopped");
+        assert_eq!(snap.position_samples, 0);
+        assert_eq!(snap.time_sig_numerator, 4);
+        assert_eq!(snap.time_sig_denominator, 4);
+        assert!(!snap.loop_enabled);
+        assert!(!snap.metronome_enabled);
     }
 
     #[test]
     #[ignore] // Requires audio hardware; ASIO cleanup can segfault in test harness
     fn test_start_and_stop_engine() {
-        // Integration test — requires audio hardware
         let mut engine = AudioEngine::new();
         let start_result = engine.start();
 
@@ -490,7 +630,6 @@ mod tests {
             assert!(stop_result.is_ok());
             assert_eq!(engine.current_state(), STATE_STOPPED);
         } else {
-            // If no audio device available (CI environment), that's ok
             log::warn!(
                 "Could not start engine (no audio device?): {}",
                 start_result.unwrap_err()

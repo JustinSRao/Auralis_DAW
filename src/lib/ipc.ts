@@ -335,3 +335,113 @@ export async function markProjectDirty(
 ): Promise<void> {
   return invoke<void>("mark_project_dirty", { project, filePath });
 }
+
+// --- Transport types (mirror Rust audio::transport) ---
+
+/** Transport playback state. */
+export type TransportPlaybackState = "stopped" | "playing" | "paused" | "recording";
+
+/** Bars:beats:ticks position. bar and beat are 1-indexed; tick is 0-indexed. */
+export interface BbtPosition {
+  bar: number;
+  beat: number;
+  tick: number;
+}
+
+/** Snapshot of all transport state. Payload of the "transport-state" Tauri event. */
+export interface TransportSnapshot {
+  state: TransportPlaybackState;
+  position_samples: number;
+  bbt: BbtPosition;
+  bpm: number;
+  time_sig_numerator: number;
+  time_sig_denominator: number;
+  loop_enabled: boolean;
+  loop_start_samples: number;
+  loop_end_samples: number;
+  metronome_enabled: boolean;
+  metronome_volume: number;
+  metronome_pitch_hz: number;
+  record_armed: boolean;
+}
+
+// --- Transport commands ---
+
+/** Returns the current transport state snapshot. */
+export async function getTransportState(): Promise<TransportSnapshot> {
+  return invoke<TransportSnapshot>("get_transport_state");
+}
+
+/** Starts playback from the current position. Engine must be running. */
+export async function transportPlay(): Promise<void> {
+  return invoke<void>("transport_play");
+}
+
+/** Stops playback and resets the playhead. Engine must be running. */
+export async function transportStop(): Promise<void> {
+  return invoke<void>("transport_stop");
+}
+
+/** Pauses playback, holding the current position. Engine must be running. */
+export async function transportPause(): Promise<void> {
+  return invoke<void>("transport_pause");
+}
+
+/** Sets the BPM (20–300). Takes effect within one audio buffer period. */
+export async function setBpm(bpm: number): Promise<void> {
+  return invoke<void>("set_bpm", { bpm });
+}
+
+/** Sets the time signature (e.g. 4/4 = numerator 4, denominator 4). */
+export async function setTimeSignature(
+  numerator: number,
+  denominator: number,
+): Promise<void> {
+  return invoke<void>("set_time_signature", { numerator, denominator });
+}
+
+/** Sets the loop region in beats. start must be less than end, both ≥ 0. */
+export async function setLoopRegion(
+  startBeats: number,
+  endBeats: number,
+): Promise<void> {
+  return invoke<void>("set_loop_region", {
+    startBeats,
+    endBeats,
+  });
+}
+
+/** Enables or disables loop mode. */
+export async function toggleLoop(enabled: boolean): Promise<void> {
+  return invoke<void>("toggle_loop", { enabled });
+}
+
+/** Enables or disables the metronome click track. */
+export async function toggleMetronome(enabled: boolean): Promise<void> {
+  return invoke<void>("toggle_metronome", { enabled });
+}
+
+/** Sets metronome click volume (0.0–1.0). */
+export async function setMetronomeVolume(volume: number): Promise<void> {
+  return invoke<void>("set_metronome_volume", { volume });
+}
+
+/** Sets metronome click pitch in Hz (200–5000). */
+export async function setMetronomePitch(pitchHz: number): Promise<void> {
+  return invoke<void>("set_metronome_pitch", { pitchHz });
+}
+
+/** Arms or disarms a track for recording. */
+export async function setRecordArmed(armed: boolean): Promise<void> {
+  return invoke<void>("set_record_armed", { armed });
+}
+
+/** Starts recording. Track must already be armed via `setRecordArmed`. */
+export async function transportRecord(): Promise<void> {
+  return invoke<void>("transport_record");
+}
+
+/** Seeks the playhead to a specific sample position. Only valid while paused or stopped. */
+export async function transportSeek(positionSamples: number): Promise<void> {
+  return invoke<void>("transport_seek", { positionSamples });
+}
