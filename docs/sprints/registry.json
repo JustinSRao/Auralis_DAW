@@ -296,13 +296,13 @@
     },
     "30": {
       "title": "Main DAW Shell & Track Management",
-      "status": "planning",
+      "status": "done",
       "epic": 1,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-01",
+      "hours": 10.6
     },
     "31": {
       "title": "Arrangement Playback Engine",
@@ -463,7 +463,7 @@
       "started": "2026-02-22",
       "completed": null,
       "totalSprints": 8,
-      "completedSprints": 6
+      "completedSprints": 7
     },
     "2": {
       "title": "Authentication & User Management",

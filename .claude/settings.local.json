@@ -46,7 +46,10 @@
       "Bash(find:*)",
       "Skill(sprint-add-to-epic)",
       "Bash(npm test:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test:*)",
+      "Bash(grep:*)",
+      "Skill(sprint-complete)"
     ]
   }
 }
