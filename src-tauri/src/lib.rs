@@ -12,6 +12,9 @@ use tauri::{Emitter, Manager};
 
 use audio::transport::TransportSnapshot;
 use project::commands::{ProjectManager, ProjectManagerState};
+use project::track_commands::{
+    create_track, delete_track, rename_track, reorder_tracks, set_track_color,
+};
 
 #[tauri::command]
 fn get_version() -> String {
@@ -179,6 +182,11 @@ pub fn run() {
             project::commands::load_project,
             project::commands::get_recent_projects,
             project::commands::mark_project_dirty,
+            create_track,
+            rename_track,
+            delete_track,
+            reorder_tracks,
+            set_track_color,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

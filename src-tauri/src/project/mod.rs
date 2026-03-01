@@ -14,4 +14,6 @@ pub mod commands;
 pub mod format;
 pub mod io;
 pub mod recent;
+pub mod track;
+pub mod track_commands;
 pub mod version;

@@ -445,3 +445,47 @@ export async function transportRecord(): Promise<void> {
 export async function transportSeek(positionSamples: number): Promise<void> {
   return invoke<void>("transport_seek", { positionSamples });
 }
+
+// ── Track Management ──────────────────────────────────────────────────
+
+/** Runtime classification of a DAW track (distinct from the on-disk TrackType). */
+export type DawTrackKind = "Midi" | "Audio" | "Instrument";
+
+/** Lightweight runtime track model returned by the track management commands. */
+export interface DawTrack {
+  id: string;
+  name: string;
+  kind: DawTrackKind;
+  color: string;
+  volume: number;
+  pan: number;
+  muted: boolean;
+  soloed: boolean;
+  armed: boolean;
+  instrumentId: string | null;
+}
+
+/** Creates a new track with the given kind and name. Returns the created track with a server-assigned UUID. */
+export async function ipcCreateTrack(kind: DawTrackKind, name: string): Promise<DawTrack> {
+  return invoke<DawTrack>("create_track", { kind, name });
+}
+
+/** Renames an existing track by its UUID. */
+export async function ipcRenameTrack(id: string, name: string): Promise<void> {
+  return invoke<void>("rename_track", { id, name });
+}
+
+/** Deletes a track by its UUID. */
+export async function ipcDeleteTrack(id: string): Promise<void> {
+  return invoke<void>("delete_track", { id });
+}
+
+/** Persists the new display order for all tracks. `ids` must be a permutation of all existing track UUIDs. */
+export async function ipcReorderTracks(ids: string[]): Promise<void> {
+  return invoke<void>("reorder_tracks", { ids });
+}
+
+/** Updates the display color of a track by its UUID. `color` is a CSS hex string (e.g. "#ff0000"). */
+export async function ipcSetTrackColor(id: string, color: string): Promise<void> {
+  return invoke<void>("set_track_color", { id, color });
+}
