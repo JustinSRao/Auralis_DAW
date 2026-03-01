@@ -43,7 +43,10 @@
       "Bash(PYTHONIOENCODING=utf-8 python3:*)",
       "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application/src-tauri && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test --lib 2>&1)",
       "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application/src-tauri && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test project --lib 2>&1)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Skill(sprint-add-to-epic)",
+      "Bash(npm test:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

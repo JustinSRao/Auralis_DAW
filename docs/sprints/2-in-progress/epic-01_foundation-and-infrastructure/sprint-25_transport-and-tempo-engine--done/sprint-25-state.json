@@ -1,0 +1,69 @@
+{
+  "sprint_number": 25,
+  "sprint_file": "docs\\sprints\\2-in-progress\\epic-01_foundation-and-infrastructure\\sprint-25_transport-and-tempo-engine\\sprint-25_transport-and-tempo-engine.md",
+  "sprint_title": "Transport & Tempo Engine",
+  "status": "complete",
+  "current_phase": 4,
+  "current_step": "4.4",
+  "started_at": "2026-02-27T16:22:28Z",
+  "workflow_version": "3.0",
+  "completed_steps": [
+    {
+      "step": "1.1",
+      "completed_at": "2026-02-27T16:22:34.717400"
+    },
+    {
+      "step": "1.2",
+      "completed_at": "2026-02-27T16:27:11.315027"
+    },
+    {
+      "step": "1.3",
+      "completed_at": "2026-02-27T16:28:19.273692"
+    },
+    {
+      "step": "1.4",
+      "completed_at": "2026-02-27T16:28:21.876093"
+    },
+    {
+      "step": "2.1",
+      "completed_at": "2026-02-27T16:49:14.217932"
+    },
+    {
+      "step": "2.2",
+      "completed_at": "2026-02-27T16:49:23.335091"
+    },
+    {
+      "step": "2.3",
+      "completed_at": "2026-02-27T16:49:23.619142"
+    },
+    {
+      "step": "3.1",
+      "completed_at": "2026-02-27T16:49:23.875500"
+    },
+    {
+      "step": "3.2",
+      "completed_at": "2026-02-27T16:49:26.541644"
+    },
+    {
+      "step": "3.3",
+      "completed_at": "2026-02-27T16:49:29.175279"
+    },
+    {
+      "step": "3.4",
+      "completed_at": "2026-02-27T16:53:24.598162"
+    },
+    {
+      "step": "4.1",
+      "completed_at": "2026-02-27T16:53:24.870336"
+    },
+    {
+      "step": "4.2",
+      "completed_at": "2026-02-27T16:53:25.140931"
+    },
+    {
+      "step": "4.3",
+      "completed_at": "2026-02-27T16:53:49.226700"
+    }
+  ],
+  "completed_at": "2026-02-27T16:58:52.190983-08:00"
+}

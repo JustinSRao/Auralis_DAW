@@ -256,13 +256,13 @@
     },
     "26": {
       "title": "Global Undo/Redo System",
-      "status": "planning",
+      "status": "done",
       "epic": 1,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-02-28",
+      "hours": 9.0
     },
     "27": {
       "title": "Settings & Preferences UI",
@@ -463,7 +463,7 @@
       "started": "2026-02-22",
       "completed": null,
       "totalSprints": 8,
-      "completedSprints": 5
+      "completedSprints": 6
     },
     "2": {
       "title": "Authentication & User Management",
