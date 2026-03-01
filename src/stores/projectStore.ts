@@ -37,6 +37,8 @@ export interface ProjectState {
   addTrack: (track: Track) => void;
   removeTrack: (id: string) => void;
   updateTrack: (id: string, updates: Partial<Track>) => void;
+  /** Rename the pattern identified by `patternId` to `name`. No-op when the id is not found. */
+  renamePattern: (patternId: string, name: string) => void;
 }
 
 export const useProjectStore = create<ProjectState>()(
@@ -61,6 +63,10 @@ export const useProjectStore = create<ProjectState>()(
     updateTrack: (id, updates) => set((state) => {
       const track = state.tracks.find((t) => t.id === id);
       if (track) Object.assign(track, updates);
+    }),
+    renamePattern: (patternId, name) => set((state) => {
+      const pattern = state.patterns.find((p) => p.id === patternId);
+      if (pattern) pattern.name = name;
     }),
   }))
 );

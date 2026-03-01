@@ -68,7 +68,8 @@ Dynamics processors are essential mixing tools. A compressor tames loud peaks an
 
 ## Dependencies
 
-- **Sprints**: Sprint 17 (mixer insert slots), Sprint 21 (effect chain — compressor is an insertable effect)
+- **Sprints**: Sprint 17 (mixer insert slots)
+- **Note**: Sprint 21 (Effect Chain) runs after this sprint and integrates the compressor/limiter/gate as insertable types. Sprint 20 must run before Sprint 21, not the reverse.
 - **External**: None (pure Rust DSP)
 
 ## Scope

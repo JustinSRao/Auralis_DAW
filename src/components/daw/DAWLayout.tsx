@@ -2,8 +2,12 @@ import { AudioSettingsPanel } from "@/components/audio/AudioSettingsPanel";
 import { MidiSettingsPanel } from "@/components/midi/MidiSettingsPanel";
 import { ProjectToolbar } from "@/components/daw/ProjectToolbar";
 import { TransportBar } from "@/components/daw/TransportBar";
+import { HistoryPanel } from "@/components/daw/HistoryPanel";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
 
 export function DAWLayout() {
+  useUndoRedo();
+
   return (
     <div className="flex flex-col h-full bg-[#1a1a1a]">
       {/* Top toolbar */}
@@ -17,9 +21,12 @@ export function DAWLayout() {
 
       {/* Main content area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left panel — instruments/browser */}
-        <div className="w-64 bg-[#242424] border-r border-[#3a3a3a] flex items-center justify-center">
-          <span className="text-[#888888] text-xs">Instrument Browser</span>
+        {/* Left panel — history + instruments/browser */}
+        <div className="w-64 bg-[#242424] border-r border-[#3a3a3a] flex flex-col">
+          <HistoryPanel />
+          <div className="flex-1 flex items-center justify-center">
+            <span className="text-[#888888] text-xs">Instrument Browser</span>
+          </div>
         </div>
 
         {/* Center — Timeline / Piano Roll */}

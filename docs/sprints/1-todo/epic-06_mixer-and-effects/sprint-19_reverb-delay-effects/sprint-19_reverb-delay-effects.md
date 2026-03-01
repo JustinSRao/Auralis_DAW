@@ -65,7 +65,8 @@ Reverb and delay are the two most commonly used time-based effects in music prod
 
 ## Dependencies
 
-- **Sprints**: Sprint 17 (mixer insert slots), Sprint 21 (effect chain integration), Sprint 2 (master BPM for delay tempo sync)
+- **Sprints**: Sprint 17 (mixer insert slots), Sprint 2 (master BPM for delay tempo sync)
+- **Note**: Sprint 21 (Effect Chain) runs after this sprint and integrates Reverb/Delay as insertable types. Sprint 19 must run before Sprint 21, not the reverse.
 - **External**: None (pure Rust DSP)
 
 ## Scope

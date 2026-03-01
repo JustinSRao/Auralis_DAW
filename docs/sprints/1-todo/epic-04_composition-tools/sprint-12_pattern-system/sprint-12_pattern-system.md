@@ -55,7 +55,8 @@ DAWs organize music into reusable blocks called patterns (also called clips or s
 
 ## Dependencies
 
-- **Sprints**: Sprint 4 (project file system — patterns stored in project state), Sprint 11 (piano roll opens to edit a pattern's MIDI note list)
+- **Sprints**: Sprint 4 (project file system — patterns stored in project state)
+- **Note**: Sprint 11 (Piano Roll) depends on this sprint, not the reverse. Sprint 12 must run before Sprint 11.
 - **External**: None
 
 ## Scope

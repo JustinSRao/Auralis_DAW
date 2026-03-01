@@ -56,7 +56,8 @@ EQ is the most essential mixing tool — it lets engineers shape the tonal chara
 
 ## Dependencies
 
-- **Sprints**: Sprint 17 (mixer insert slots — EQ plugin inserted into a channel's effect chain), Sprint 21 (effect chain integration — EQ is one of the insertable effect types)
+- **Sprints**: Sprint 17 (mixer insert slots — EQ plugin inserted into a channel's effect chain)
+- **Note**: Sprint 21 (Effect Chain) runs after this sprint and integrates EQ as an insertable type. Sprint 18 must run before Sprint 21, not the reverse.
 - **External**: None (biquad DSP implemented in pure Rust)
 
 ## Scope

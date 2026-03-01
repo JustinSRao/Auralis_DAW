@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import type { ProjectFileData, RecentProject } from "../lib/ipc";
+import { useHistoryStore } from "./historyStore";
 import {
   getRecentProjects,
   loadProject,
@@ -49,6 +50,8 @@ export const useFileStore = create<FileStoreState>()(
           state.lastSavedAt = null;
           state.error = null;
         });
+        // Clear undo/redo history — prior commands belong to the previous project.
+        useHistoryStore.getState().clear();
       } catch (e) {
         set((state) => {
           state.error = String(e);
@@ -85,6 +88,8 @@ export const useFileStore = create<FileStoreState>()(
           state.lastSavedAt = project.modified_at;
           state.error = null;
         });
+        // Clear undo/redo history — prior commands belong to the previous project.
+        useHistoryStore.getState().clear();
       } catch (e) {
         set((state) => {
           state.error = String(e);
