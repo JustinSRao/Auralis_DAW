@@ -6,6 +6,20 @@ import { MenuBar } from "../MenuBar";
 // Mocks
 // ---------------------------------------------------------------------------
 
+// authStore
+const mockLogout = vi.fn();
+
+vi.mock("@/stores/authStore", () => ({
+  useAuthStore: vi.fn(() => ({
+    currentUser: {
+      id: "u1",
+      username: "TestUser",
+      created_at: "2026-01-01T00:00:00Z",
+    },
+    logout: mockLogout,
+  })),
+}));
+
 // historyStore
 const mockUndo = vi.fn();
 const mockRedo = vi.fn();
@@ -93,6 +107,7 @@ function resetMocks() {
   mockToggleBrowser.mockReset();
   mockToggleMixer.mockReset();
   mockToggleFollowPlayhead.mockReset();
+  mockLogout.mockReset();
 
   mockHistoryState = {
     ...mockHistoryState,
@@ -309,5 +324,39 @@ describe("MenuBar", () => {
     fireEvent.click(browserItem);
 
     expect(mockToggleBrowser).toHaveBeenCalledTimes(1);
+  });
+
+  // -------------------------------------------------------------------------
+  // Auth — username display and logout
+  // -------------------------------------------------------------------------
+
+  it("renders the current username in the menu bar", () => {
+    render(<MenuBar />);
+    expect(screen.getByText(/TestUser/)).toBeInTheDocument();
+  });
+
+  it('clicking "Log Out" calls the logout action', () => {
+    mockLogout.mockResolvedValue(undefined);
+    render(<MenuBar />);
+
+    // Log Out may be in a user dropdown or directly visible — click it
+    const logoutBtn =
+      screen.queryByRole("button", { name: /log.?out|sign.?out/i }) ??
+      screen.queryByText(/log.?out|sign.?out/i);
+
+    // If it's behind a menu, open the user menu first
+    if (!logoutBtn) {
+      const userTrigger =
+        screen.queryByRole("button", { name: /TestUser/i }) ??
+        screen.queryByText(/TestUser/);
+      if (userTrigger) fireEvent.click(userTrigger);
+    }
+
+    const btn =
+      screen.getByRole("button", { name: /log.?out|sign.?out/i }) ??
+      screen.getByText(/log.?out|sign.?out/i);
+    fireEvent.click(btn);
+
+    expect(mockLogout).toHaveBeenCalledTimes(1);
   });
 });
