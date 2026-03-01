@@ -1,11 +1,20 @@
-// Placeholder — implemented in Sprint 5 (Authentication)
+import { useState } from 'react';
+import { LoginPage } from './LoginPage';
+import { RegisterPage } from './RegisterPage';
+import { ProfileSwitcher } from './ProfileSwitcher';
+
+type AuthView = 'login' | 'register' | 'profile-switcher';
+
 export function AuthScreen() {
-  return (
-    <div className="flex items-center justify-center h-full bg-[#1a1a1a]">
-      <div className="text-center text-[#888888]">
-        <h1 className="text-2xl font-bold text-[#e8e8e8] mb-2">Music Application</h1>
-        <p>Authentication coming in Sprint 5</p>
-      </div>
-    </div>
-  );
+  const [view, setView] = useState<AuthView>('login');
+
+  if (view === 'register') {
+    return <RegisterPage onNavigate={setView} />;
+  }
+
+  if (view === 'profile-switcher') {
+    return <ProfileSwitcher onNavigate={setView} />;
+  }
+
+  return <LoginPage onNavigate={setView} />;
 }

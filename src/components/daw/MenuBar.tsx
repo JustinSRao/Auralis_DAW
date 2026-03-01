@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react';
 import { useFileStore } from '@/stores/fileStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { useKeyboardStore } from '@/stores/keyboardStore';
+import { useAuthStore } from '@/stores/authStore';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,6 +52,7 @@ export function MenuBar() {
   const { filePath, recentProjects, save, open, createNewProject } = useFileStore();
   const { canUndo, canRedo, undo, redo } = useHistoryStore();
   const { browserOpen, mixerOpen, toggleBrowser, toggleMixer } = useKeyboardStore();
+  const { currentUser, logout } = useAuthStore();
 
   const [openMenu, setOpenMenu] = useState<MenuId>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -305,6 +307,22 @@ export function MenuBar() {
               About MusicApp
             </button>
           </div>
+        )}
+      </div>
+
+      {/* ── User section (right-aligned) ── */}
+      <div className="ml-auto flex items-center gap-2">
+        {currentUser && (
+          <>
+            <span className="text-xs text-[#888888]">{currentUser.username}</span>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="text-xs text-[#888888] hover:text-[#cccccc] px-2 py-1 rounded hover:bg-[#2a2a2a] transition-colors"
+            >
+              Log Out
+            </button>
+          </>
         )}
       </div>
     </div>

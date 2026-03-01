@@ -1,11 +1,18 @@
 use super::{db, models::*};
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-    Argon2,
+    Algorithm, Argon2, Params, Version,
 };
 use chrono::Utc;
 use tauri::Manager;
 use uuid::Uuid;
+
+/// Returns an Argon2id instance with the required security parameters:
+/// memory=65536 KiB, iterations=2, parallelism=1.
+fn argon2_instance() -> Result<Argon2<'static>, String> {
+    let params = Params::new(65536, 2, 1, None).map_err(|e| e.to_string())?;
+    Ok(Argon2::new(Algorithm::Argon2id, Version::V0x13, params))
+}
 
 #[tauri::command]
 pub async fn login(
@@ -29,9 +36,8 @@ pub async fn login(
         }),
         Some((id, hash, created_at)) => {
             let parsed_hash = PasswordHash::new(&hash).map_err(|e| e.to_string())?;
-            let valid = Argon2::default()
-                .verify_password(password.as_bytes(), &parsed_hash)
-                .is_ok();
+            let argon2 = argon2_instance()?;
+            let valid = argon2.verify_password(password.as_bytes(), &parsed_hash).is_ok();
 
             if valid {
                 Ok(AuthResponse {
@@ -75,7 +81,8 @@ pub async fn register(
     }
 
     let salt = SaltString::generate(&mut OsRng);
-    let hash = Argon2::default()
+    let argon2 = argon2_instance()?;
+    let hash = argon2
         .hash_password(password.as_bytes(), &salt)
         .map_err(|e| e.to_string())?
         .to_string();
@@ -114,4 +121,48 @@ pub async fn list_users(app: tauri::AppHandle) -> Result<Vec<User>, String> {
         .collect();
 
     Ok(users)
+}
+
+/// Validates a stored user ID against the database.
+/// Returns `None` if the user no longer exists (e.g., DB was wiped while localStorage still had a session).
+#[tauri::command]
+pub async fn get_current_user(
+    app: tauri::AppHandle,
+    user_id: String,
+) -> Result<Option<User>, String> {
+    let db_path = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("music_app.db");
+
+    match db::find_user_by_id(&db_path, &user_id).map_err(|e| e.to_string())? {
+        None => Ok(None),
+        Some((username, created_at)) => Ok(Some(User { id: user_id, username, created_at })),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_argon2_instance_uses_required_params() {
+        let argon2 = argon2_instance().unwrap();
+        let salt = SaltString::generate(&mut OsRng);
+        let hash = argon2.hash_password(b"testpassword", &salt).unwrap().to_string();
+        assert!(hash.contains("m=65536"), "expected m=65536 in hash: {hash}");
+        assert!(hash.contains("t=2"), "expected t=2 in hash: {hash}");
+        assert!(hash.contains("p=1"), "expected p=1 in hash: {hash}");
+    }
+
+    #[test]
+    fn test_argon2_verify_valid_and_invalid_password() {
+        let argon2 = argon2_instance().unwrap();
+        let salt = SaltString::generate(&mut OsRng);
+        let hash = argon2.hash_password(b"hunter2", &salt).unwrap().to_string();
+        let parsed = PasswordHash::new(&hash).unwrap();
+        assert!(argon2.verify_password(b"hunter2", &parsed).is_ok());
+        assert!(argon2.verify_password(b"wrong", &parsed).is_err());
+    }
 }

@@ -150,6 +150,7 @@ pub fn run() {
             auth::commands::register,
             auth::commands::logout,
             auth::commands::list_users,
+            auth::commands::get_current_user,
             audio::commands::get_audio_devices,
             audio::commands::get_engine_status,
             audio::commands::start_engine,

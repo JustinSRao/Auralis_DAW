@@ -63,6 +63,23 @@ pub fn create_user(
     Ok(())
 }
 
+/// Looks up a user by their UUID, returning `(username, created_at)` if found.
+pub fn find_user_by_id(
+    db_path: &Path,
+    id: &str,
+) -> Result<Option<(String, String)>> {
+    let conn = Connection::open(db_path)?;
+    let mut stmt = conn.prepare(
+        "SELECT username, created_at FROM users WHERE id = ?1",
+    )?;
+    let result = stmt
+        .query_row(params![id], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .ok();
+    Ok(result)
+}
+
 /// Returns all users sorted by username as `(id, username, created_at)` tuples.
 pub fn list_users(db_path: &Path) -> Result<Vec<(String, String, String)>> {
     let conn = Connection::open(db_path)?;
@@ -138,5 +155,24 @@ mod tests {
         let users = list_users(&path).unwrap();
         assert_eq!(users[0].1, "alice");
         assert_eq!(users[1].1, "zara");
+    }
+
+    #[test]
+    fn test_find_user_by_id_returns_user() {
+        let (_f, path) = temp_db();
+        initialize_database(&path).unwrap();
+        create_user(&path, "abc123", "alice", "hash", "2026-01-01T00:00:00Z").unwrap();
+        let result = find_user_by_id(&path, "abc123").unwrap();
+        assert!(result.is_some());
+        let (username, _) = result.unwrap();
+        assert_eq!(username, "alice");
+    }
+
+    #[test]
+    fn test_find_user_by_id_nonexistent_returns_none() {
+        let (_f, path) = temp_db();
+        initialize_database(&path).unwrap();
+        let result = find_user_by_id(&path, "nonexistent-id").unwrap();
+        assert!(result.is_none());
     }
 }

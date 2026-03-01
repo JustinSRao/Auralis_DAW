@@ -49,6 +49,39 @@ export async function listUsers(): Promise<User[]> {
   return invoke<User[]>("list_users");
 }
 
+// --- Auth IPC wrappers (ipc-prefixed, used by authStore) ---
+
+/** Attempts to log in with the provided credentials. */
+export async function ipcLogin(
+  username: string,
+  password: string,
+): Promise<AuthResponse> {
+  return invoke<AuthResponse>("login", { username, password });
+}
+
+/** Registers a new user account. */
+export async function ipcRegister(
+  username: string,
+  password: string,
+): Promise<AuthResponse> {
+  return invoke<AuthResponse>("register", { username, password });
+}
+
+/** Signals the backend to clear any server-side session state. */
+export async function ipcLogout(): Promise<void> {
+  return invoke<void>("logout");
+}
+
+/** Lists all registered users. */
+export async function ipcListUsers(): Promise<User[]> {
+  return invoke<User[]>("list_users");
+}
+
+/** Validates a stored user_id against the database. Returns null if the user no longer exists. */
+export async function ipcGetCurrentUser(userId: string): Promise<User | null> {
+  return invoke<User | null>("get_current_user", { userId });
+}
+
 // --- Audio types (mirror Rust audio::types) ---
 
 export type AudioHostType = "Asio" | "Wasapi";
