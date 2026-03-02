@@ -56,13 +56,13 @@
     },
     "6": {
       "title": "Subtractive Synthesizer",
-      "status": "planning",
+      "status": "done",
       "epic": 3,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-02",
+      "hours": 9.0
     },
     "7": {
       "title": "Sample Player & Sampler",
@@ -481,7 +481,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 7,
-      "completedSprints": 0
+      "completedSprints": 1
     },
     "4": {
       "title": "Composition Tools",

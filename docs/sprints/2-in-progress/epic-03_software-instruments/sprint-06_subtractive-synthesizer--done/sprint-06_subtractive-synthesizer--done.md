@@ -3,12 +3,13 @@ sprint: 6
 title: "Subtractive Synthesizer"
 type: fullstack
 epic: 3
-status: in-progress
+status: done
 created: 2026-02-22T22:09:57Z
 started: 2026-03-02T11:29:34Z
-completed: null
+completed: 2026-03-02
 hours: null
 workflow_version: "3.1.0"
+
 
 
 ---

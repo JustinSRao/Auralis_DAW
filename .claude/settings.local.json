@@ -50,7 +50,8 @@
       "Bash(LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test:*)",
       "Bash(grep:*)",
       "Skill(sprint-complete)",
-      "Skill(epic-complete)"
+      "Skill(epic-complete)",
+      "Skill(sprint-start)"
     ]
   }
 }
