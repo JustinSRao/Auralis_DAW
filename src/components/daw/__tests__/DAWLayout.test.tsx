@@ -89,6 +89,35 @@ vi.mock("@/stores/historyStore", () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// synthStore mock (for SynthPanel — Sprint 6)
+// ---------------------------------------------------------------------------
+
+vi.mock("@/stores/synthStore", () => ({
+  useSynthStore: () => ({
+    params: {
+      waveform: 0,
+      attack: 0.01,
+      decay: 0.1,
+      sustain: 0.7,
+      release: 0.3,
+      cutoff: 8000,
+      resonance: 0,
+      env_amount: 0,
+      volume: 0.7,
+      detune: 0,
+      pulse_width: 0.5,
+    },
+    isInitialized: true,
+    isLoading: false,
+    error: null,
+    initialize: vi.fn(),
+    setParam: vi.fn(),
+    fetchState: vi.fn(),
+    clearError: vi.fn(),
+  }),
+}));
+
+// ---------------------------------------------------------------------------
 // fileStore mock (for MenuBar / ProjectToolbar)
 // ---------------------------------------------------------------------------
 

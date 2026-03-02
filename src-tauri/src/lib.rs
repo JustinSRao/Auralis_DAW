@@ -11,6 +11,8 @@ use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 
 use audio::transport::TransportSnapshot;
+use instruments::commands::{SynthMidiTxState, SynthState};
+use instruments::synth::params::SynthParams;
 use project::commands::{ProjectManager, ProjectManagerState};
 use project::track_commands::{
     create_track, delete_track, rename_track, reorder_tracks, set_track_color,
@@ -77,6 +79,19 @@ pub fn run() {
             }
             app.manage(midi_state);
             log::info!("MIDI manager initialized");
+
+            // --- Sprint 6: Synthesizer managed state ---
+
+            // Shared synth parameter store (Arc<SynthParams> — all atomics, lock-free from audio thread)
+            let synth_params: SynthState = SynthParams::new();
+            app.manage(synth_params);
+
+            // Shared reference to the synth's MIDI sender half.
+            // Initially `None`; populated by `create_synth_instrument` when the user
+            // instantiates the synth. The `MidiManager::set_secondary_sender` wires it
+            // into the MIDI callback fan-out so real-time events reach the audio thread.
+            let synth_midi_tx: SynthMidiTxState = Arc::new(Mutex::new(None));
+            app.manage(synth_midi_tx);
 
             // Initialize project manager
             let pm_state: ProjectManagerState =
@@ -188,6 +203,9 @@ pub fn run() {
             delete_track,
             reorder_tracks,
             set_track_color,
+            instruments::commands::create_synth_instrument,
+            instruments::commands::set_synth_param,
+            instruments::commands::get_synth_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

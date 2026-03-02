@@ -4,6 +4,7 @@ import { TransportBar } from '@/components/daw/TransportBar';
 import { HistoryPanel } from '@/components/daw/HistoryPanel';
 import { MenuBar } from '@/components/daw/MenuBar';
 import { TrackList } from '@/components/daw/TrackList';
+import { SynthPanel } from '@/components/instruments/SynthPanel';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useGlobalKeyboard } from '@/hooks/useGlobalKeyboard';
 import { useKeyboardStore } from '@/stores/keyboardStore';
@@ -91,6 +92,9 @@ export function DAWLayout() {
               </span>
             </div>
           </div>
+
+          {/* Synth panel — Sprint 6: always-visible bottom instrument strip */}
+          <SynthPanel />
         </div>
 
         {/* Right panel — settings (temporary until Sprint 9 instruments) */}

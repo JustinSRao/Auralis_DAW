@@ -1,5 +1,5 @@
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
@@ -18,6 +18,9 @@ use super::types::*;
 ///
 /// A background scanner thread polls for device changes every 2 seconds
 /// and emits a Tauri event when the device list changes.
+///
+/// A secondary sender (`secondary_tx`) allows an additional consumer (e.g.,
+/// the synthesizer instrument) to receive a copy of every MIDI event.
 pub struct MidiManager {
     /// Active MIDI input connection (midir owns the callback thread).
     midi_in: Option<MidiInputConnection<()>>,
@@ -25,6 +28,9 @@ pub struct MidiManager {
     midi_out: Option<MidiOutputConnection>,
     /// Sender for parsed MIDI events — cloned into the midir callback.
     event_tx: Sender<TimestampedMidiEvent>,
+    /// Optional secondary sender for fan-out to instruments (e.g., SubtractiveSynth).
+    /// Wrapped in Arc<Mutex<>> so it can be updated after the midir callback is set up.
+    secondary_tx: Arc<Mutex<Option<Sender<TimestampedMidiEvent>>>>,
     /// Name of the currently connected input port.
     active_input_port: Option<String>,
     /// Name of the currently connected output port.
@@ -47,12 +53,23 @@ impl MidiManager {
             midi_in: None,
             midi_out: None,
             event_tx: tx,
+            secondary_tx: Arc::new(Mutex::new(None)),
             active_input_port: None,
             active_output_port: None,
             scanner_handle: None,
             scanner_stop: Arc::new(AtomicBool::new(false)),
         };
         (manager, rx)
+    }
+
+    /// Registers (or clears) a secondary MIDI event sender for fan-out to instruments.
+    ///
+    /// Pass `Some(sender)` to start forwarding events to an instrument node.
+    /// Pass `None` to stop forwarding (e.g., when the instrument is removed).
+    pub fn set_secondary_sender(&mut self, sender: Option<Sender<TimestampedMidiEvent>>) {
+        if let Ok(mut guard) = self.secondary_tx.lock() {
+            *guard = sender;
+        }
     }
 
     /// Returns the current connection status.
@@ -145,17 +162,26 @@ impl MidiManager {
             .clone();
 
         let tx = self.event_tx.clone();
+        let secondary_tx_arc = self.secondary_tx.clone();
         let connection = midi_in
             .connect(
                 &port,
                 "music-app-input",
                 move |timestamp_us, data, _| {
                     if let Some(event) = MidiEvent::from_bytes(data) {
-                        // try_send: drop event if channel full rather than block MIDI thread
-                        let _ = tx.try_send(TimestampedMidiEvent {
+                        let stamped = TimestampedMidiEvent {
                             event,
                             timestamp_us,
-                        });
+                        };
+                        // Primary channel: audio engine (discard on full)
+                        let _ = tx.try_send(stamped.clone());
+
+                        // Secondary channel: instrument node fan-out (discard on full)
+                        if let Ok(guard) = secondary_tx_arc.lock() {
+                            if let Some(ref stx) = *guard {
+                                let _ = stx.try_send(stamped);
+                            }
+                        }
                     }
                 },
                 (),

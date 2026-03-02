@@ -522,3 +522,52 @@ export async function ipcReorderTracks(ids: string[]): Promise<void> {
 export async function ipcSetTrackColor(id: string, color: string): Promise<void> {
   return invoke<void>("set_track_color", { id, color });
 }
+
+// ── Synth instrument ───────────────────────────────────────────────────────
+
+/** All valid synthesizer parameter names. */
+export type SynthParamName =
+  | "waveform"
+  | "attack"
+  | "decay"
+  | "sustain"
+  | "release"
+  | "cutoff"
+  | "resonance"
+  | "env_amount"
+  | "volume"
+  | "detune"
+  | "pulse_width";
+
+/** Snapshot of all synthesizer parameters (mirrors Rust `SynthParamSnapshot`). */
+export interface SynthParams {
+  waveform: number;
+  attack: number;
+  decay: number;
+  sustain: number;
+  release: number;
+  cutoff: number;
+  resonance: number;
+  env_amount: number;
+  volume: number;
+  detune: number;
+  pulse_width: number;
+}
+
+/** Creates and registers the synthesizer instrument in the audio graph. */
+export async function createSynthInstrument(): Promise<void> {
+  return invoke<void>("create_synth_instrument");
+}
+
+/** Sets a single synthesizer parameter by name. Value must be in the parameter's valid range. */
+export async function setSynthParam(
+  param: SynthParamName,
+  value: number,
+): Promise<void> {
+  return invoke<void>("set_synth_param", { param, value });
+}
+
+/** Returns a snapshot of all current synthesizer parameters. */
+export async function getSynthState(): Promise<SynthParams> {
+  return invoke<SynthParams>("get_synth_state");
+}
