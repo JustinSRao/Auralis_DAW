@@ -19,8 +19,9 @@ use super::types::*;
 /// A background scanner thread polls for device changes every 2 seconds
 /// and emits a Tauri event when the device list changes.
 ///
-/// A secondary sender (`secondary_tx`) allows an additional consumer (e.g.,
-/// the synthesizer instrument) to receive a copy of every MIDI event.
+/// `instrument_txs` holds a list of senders for fan-out to instrument nodes
+/// (e.g., SubtractiveSynth, Sampler). Each instrument added via
+/// `add_instrument_sender` receives a copy of every MIDI event.
 pub struct MidiManager {
     /// Active MIDI input connection (midir owns the callback thread).
     midi_in: Option<MidiInputConnection<()>>,
@@ -28,9 +29,10 @@ pub struct MidiManager {
     midi_out: Option<MidiOutputConnection>,
     /// Sender for parsed MIDI events — cloned into the midir callback.
     event_tx: Sender<TimestampedMidiEvent>,
-    /// Optional secondary sender for fan-out to instruments (e.g., SubtractiveSynth).
-    /// Wrapped in Arc<Mutex<>> so it can be updated after the midir callback is set up.
-    secondary_tx: Arc<Mutex<Option<Sender<TimestampedMidiEvent>>>>,
+    /// Fan-out senders for instrument nodes (e.g., SubtractiveSynth, Sampler).
+    /// Wrapped in Arc<Mutex<Vec<...>>> so instruments can be added after the
+    /// midir callback is set up. Each sender receives every MIDI event.
+    instrument_txs: Arc<Mutex<Vec<Sender<TimestampedMidiEvent>>>>,
     /// Name of the currently connected input port.
     active_input_port: Option<String>,
     /// Name of the currently connected output port.
@@ -53,7 +55,7 @@ impl MidiManager {
             midi_in: None,
             midi_out: None,
             event_tx: tx,
-            secondary_tx: Arc::new(Mutex::new(None)),
+            instrument_txs: Arc::new(Mutex::new(Vec::new())),
             active_input_port: None,
             active_output_port: None,
             scanner_handle: None,
@@ -62,13 +64,13 @@ impl MidiManager {
         (manager, rx)
     }
 
-    /// Registers (or clears) a secondary MIDI event sender for fan-out to instruments.
+    /// Adds an instrument MIDI sender to the fan-out list.
     ///
-    /// Pass `Some(sender)` to start forwarding events to an instrument node.
-    /// Pass `None` to stop forwarding (e.g., when the instrument is removed).
-    pub fn set_secondary_sender(&mut self, sender: Option<Sender<TimestampedMidiEvent>>) {
-        if let Ok(mut guard) = self.secondary_tx.lock() {
-            *guard = sender;
+    /// After this call, every incoming MIDI event is also forwarded to `tx`
+    /// via `try_send` (non-blocking). Call once per instrument node created.
+    pub fn add_instrument_sender(&mut self, tx: Sender<TimestampedMidiEvent>) {
+        if let Ok(mut guard) = self.instrument_txs.lock() {
+            guard.push(tx);
         }
     }
 
@@ -162,7 +164,7 @@ impl MidiManager {
             .clone();
 
         let tx = self.event_tx.clone();
-        let secondary_tx_arc = self.secondary_tx.clone();
+        let instrument_txs_arc = self.instrument_txs.clone();
         let connection = midi_in
             .connect(
                 &port,
@@ -176,10 +178,10 @@ impl MidiManager {
                         // Primary channel: audio engine (discard on full)
                         let _ = tx.try_send(stamped.clone());
 
-                        // Secondary channel: instrument node fan-out (discard on full)
-                        if let Ok(guard) = secondary_tx_arc.lock() {
-                            if let Some(ref stx) = *guard {
-                                let _ = stx.try_send(stamped);
+                        // Fan-out: all registered instrument nodes receive a copy
+                        if let Ok(guard) = instrument_txs_arc.lock() {
+                            for itx in guard.iter() {
+                                let _ = itx.try_send(stamped.clone());
                             }
                         }
                     }

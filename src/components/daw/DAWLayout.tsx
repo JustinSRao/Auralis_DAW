@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { AudioSettingsPanel } from '@/components/audio/AudioSettingsPanel';
 import { MidiSettingsPanel } from '@/components/midi/MidiSettingsPanel';
 import { TransportBar } from '@/components/daw/TransportBar';
 import { HistoryPanel } from '@/components/daw/HistoryPanel';
 import { MenuBar } from '@/components/daw/MenuBar';
 import { TrackList } from '@/components/daw/TrackList';
+import { SamplerPanel } from '@/components/instruments/SamplerPanel';
 import { SynthPanel } from '@/components/instruments/SynthPanel';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useGlobalKeyboard } from '@/hooks/useGlobalKeyboard';
@@ -36,6 +38,7 @@ export function DAWLayout() {
   useGlobalKeyboard();
 
   const { browserOpen, mixerOpen } = useKeyboardStore();
+  const [activeInstrument, setActiveInstrument] = useState<'synth' | 'sampler'>('synth');
 
   return (
     <div className="h-screen flex flex-col bg-[#1a1a1a] overflow-hidden">
@@ -93,8 +96,27 @@ export function DAWLayout() {
             </div>
           </div>
 
-          {/* Synth panel — Sprint 6: always-visible bottom instrument strip */}
-          <SynthPanel />
+          {/* Instrument strip — Sprint 6/7: tabbed synth / sampler panel */}
+          <div className="flex flex-col flex-shrink-0">
+            {/* Tab bar */}
+            <div className="flex bg-[#1a1a1a] border-t border-[#3a3a3a] px-4 gap-1 pt-1">
+              {(['synth', 'sampler'] as const).map((id) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveInstrument(id)}
+                  className={[
+                    'px-3 py-0.5 text-[10px] font-mono rounded-t border-b-2 transition-colors',
+                    activeInstrument === id
+                      ? 'border-[#5b8def] text-[#aaaaaa]'
+                      : 'border-transparent text-[#555555] hover:text-[#888888]',
+                  ].join(' ')}
+                >
+                  {id === 'synth' ? 'SYNTH' : 'SAMPLER'}
+                </button>
+              ))}
+            </div>
+            {activeInstrument === 'synth' ? <SynthPanel /> : <SamplerPanel />}
+          </div>
         </div>
 
         {/* Right panel — settings (temporary until Sprint 9 instruments) */}

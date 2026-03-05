@@ -571,3 +571,84 @@ export async function setSynthParam(
 export async function getSynthState(): Promise<SynthParams> {
   return invoke<SynthParams>("get_synth_state");
 }
+
+// ── Sampler instrument ─────────────────────────────────────────────────────
+
+/** All valid sampler parameter names. */
+export type SamplerParamName = "attack" | "decay" | "sustain" | "release" | "volume";
+
+/** Snapshot of sampler ADSR + volume parameters (mirrors Rust `SamplerParamSnapshot`). */
+export interface SamplerParams {
+  attack: number;
+  decay: number;
+  sustain: number;
+  release: number;
+  volume: number;
+}
+
+/** Snapshot of a single loaded zone (mirrors Rust `SampleZoneSnapshot`). */
+export interface SampleZoneSnapshot {
+  id: number;
+  name: string;
+  root_note: number;
+  min_note: number;
+  max_note: number;
+  loop_start: number;
+  loop_end: number;
+  loop_enabled: boolean;
+}
+
+/** Full sampler state snapshot (params + zone list). */
+export interface SamplerSnapshot {
+  params: SamplerParams;
+  zones: SampleZoneSnapshot[];
+}
+
+/** Creates and registers the sampler instrument in the audio graph. */
+export async function createSamplerInstrument(): Promise<void> {
+  return invoke<void>("create_sampler_instrument");
+}
+
+/**
+ * Loads an audio file into the sampler as a new zone.
+ * Returns the zone snapshot on success.
+ */
+export async function loadSampleZone(
+  filePath: string,
+  zoneId: number,
+  rootNote: number,
+  minNote: number,
+  maxNote: number,
+  loopStart: number,
+  loopEnd: number,
+  loopEnabled: boolean,
+): Promise<SampleZoneSnapshot> {
+  return invoke<SampleZoneSnapshot>("load_sample_zone", {
+    filePath,
+    zoneId,
+    rootNote,
+    minNote,
+    maxNote,
+    loopStart,
+    loopEnd,
+    loopEnabled,
+  });
+}
+
+/** Removes a zone from the sampler by id. */
+export async function removeSampleZone(zoneId: number): Promise<void> {
+  return invoke<void>("remove_sample_zone", { zoneId });
+}
+
+/** Sets a single sampler parameter by name. */
+export async function setSamplerParam(
+  param: SamplerParamName,
+  value: number,
+): Promise<void> {
+  return invoke<void>("set_sampler_param", { param, value });
+}
+
+/** Returns a snapshot of all current sampler state (params + zones). */
+export async function getSamplerState(): Promise<SamplerSnapshot> {
+  return invoke<SamplerSnapshot>("get_sampler_state");
+}

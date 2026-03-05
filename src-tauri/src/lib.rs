@@ -11,7 +11,11 @@ use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 
 use audio::transport::TransportSnapshot;
-use instruments::commands::{SynthMidiTxState, SynthState};
+use instruments::commands::{
+    SamplerCmdTxState, SamplerMidiTxState, SamplerState, SamplerZoneListState,
+    SynthMidiTxState, SynthState,
+};
+use instruments::sampler::zone::SamplerParams;
 use instruments::synth::params::SynthParams;
 use project::commands::{ProjectManager, ProjectManagerState};
 use project::track_commands::{
@@ -92,6 +96,20 @@ pub fn run() {
             // into the MIDI callback fan-out so real-time events reach the audio thread.
             let synth_midi_tx: SynthMidiTxState = Arc::new(Mutex::new(None));
             app.manage(synth_midi_tx);
+
+            // --- Sprint 7: Sampler managed state ---
+
+            let sampler_params: SamplerState = SamplerParams::new();
+            app.manage(sampler_params);
+
+            let sampler_midi_tx: SamplerMidiTxState = Arc::new(Mutex::new(None));
+            app.manage(sampler_midi_tx);
+
+            let sampler_cmd_tx: SamplerCmdTxState = Arc::new(Mutex::new(None));
+            app.manage(sampler_cmd_tx);
+
+            let sampler_zone_list: SamplerZoneListState = Arc::new(Mutex::new(Vec::new()));
+            app.manage(sampler_zone_list);
 
             // Initialize project manager
             let pm_state: ProjectManagerState =
@@ -206,6 +224,11 @@ pub fn run() {
             instruments::commands::create_synth_instrument,
             instruments::commands::set_synth_param,
             instruments::commands::get_synth_state,
+            instruments::commands::create_sampler_instrument,
+            instruments::commands::load_sample_zone,
+            instruments::commands::remove_sample_zone,
+            instruments::commands::set_sampler_param,
+            instruments::commands::get_sampler_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

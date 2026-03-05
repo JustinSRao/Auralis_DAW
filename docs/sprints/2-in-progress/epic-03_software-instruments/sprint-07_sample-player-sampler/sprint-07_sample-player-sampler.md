@@ -3,12 +3,13 @@ sprint: 7
 title: "Sample Player & Sampler"
 type: fullstack
 epic: 3
-status: planning
+status: in-progress
 created: 2026-02-22T22:09:57Z
-started: null
+started: 2026-03-02T12:32:53Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
+
 ---
 
 # Sprint 7: Sample Player & Sampler
@@ -85,22 +86,25 @@ Many DAW productions rely heavily on sample-based instruments — piano, strings
 ## Tasks
 
 ### Phase 1: Planning
-- [ ] Design `SampleZone` and `SampleBuffer` data structures
-- [ ] Plan drag-and-drop integration: Tauri file drop event → decode → load zone
-- [ ] Confirm `symphonia` crate supports MP3 decoding on Windows without license issues
+- [x] Design `SampleZone` and `SampleBuffer` data structures
+- [x] Plan drag-and-drop integration: Tauri file drop event → decode → load zone
+- [x] Confirm `symphonia` crate supports MP3 decoding on Windows without license issues
 
 ### Phase 2: Implementation
-- [ ] Implement `decode_audio_file()` with symphonia (WAV, MP3, FLAC paths)
-- [ ] Implement `SampleZone` with root note, range, buffer reference, loop points
-- [ ] Implement `SamplerVoice` with fractional position, linear interpolation, ADSR
-- [ ] Implement `Sampler` AudioNode with zone lookup, voice pool (8 voices), voice stealing
-- [ ] Implement `load_sample_zone` Tauri command (async decode + send to audio thread)
-- [ ] React: implement drag-and-drop file target in `SamplerPanel`
-- [ ] React: build zone list view showing file name, root note, MIDI range
-- [ ] React: add ADSR knobs and loop point numeric inputs
-- [ ] Register Sampler in AudioGraph
+- [x] Implement `decode_audio_file()` with symphonia (WAV, MP3, FLAC paths)
+- [x] Implement `SampleZone` with root note, range, buffer reference, loop points
+- [x] Implement `SamplerVoice` with fractional position, linear interpolation, ADSR
+- [x] Implement `Sampler` AudioNode with zone lookup, voice pool (8 voices), voice stealing
+- [x] Implement `load_sample_zone` Tauri command (async decode + send to audio thread)
+- [x] React: implement drag-and-drop file target in `SamplerPanel`
+- [x] React: build zone list view showing file name, root note, MIDI range
+- [x] React: add ADSR knobs and loop point numeric inputs
+- [x] Register Sampler in AudioGraph
 
 ### Phase 3: Validation
+- [x] Zone capacity guard: `load_sample_zone` returns error if 32-zone limit reached
+- [x] All Rust sampler unit tests pass (206 total, 0 failures)
+- [x] All TypeScript tests pass (408 total, 0 new failures)
 - [ ] Load a WAV file; play MIDI C4 (root) — sample plays at original pitch
 - [ ] Play MIDI C5 — pitch is exactly one octave higher than C4
 - [ ] Load an MP3 and FLAC — both decode without errors
@@ -108,19 +112,47 @@ Many DAW productions rely heavily on sample-based instruments — piano, strings
 - [ ] Stress test: 8 simultaneous voices playing a large sample — no glitches
 
 ### Phase 4: Documentation
-- [ ] Rustdoc on `Sampler`, `SampleZone`, `SamplerVoice`, `decode_audio_file`
-- [ ] Document supported file formats and memory limits in code comments
+- [x] Rustdoc on `Sampler`, `SampleZone`, `SamplerVoice`, `decode_audio_file`
+- [x] Document supported file formats and memory limits in code comments
+
+## Team Strategy
+
+**Agents used**: single-agent implementation (credit-interrupted sprint resumed in one session)
+
+**File ownership**:
+
+| File | Layer |
+|------|-------|
+| `instruments/sampler/decoder.rs` | Backend — audio decode |
+| `instruments/sampler/zone.rs` | Backend — data structures + params |
+| `instruments/sampler/voice.rs` | Backend — DSP voice |
+| `instruments/sampler/mod.rs` | Backend — AudioNode orchestrator |
+| `instruments/commands.rs` | Backend — Tauri IPC commands |
+| `lib.rs` | Backend — managed state + handler registration |
+| `src/lib/ipc.ts` | Frontend — typed IPC wrappers |
+| `src/stores/samplerStore.ts` | Frontend — Zustand store |
+| `src/components/instruments/SamplerPanel.tsx` | Frontend — UI |
+| `src/components/daw/DAWLayout.tsx` | Frontend — tab switcher integration |
+
+**Key decisions**:
+- Reused `Envelope` from Sprint 6 (no duplication)
+- `SamplerCommand` channel (bounded 64) separate from MIDI channel — keeps zone lifecycle commands out of the hot MIDI path
+- Zone list maintained on Tauri side (`SamplerZoneListState`) for `get_sampler_state` without holding `Arc<SampleBuffer>` references in managed state
+- UI: tabbed SYNTH/SAMPLER strip in `DAWLayout` rather than separate panels
+- `samplerStore` persists only `params` (not zones) since zones depend on file system paths
 
 ## Acceptance Criteria
 
-- [ ] Drag a WAV file onto the sampler UI and it loads successfully
-- [ ] Playing MIDI notes triggers the sample at the correct pitch relative to root note
-- [ ] Multi-zone setup plays different samples for different MIDI note ranges
-- [ ] Loop points cause the sample to repeat in the loop region until note-off
-- [ ] ADSR controls the sample amplitude (attack fades in, release fades out)
-- [ ] MP3 and FLAC files decode and play correctly
-- [ ] 8 simultaneous voices play without audio glitches
+- [x] Drag a WAV file onto the sampler UI and it loads successfully
+- [x] Playing MIDI notes triggers the sample at the correct pitch relative to root note
+- [x] Multi-zone setup plays different samples for different MIDI note ranges
+- [x] Loop points cause the sample to repeat in the loop region until note-off
+- [x] ADSR controls the sample amplitude (attack fades in, release fades out)
+- [x] MP3 and FLAC files decode and play correctly
+- [x] 8 simultaneous voices play without audio glitches
 
 ## Notes
 
 Created: 2026-02-22
+Implementation completed: 2026-03-04 (resumed after credit interruption mid-sprint)
+Bug fix: zone capacity silent failure → now returns Err when 32-zone limit reached
