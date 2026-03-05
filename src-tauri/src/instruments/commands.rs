@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::Ordering;
 
 use tauri::State;
 
@@ -9,6 +10,9 @@ use crate::audio::graph::AudioGraph;
 use crate::midi::commands::MidiManagerState;
 use crate::midi::types::TimestampedMidiEvent;
 
+use super::drum_machine::{
+    DrumAtomics, DrumCommand, DrumMachine, DrumMachineSnapshot, DrumPadSnapshot,
+};
 use super::sampler::Sampler;
 use super::sampler::MAX_ZONES;
 use super::sampler::decoder::decode_audio_file;
@@ -341,4 +345,283 @@ pub fn get_sampler_state(
         .map_err(|e| format!("Failed to lock zone list: {}", e))?
         .clone();
     Ok(SamplerSnapshot { params, zones })
+}
+
+// ── Drum Machine managed-state type aliases ────────────────────────────────────
+
+/// Lock-free drum machine parameter atomics shared across threads.
+pub type DrumAtomicsState = Arc<DrumAtomics>;
+
+/// Sender half of the drum machine command channel.
+pub type DrumCmdTxState = Arc<Mutex<Option<crossbeam_channel::Sender<DrumCommand>>>>;
+
+/// Shadow copy of the drum pattern grid on the Tauri side.
+///
+/// Updated by Tauri commands alongside the audio-thread commands so that
+/// `get_drum_state` can return the full pattern without querying the audio thread.
+pub type DrumPatternShadowState = Arc<Mutex<Vec<DrumPadSnapshot>>>;
+
+// ── Drum Machine Tauri commands ────────────────────────────────────────────────
+
+/// Creates and registers the drum machine in the audio graph.
+///
+/// Spawns a Tokio relay task that drains the step event channel and emits
+/// `drum-step-changed` Tauri events at ~250 Hz for UI playhead highlighting.
+#[tauri::command]
+pub async fn create_drum_machine(
+    app: tauri::AppHandle,
+    engine: State<'_, AudioEngineState>,
+    atomics: State<'_, DrumAtomicsState>,
+    cmd_tx_state: State<'_, DrumCmdTxState>,
+) -> Result<(), String> {
+    let (cmd_tx, cmd_rx) = crossbeam_channel::bounded::<DrumCommand>(64);
+    let (step_tx, step_rx) = crossbeam_channel::bounded::<u8>(32);
+
+    {
+        let mut guard = cmd_tx_state
+            .lock()
+            .map_err(|e| format!("Failed to lock drum cmd tx: {}", e))?;
+        *guard = Some(cmd_tx);
+    }
+
+    let drum_atomics = Arc::clone(&*atomics);
+    let machine = DrumMachine::new(drum_atomics, cmd_rx, step_tx, 44100.0);
+
+    let mut graph = AudioGraph::new(1024, 2);
+    graph.add_node(Box::new(machine));
+
+    let eng = engine
+        .lock()
+        .map_err(|e| format!("Failed to lock audio engine: {}", e))?;
+    eng.send_transport_command(AudioCommand::SwapGraph(graph))
+        .map_err(|e| e.to_string())?;
+
+    // Relay task: poll step channel at ~250 Hz and emit Tauri events
+    tokio::spawn(async move {
+        let mut interval =
+            tokio::time::interval(std::time::Duration::from_millis(4));
+        loop {
+            interval.tick().await;
+            while let Ok(step) = step_rx.try_recv() {
+                if let Err(e) = tauri::Emitter::emit(&app, "drum-step-changed", step) {
+                    log::warn!("Failed to emit drum-step-changed: {}", e);
+                }
+            }
+        }
+    });
+
+    Ok(())
+}
+
+/// Toggles a single step on/off and sets its velocity.
+#[tauri::command]
+pub fn set_drum_step(
+    pad_idx: u8,
+    step_idx: u8,
+    active: bool,
+    velocity: u8,
+    cmd_tx_state: State<'_, DrumCmdTxState>,
+    shadow: State<'_, DrumPatternShadowState>,
+) -> Result<(), String> {
+    {
+        let guard = cmd_tx_state
+            .lock()
+            .map_err(|e| format!("Failed to lock drum cmd tx: {}", e))?;
+        let tx = guard.as_ref().ok_or("Drum machine not initialized")?;
+        tx.try_send(DrumCommand::SetStep {
+            pad_idx,
+            step_idx,
+            active,
+            velocity: velocity.clamp(1, 127),
+        })
+        .map_err(|e| format!("Failed to send SetStep: {}", e))?;
+    }
+
+    {
+        let mut pads = shadow
+            .lock()
+            .map_err(|e| format!("Failed to lock drum shadow: {}", e))?;
+        if let Some(pad) = pads.get_mut(pad_idx as usize) {
+            if let Some(step) = pad.steps.get_mut(step_idx as usize) {
+                step.active = active;
+                step.velocity = velocity.clamp(1, 127);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Loads an audio file into a drum pad (decoded on a blocking thread).
+#[tauri::command]
+pub async fn load_drum_pad_sample(
+    pad_idx: u8,
+    file_path: String,
+    cmd_tx_state: State<'_, DrumCmdTxState>,
+    shadow: State<'_, DrumPatternShadowState>,
+) -> Result<(), String> {
+    if pad_idx as usize >= 16 {
+        return Err(format!("pad_idx {} out of range (max 15)", pad_idx));
+    }
+
+    let path = PathBuf::from(&file_path);
+    let buffer = tokio::task::spawn_blocking(move || decode_audio_file(&path))
+        .await
+        .map_err(|e| format!("Decode task panicked: {}", e))?
+        .map_err(|e| e.to_string())?;
+
+    let name = PathBuf::from(&file_path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("unknown")
+        .to_string();
+
+    {
+        let guard = cmd_tx_state
+            .lock()
+            .map_err(|e| format!("Failed to lock drum cmd tx: {}", e))?;
+        let tx = guard.as_ref().ok_or("Drum machine not initialized")?;
+        tx.try_send(DrumCommand::LoadSample {
+            pad_idx,
+            name: name.clone(),
+            buffer,
+        })
+        .map_err(|e| format!("Failed to send LoadSample: {}", e))?;
+    }
+
+    {
+        let mut pads = shadow
+            .lock()
+            .map_err(|e| format!("Failed to lock drum shadow: {}", e))?;
+        if let Some(pad) = pads.get_mut(pad_idx as usize) {
+            pad.name = name;
+            pad.has_sample = true;
+        }
+    }
+
+    Ok(())
+}
+
+/// Sets the swing amount (0.0–0.5).
+#[tauri::command]
+pub fn set_drum_swing(
+    swing: f32,
+    atomics: State<'_, DrumAtomicsState>,
+) -> Result<(), String> {
+    atomics
+        .swing
+        .store(swing.clamp(0.0, 0.5), Ordering::Relaxed);
+    Ok(())
+}
+
+/// Sets the drum machine BPM (1.0–300.0).
+#[tauri::command]
+pub fn set_drum_bpm(
+    bpm: f32,
+    atomics: State<'_, DrumAtomicsState>,
+) -> Result<(), String> {
+    atomics.bpm.store(bpm.clamp(1.0, 300.0), Ordering::Relaxed);
+    Ok(())
+}
+
+/// Sets the active pattern length (16 or 32 steps).
+#[tauri::command]
+pub fn set_drum_pattern_length(
+    length: u8,
+    cmd_tx_state: State<'_, DrumCmdTxState>,
+    shadow: State<'_, DrumPatternShadowState>,
+) -> Result<(), String> {
+    let clamped: u8 = if length <= 16 { 16 } else { 32 };
+
+    {
+        let guard = cmd_tx_state
+            .lock()
+            .map_err(|e| format!("Failed to lock drum cmd tx: {}", e))?;
+        let tx = guard.as_ref().ok_or("Drum machine not initialized")?;
+        tx.try_send(DrumCommand::SetPatternLength { length: clamped })
+            .map_err(|e| format!("Failed to send SetPatternLength: {}", e))?;
+    }
+
+    // Extend or trim shadow steps to match the new length
+    {
+        let mut pads = shadow
+            .lock()
+            .map_err(|e| format!("Failed to lock drum shadow: {}", e))?;
+        for pad in pads.iter_mut() {
+            let current = pad.steps.len();
+            let target = clamped as usize;
+            if target > current {
+                pad.steps.extend(
+                    (current..target).map(|_| super::drum_machine::DrumStepSnapshot {
+                        active: false,
+                        velocity: 100,
+                    }),
+                );
+            } else {
+                pad.steps.truncate(target);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Starts drum machine playback.
+#[tauri::command]
+pub fn drum_play(cmd_tx_state: State<'_, DrumCmdTxState>) -> Result<(), String> {
+    let guard = cmd_tx_state
+        .lock()
+        .map_err(|e| format!("Failed to lock drum cmd tx: {}", e))?;
+    let tx = guard.as_ref().ok_or("Drum machine not initialized")?;
+    tx.try_send(DrumCommand::Play)
+        .map_err(|e| format!("Failed to send Play: {}", e))
+}
+
+/// Pauses drum machine playback (preserves clock position).
+#[tauri::command]
+pub fn drum_stop(cmd_tx_state: State<'_, DrumCmdTxState>) -> Result<(), String> {
+    let guard = cmd_tx_state
+        .lock()
+        .map_err(|e| format!("Failed to lock drum cmd tx: {}", e))?;
+    let tx = guard.as_ref().ok_or("Drum machine not initialized")?;
+    tx.try_send(DrumCommand::Stop)
+        .map_err(|e| format!("Failed to send Stop: {}", e))
+}
+
+/// Stops playback and resets the clock to step 0.
+#[tauri::command]
+pub fn drum_reset(cmd_tx_state: State<'_, DrumCmdTxState>) -> Result<(), String> {
+    let guard = cmd_tx_state
+        .lock()
+        .map_err(|e| format!("Failed to lock drum cmd tx: {}", e))?;
+    let tx = guard.as_ref().ok_or("Drum machine not initialized")?;
+    tx.try_send(DrumCommand::Reset)
+        .map_err(|e| format!("Failed to send Reset: {}", e))
+}
+
+/// Returns a full serializable snapshot of the drum machine state.
+#[tauri::command]
+pub fn get_drum_state(
+    atomics: State<'_, DrumAtomicsState>,
+    shadow: State<'_, DrumPatternShadowState>,
+) -> Result<DrumMachineSnapshot, String> {
+    let bpm = atomics.bpm.load(Ordering::Relaxed);
+    let swing = atomics.swing.load(Ordering::Relaxed);
+    let pattern_length = atomics.pattern_length.load(Ordering::Relaxed);
+    let playing = atomics.playing.load(Ordering::Relaxed);
+    let current_step = atomics.current_step.load(Ordering::Relaxed);
+
+    let pads = shadow
+        .lock()
+        .map_err(|e| format!("Failed to lock drum shadow: {}", e))?
+        .clone();
+
+    Ok(DrumMachineSnapshot {
+        bpm,
+        swing,
+        pattern_length,
+        playing,
+        current_step,
+        pads,
+    })
 }

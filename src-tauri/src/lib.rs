@@ -12,9 +12,11 @@ use tauri::{Emitter, Manager};
 
 use audio::transport::TransportSnapshot;
 use instruments::commands::{
+    DrumAtomicsState, DrumCmdTxState, DrumPatternShadowState,
     SamplerCmdTxState, SamplerMidiTxState, SamplerState, SamplerZoneListState,
     SynthMidiTxState, SynthState,
 };
+use instruments::drum_machine::{DrumAtomics, DrumPadSnapshot};
 use instruments::sampler::zone::SamplerParams;
 use instruments::synth::params::SynthParams;
 use project::commands::{ProjectManager, ProjectManagerState};
@@ -110,6 +112,24 @@ pub fn run() {
 
             let sampler_zone_list: SamplerZoneListState = Arc::new(Mutex::new(Vec::new()));
             app.manage(sampler_zone_list);
+
+            // --- Sprint 8: Drum Machine managed state ---
+
+            let drum_atomics: DrumAtomicsState = DrumAtomics::new();
+            app.manage(drum_atomics);
+
+            let drum_cmd_tx: DrumCmdTxState = Arc::new(Mutex::new(None));
+            app.manage(drum_cmd_tx);
+
+            // Shadow pattern: 16 pads, 32 steps each (MAX_STEPS).
+            // The audio thread stores all 32 steps; pattern_length controls how many are active.
+            // Initialising with 32 here ensures set_drum_step never misses a step_idx in the shadow.
+            let drum_shadow: DrumPatternShadowState = Arc::new(Mutex::new(
+                (0..16u8)
+                    .map(|i| DrumPadSnapshot::default_for_idx(i, 32))
+                    .collect(),
+            ));
+            app.manage(drum_shadow);
 
             // Initialize project manager
             let pm_state: ProjectManagerState =
@@ -229,6 +249,16 @@ pub fn run() {
             instruments::commands::remove_sample_zone,
             instruments::commands::set_sampler_param,
             instruments::commands::get_sampler_state,
+            instruments::commands::create_drum_machine,
+            instruments::commands::set_drum_step,
+            instruments::commands::load_drum_pad_sample,
+            instruments::commands::set_drum_swing,
+            instruments::commands::set_drum_bpm,
+            instruments::commands::set_drum_pattern_length,
+            instruments::commands::drum_play,
+            instruments::commands::drum_stop,
+            instruments::commands::drum_reset,
+            instruments::commands::get_drum_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

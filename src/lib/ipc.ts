@@ -652,3 +652,88 @@ export async function setSamplerParam(
 export async function getSamplerState(): Promise<SamplerSnapshot> {
   return invoke<SamplerSnapshot>("get_sampler_state");
 }
+
+// ── Drum Machine ──────────────────────────────────────────────────────────────
+
+/** A single step in the drum pattern grid. */
+export interface DrumStepSnapshot {
+  active: boolean;
+  /** Velocity 1–127. */
+  velocity: number;
+}
+
+/** State snapshot for a single drum pad. */
+export interface DrumPadSnapshot {
+  idx: number;
+  name: string;
+  has_sample: boolean;
+  steps: DrumStepSnapshot[];
+}
+
+/** Full drum machine state snapshot returned by `get_drum_state`. */
+export interface DrumMachineSnapshot {
+  bpm: number;
+  swing: number;
+  pattern_length: number;
+  playing: boolean;
+  current_step: number;
+  pads: DrumPadSnapshot[];
+}
+
+/** Creates the drum machine in the audio graph. */
+export async function createDrumMachine(): Promise<void> {
+  return invoke<void>("create_drum_machine");
+}
+
+/** Toggles a step and sets its velocity. */
+export async function setDrumStep(
+  padIdx: number,
+  stepIdx: number,
+  active: boolean,
+  velocity: number,
+): Promise<void> {
+  return invoke<void>("set_drum_step", { padIdx, stepIdx, active, velocity });
+}
+
+/** Loads an audio file into a drum pad (async decode). */
+export async function loadDrumPadSample(
+  padIdx: number,
+  filePath: string,
+): Promise<void> {
+  return invoke<void>("load_drum_pad_sample", { padIdx, filePath });
+}
+
+/** Sets swing amount (0.0–0.5). */
+export async function setDrumSwing(swing: number): Promise<void> {
+  return invoke<void>("set_drum_swing", { swing });
+}
+
+/** Sets drum machine BPM (1–300). */
+export async function setDrumBpm(bpm: number): Promise<void> {
+  return invoke<void>("set_drum_bpm", { bpm });
+}
+
+/** Sets pattern length (16 or 32). */
+export async function setDrumPatternLength(length: number): Promise<void> {
+  return invoke<void>("set_drum_pattern_length", { length });
+}
+
+/** Starts drum machine playback. */
+export async function drumPlay(): Promise<void> {
+  return invoke<void>("drum_play");
+}
+
+/** Pauses drum machine playback. */
+export async function drumStop(): Promise<void> {
+  return invoke<void>("drum_stop");
+}
+
+/** Stops playback and resets to step 0. */
+export async function drumReset(): Promise<void> {
+  return invoke<void>("drum_reset");
+}
+
+/** Returns a full snapshot of the drum machine state. */
+export async function getDrumState(): Promise<DrumMachineSnapshot> {
+  return invoke<DrumMachineSnapshot>("get_drum_state");
+}
