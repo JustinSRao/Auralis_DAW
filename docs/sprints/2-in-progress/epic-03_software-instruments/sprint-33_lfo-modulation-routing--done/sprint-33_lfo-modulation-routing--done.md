@@ -3,13 +3,14 @@ sprint: 33
 title: "LFO Modulation Routing"
 type: fullstack
 epic: 3
-status: in-progress
+status: done
 created: 2026-02-23T00:00:00Z
 started: 2026-03-05T13:52:11Z
-completed: null
+completed: 2026-03-05
 hours: null
 workflow_version: "3.1.0"
 coverage_threshold: 80
+
 
 
 ---

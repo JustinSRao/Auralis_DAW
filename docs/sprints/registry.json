@@ -326,13 +326,13 @@
     },
     "33": {
       "title": "LFO Modulation Routing",
-      "status": "planning",
+      "status": "done",
       "epic": 3,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-05",
+      "hours": 9.2
     },
     "34": {
       "title": "Instrument & Effect Presets",
@@ -481,7 +481,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 5,
-      "completedSprints": 4
+      "completedSprints": 5
     },
     "4": {
       "title": "Composition Tools",

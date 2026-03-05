@@ -59,7 +59,10 @@
       "Bash(LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo check:*)",
       "Bash(do:*)",
       "Bash(python3:*)",
-      "Skill(sprint-postmortem)"
+      "Skill(sprint-postmortem)",
+      "Bash(BASE=\"/c/Users/nitsu/.Application_Development/Music_Application/docs/sprints\")",
+      "Read(//c/Users/nitsu/.Application_Development/Music_Application/$BASE/2-in-progress/**)",
+      "Read(//c/Users/nitsu/.Application_Development/Music_Application/$BASE/1-todo/**)"
     ]
   }
 }
