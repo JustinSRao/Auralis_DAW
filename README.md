@@ -1,4 +1,4 @@
-<img src="assets/README_icon.png" align="left" width="50" height="50" alt="Project Icon" />
+<img src="assets/README_icon.png" align="left" width="80" height="80" alt="Project Icon" />
 
 # Auralis DAW
 
