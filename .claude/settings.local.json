@@ -57,7 +57,9 @@
       "WebFetch(domain:v2.tauri.app)",
       "Skill(sprint-resume)",
       "Bash(LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo check:*)",
-      "Bash(do:*)"
+      "Bash(do:*)",
+      "Bash(python3:*)",
+      "Skill(sprint-postmortem)"
     ]
   }
 }

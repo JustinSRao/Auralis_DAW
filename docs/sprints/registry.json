@@ -76,13 +76,13 @@
     },
     "8": {
       "title": "Drum Machine",
-      "status": "planning",
+      "status": "done",
       "epic": 3,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-04",
+      "hours": 13.2
     },
     "9": {
       "title": "Audio Recording (Live Input)",
@@ -481,7 +481,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 7,
-      "completedSprints": 2
+      "completedSprints": 3
     },
     "4": {
       "title": "Composition Tools",
