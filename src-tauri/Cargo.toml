@@ -57,6 +57,8 @@ uuid = { version = "1", features = ["v4"] }
 
 # Crossbeam for lock-free audio thread communication
 crossbeam-channel = "0.5"
+hound = "3.5"
+ringbuf = "0.3"
 crossbeam-queue = "0.3"
 
 # Atomic float for real-time safe parameter updates

@@ -737,3 +737,51 @@ export async function drumReset(): Promise<void> {
 export async function getDrumState(): Promise<DrumMachineSnapshot> {
   return invoke<DrumMachineSnapshot>("get_drum_state");
 }
+
+// ── Sprint 9: Audio Recorder ──────────────────────────────────────────────────
+
+export type RecorderState = "idle" | "recording" | "finalizing";
+
+/** Snapshot of the audio recorder state returned from `get_recording_status`. */
+export interface RecorderStatus {
+  state: RecorderState;
+  input_device: string | null;
+  output_path: string | null;
+  monitoring_enabled: boolean;
+  monitoring_gain: number;
+}
+
+/** Returns all available audio input devices. */
+export async function getInputDevices(): Promise<AudioDeviceInfo[]> {
+  return invoke<AudioDeviceInfo[]>("get_input_devices");
+}
+
+/** Selects the input device for recording. */
+export async function setInputDevice(deviceName: string): Promise<void> {
+  return invoke<void>("set_input_device", { deviceName });
+}
+
+/** Starts recording. Returns the path of the WAV file being written. */
+export async function startRecording(): Promise<string> {
+  return invoke<string>("start_recording");
+}
+
+/** Stops recording and begins WAV finalization. Returns the file path. */
+export async function stopRecording(): Promise<string> {
+  return invoke<string>("stop_recording");
+}
+
+/** Returns the current recorder status. */
+export async function getRecordingStatus(): Promise<RecorderStatus> {
+  return invoke<RecorderStatus>("get_recording_status");
+}
+
+/** Enables or disables input monitoring pass-through. */
+export async function setMonitoringEnabled(enabled: boolean): Promise<void> {
+  return invoke<void>("set_monitoring_enabled", { enabled });
+}
+
+/** Sets the monitoring gain (0.0–1.0). */
+export async function setMonitoringGain(gain: number): Promise<void> {
+  return invoke<void>("set_monitoring_gain", { gain });
+}

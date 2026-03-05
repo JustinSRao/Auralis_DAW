@@ -6,6 +6,7 @@ import { HistoryPanel } from '@/components/daw/HistoryPanel';
 import { MenuBar } from '@/components/daw/MenuBar';
 import { TrackList } from '@/components/daw/TrackList';
 import { DrumMachinePanel } from '@/components/instruments/DrumMachinePanel';
+import { RecordPanel } from '@/components/instruments/RecordPanel';
 import { SamplerPanel } from '@/components/instruments/SamplerPanel';
 import { SynthPanel } from '@/components/instruments/SynthPanel';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
@@ -126,8 +127,9 @@ export function DAWLayout() {
           </div>
         </div>
 
-        {/* Right panel — settings (temporary until Sprint 9 instruments) */}
+        {/* Right panel — settings and recording */}
         <div className="w-64 bg-[#242424] border-l border-[#3a3a3a] flex flex-col overflow-y-auto flex-shrink-0">
+          <RecordPanel />
           <AudioSettingsPanel />
           <MidiSettingsPanel />
         </div>

@@ -161,6 +161,37 @@ pub fn run() {
                 }
             });
 
+            // --- Sprint 9: Audio Recorder managed state ---
+            let (audio_recorder, rms_rx) = audio::recorder::AudioRecorder::new(44100);
+            let audio_recorder_state: audio::recorder::AudioRecorderState =
+                std::sync::Arc::new(std::sync::Mutex::new(audio_recorder));
+            app.manage(audio_recorder_state);
+
+            // Spawn RMS level poller (~30 Hz) — emits "input-level-changed" Tauri event
+            let app_handle_rms = app.handle().clone();
+            tokio::spawn(async move {
+                let mut interval =
+                    tokio::time::interval(std::time::Duration::from_millis(33));
+                let mut last_rms = -1.0f32;
+                loop {
+                    interval.tick().await;
+                    let mut latest: Option<f32> = None;
+                    while let Ok(rms) = rms_rx.try_recv() {
+                        latest = Some(rms);
+                    }
+                    if let Some(rms) = latest {
+                        if (rms - last_rms).abs() > 0.001 {
+                            if let Err(e) =
+                                app_handle_rms.emit("input-level-changed", rms)
+                            {
+                                log::warn!("Failed to emit input-level-changed: {}", e);
+                            }
+                            last_rms = rms;
+                        }
+                    }
+                }
+            });
+
             // Spawn auto-save background task (fires every 300 seconds)
             let pm_clone = pm_state.clone();
             tokio::spawn(async move {
@@ -259,6 +290,13 @@ pub fn run() {
             instruments::commands::drum_stop,
             instruments::commands::drum_reset,
             instruments::commands::get_drum_state,
+            audio::commands::get_input_devices,
+            audio::commands::set_input_device,
+            audio::commands::start_recording,
+            audio::commands::stop_recording,
+            audio::commands::get_recording_status,
+            audio::commands::set_monitoring_enabled,
+            audio::commands::set_monitoring_gain,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

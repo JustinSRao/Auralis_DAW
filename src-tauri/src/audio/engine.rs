@@ -50,6 +50,12 @@ pub enum AudioCommand {
     TransportSetRecordArmed(bool),
     /// Seek to an absolute sample position (only when stopped or paused).
     TransportSeek(u64),
+
+    // --- Sprint 9: Input monitoring commands ---
+    /// Route recorder input to the output mix (monitoring pass-through).
+    SetMonitoringConsumer(ringbuf::HeapConsumer<f32>),
+    /// Enable or disable input monitoring.
+    SetMonitoringEnabled(bool),
 }
 
 /// The core audio engine managing cpal stream lifecycle and the audio graph.
@@ -351,6 +357,10 @@ impl AudioEngine {
         let state = self.state.clone();
         let midi_rx = self.midi_event_rx.take();
 
+        // Monitoring state: owned by the audio thread inside the closure
+        let mut monitoring_cons: Option<ringbuf::HeapConsumer<f32>> = None;
+        let mut monitoring_enabled_flag = false;
+
         let stream = device
             .build_output_stream(
                 &stream_config,
@@ -364,6 +374,8 @@ impl AudioEngine {
                         sr,
                         ch,
                         &state,
+                        &mut monitoring_cons,
+                        &mut monitoring_enabled_flag,
                     );
                 },
                 move |err| {
@@ -413,6 +425,8 @@ fn audio_callback(
     sample_rate: u32,
     channels: u16,
     _state: &AtomicU8,
+    monitoring_cons: &mut Option<ringbuf::HeapConsumer<f32>>,
+    monitoring_enabled: &mut bool,
 ) {
     // Drain commands (non-blocking)
     while let Ok(cmd) = command_rx.try_recv() {
@@ -448,6 +462,13 @@ fn audio_callback(
                 clock.apply_set_record_armed(armed)
             }
             AudioCommand::TransportSeek(pos) => clock.apply_seek(pos),
+            // --- Sprint 9: Input monitoring commands ---
+            AudioCommand::SetMonitoringConsumer(cons) => {
+                *monitoring_cons = Some(cons);
+            }
+            AudioCommand::SetMonitoringEnabled(enabled) => {
+                *monitoring_enabled = enabled;
+            }
         }
     }
 
@@ -468,6 +489,29 @@ fn audio_callback(
     } else {
         for s in data.iter_mut() {
             *s = 0.0;
+        }
+    }
+
+    // Input monitoring pass-through — mix recorder input into output
+    if *monitoring_enabled {
+        if let Some(ref mut cons) = monitoring_cons {
+            let available = cons.len().min(data.len());
+            let mut mon_scratch = [0.0f32; 1024]; // stack-allocated, no heap
+            let mut written = 0;
+            while written < available {
+                let chunk = (available - written).min(1024);
+                let n = cons.pop_slice(&mut mon_scratch[..chunk]);
+                for (out_s, &mon_s) in data[written..written + n]
+                    .iter_mut()
+                    .zip(mon_scratch[..n].iter())
+                {
+                    *out_s += mon_s;
+                }
+                written += n;
+                if n == 0 {
+                    break;
+                }
+            }
         }
     }
 }

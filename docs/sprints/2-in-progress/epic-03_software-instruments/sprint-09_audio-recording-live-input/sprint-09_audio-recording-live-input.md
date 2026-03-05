@@ -3,12 +3,13 @@ sprint: 9
 title: "Audio Recording (Live Input)"
 type: fullstack
 epic: 3
-status: planning
+status: in-progress
 created: 2026-02-22T22:09:57Z
-started: null
+started: 2026-03-04T21:31:08Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
+
 ---
 
 # Sprint 9: Audio Recording (Live Input)
@@ -117,6 +118,47 @@ Recording live audio is a core DAW capability — vocalists, guitarists, and oth
 - [ ] Monitoring routes input to output when enabled with no crash
 - [ ] Recorded clip is added to the active track's clip list after stop
 - [ ] No audio dropouts or glitches on the output stream during recording
+
+## Team Strategy
+
+### Architecture Decisions
+- **Input host**: Always use `cpal::default_host()` (WASAPI) for the input stream — ASIO does not support separate input+output streams, so forcing WASAPI for recording avoids conflicts
+- **State machine**: `AtomicU8` constants — `REC_IDLE=0`, `REC_RECORDING=1`, `REC_FINALIZING=2`; state stored in `RecorderAtomics`
+- **Ring buffers**: Two ring buffers — `rec_ring` (65536×2 samples, ~1.36s at 48kHz) feeds disk task; `mon_ring` (4096 samples, ~46ms) feeds output callback
+- **Monitoring**: `HeapCons<f32>` handed to `AudioEngine` via new `AudioCommand::SetMonitoringConsumer`; mixed into output buffer in audio callback
+- **RMS metering**: Computed in input callback, sent via `crossbeam_channel::try_send` → Tokio 33ms poller → `input-level-changed` event (≤30 Hz)
+- **Finalization signal**: `disk_write_task` emits `recording-finalized` Tauri event when `WavWriter::finalize()` completes
+- **WAV format**: 32-bit float, stereo, matching engine sample rate, temp dir with UUID filename
+- **Monitoring toggle**: `Arc<AtomicBool>` + `Arc<AtomicF32>` gain — lock-free from input callback
+
+### Module Structure
+```
+src-tauri/src/audio/
+  recorder.rs   AudioRecorder, RecorderAtomics, RecorderStatus, compute_rms, disk_write_task
+```
+
+### RecorderCommand Enum (channel-based)
+```rust
+enum RecorderCommand { Stop }
+```
+
+### New AudioCommand Variants (added to engine.rs)
+```rust
+SetMonitoringConsumer(ringbuf::HeapCons<f32>),
+SetMonitoringEnabled(bool),
+```
+
+### Tauri Commands
+`get_input_devices`, `set_input_device`, `start_recording`, `stop_recording`, `get_recording_status`, `set_monitoring_enabled`, `set_monitoring_gain`
+
+### Tauri Events
+- `input-level-changed` — f32 RMS (0.0–1.0), ≤30 Hz
+- `recording-finalized` — String file path, emitted once on WAV finalize
+
+### React UI
+- `RecordPanel` in right panel alongside AudioSettingsPanel / MidiSettingsPanel
+- Device selector, RMS level bar, REC/STOP button, monitoring toggle + gain knob
+- Listens to `input-level-changed` and `recording-finalized` events
 
 ## Notes
 

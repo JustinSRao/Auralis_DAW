@@ -4,6 +4,7 @@ use tauri::State;
 
 use super::devices;
 use super::engine::{AudioCommand, AudioEngine};
+use super::recorder::{AudioRecorderState, RecorderStatus};
 use super::transport::TransportSnapshot;
 use super::types::*;
 
@@ -231,4 +232,100 @@ pub fn transport_seek(
     let eng = engine.lock().map_err(|e| e.to_string())?;
     eng.send_transport_command(AudioCommand::TransportSeek(position_samples))
         .map_err(|e| e.to_string())
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 9: Audio Recording commands
+// ---------------------------------------------------------------------------
+
+/// Returns all available audio input devices.
+#[tauri::command]
+pub fn get_input_devices() -> Result<Vec<AudioDeviceInfo>, String> {
+    devices::enumerate_devices()
+        .map(|devs| devs.into_iter().filter(|d| d.is_input).collect())
+        .map_err(|e| e.to_string())
+}
+
+/// Selects the input device for recording.
+#[tauri::command]
+pub fn set_input_device(
+    recorder: State<'_, AudioRecorderState>,
+    device_name: String,
+) -> Result<(), String> {
+    let mut rec = recorder.lock().map_err(|e| e.to_string())?;
+    rec.set_input_device(&device_name);
+    Ok(())
+}
+
+/// Starts recording. Returns the output WAV file path.
+#[tauri::command]
+pub async fn start_recording(
+    recorder: State<'_, AudioRecorderState>,
+    engine: State<'_, AudioEngineState>,
+    app_handle: tauri::AppHandle,
+) -> Result<String, String> {
+    // Start the recorder (opens input stream)
+    let path = {
+        let mut rec = recorder.lock().map_err(|e| e.to_string())?;
+        rec.start_recording(app_handle).map_err(|e| e.to_string())?
+    };
+
+    // Wire monitoring consumer into the audio engine
+    {
+        let rec = recorder.lock().map_err(|e| e.to_string())?;
+        if let Ok(cons) = rec.monitoring_cons_rx.try_recv() {
+            // Best effort — engine may not be running
+            if let Ok(eng) = engine.lock() {
+                let _ = eng.send_transport_command(AudioCommand::SetMonitoringConsumer(cons));
+            }
+        }
+    }
+
+    Ok(path.to_string_lossy().to_string())
+}
+
+/// Stops recording and begins WAV finalization.
+#[tauri::command]
+pub fn stop_recording(
+    recorder: State<'_, AudioRecorderState>,
+) -> Result<String, String> {
+    let mut rec = recorder.lock().map_err(|e| e.to_string())?;
+    let path = rec.stop_recording().map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+/// Returns current recorder state.
+#[tauri::command]
+pub fn get_recording_status(
+    recorder: State<'_, AudioRecorderState>,
+) -> Result<RecorderStatus, String> {
+    let rec = recorder.lock().map_err(|e| e.to_string())?;
+    Ok(rec.status())
+}
+
+/// Enables or disables input monitoring.
+#[tauri::command]
+pub fn set_monitoring_enabled(
+    recorder: State<'_, AudioRecorderState>,
+    engine: State<'_, AudioEngineState>,
+    enabled: bool,
+) -> Result<(), String> {
+    let rec = recorder.lock().map_err(|e| e.to_string())?;
+    rec.set_monitoring_enabled(enabled);
+    // Also notify audio thread
+    if let Ok(eng) = engine.lock() {
+        let _ = eng.send_transport_command(AudioCommand::SetMonitoringEnabled(enabled));
+    }
+    Ok(())
+}
+
+/// Sets monitoring gain (0.0–1.0).
+#[tauri::command]
+pub fn set_monitoring_gain(
+    recorder: State<'_, AudioRecorderState>,
+    gain: f32,
+) -> Result<(), String> {
+    let rec = recorder.lock().map_err(|e| e.to_string())?;
+    rec.set_monitoring_gain(gain);
+    Ok(())
 }

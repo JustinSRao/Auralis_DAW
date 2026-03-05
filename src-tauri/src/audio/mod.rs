@@ -5,5 +5,6 @@ pub mod devices;
 pub mod engine;
 pub mod graph;
 pub mod metronome;
+pub mod recorder;
 pub mod transport;
 pub mod types;

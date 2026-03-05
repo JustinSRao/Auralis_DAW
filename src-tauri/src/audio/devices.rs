@@ -75,6 +75,30 @@ pub fn find_output_device(
     anyhow::bail!("Output device '{}' not found", device_name)
 }
 
+/// Finds a specific input device by name on the default (WASAPI) host.
+///
+/// Always uses the WASAPI host since ASIO input and output cannot coexist
+/// as separate cpal streams.
+pub fn find_input_device(device_name: &str) -> Result<cpal::Device> {
+    // Explicitly use WASAPI for input enumeration. `cpal::default_host()` returns
+    // the ASIO host when ASIO4ALL is installed, and ASIO does not expose separate
+    // input devices — enumeration would return nothing.
+    let host = wasapi_host()?;
+    let devices = host
+        .input_devices()
+        .context("Failed to enumerate input devices")?;
+
+    for device in devices {
+        if let Ok(name) = device.name() {
+            if name == device_name {
+                return Ok(device);
+            }
+        }
+    }
+
+    anyhow::bail!("Input device '{}' not found", device_name)
+}
+
 /// Collects device information from a single host into the output vector.
 fn collect_devices_from_host(
     host: &Host,
