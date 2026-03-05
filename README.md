@@ -1,4 +1,4 @@
-# Music Application (DAW)
+# Auralis DAW
 
 A desktop Digital Audio Workstation built with Tauri 2 + Rust + React/TypeScript, targeting Windows.
 
@@ -13,7 +13,10 @@ A desktop Digital Audio Workstation built with Tauri 2 + Rust + React/TypeScript
 | Backend | Rust (src-tauri/) |
 | Audio I/O | cpal with ASIO feature |
 | MIDI | midir |
+| Audio Decode | symphonia |
+| Sample Rate | rubato |
 | Database | SQLite (rusqlite bundled) |
+| Auth | argon2 |
 
 ## Prerequisites
 
@@ -56,44 +59,57 @@ Produces a Windows NSIS installer at `src-tauri/target/release/bundle/nsis/`.
 ```
 src/                          # React/TypeScript frontend
   components/
-    auth/                     # Login, register UI (Sprint 5)
-    daw/                      # Main DAW shell layout
-    instruments/              # Synth, sampler, drum machine UI
+    auth/                     # Login, register UI
+    daw/                      # Main DAW shell and track management
+    instruments/              # Synth, sampler, drum machine, LFO UI
     effects/                  # EQ, reverb, compressor UI
     mixer/                    # Mixer channel strips
-    timeline/                 # Song timeline / piano roll
+    timeline/                 # Song timeline, piano roll, step sequencer
   stores/                     # Zustand state stores
   lib/
     ipc.ts                    # All Tauri IPC calls (typed wrappers)
   styles/                     # Global CSS + Tailwind config
 
 src-tauri/src/                # Rust backend
-  audio/                      # Audio engine, device management (Sprint 2)
-  midi/                       # MIDI I/O (Sprint 3)
-  instruments/                # DSP: synth, sampler, drum machine (Sprints 6-8)
-  effects/                    # DSP: EQ, reverb, compressor (Sprints 18-20)
-  project/                    # Project file save/load (Sprint 4)
-  auth/                       # SQLite authentication (Sprint 5)
-  vst3/                       # VST3 plugin host (Sprints 23-24)
+  audio/                      # Audio engine, device management, graph, transport clock
+  midi/                       # MIDI I/O, event bus, CC mapping, MIDI import
+  instruments/                # DSP: synth, sampler, drum machine, LFO modulation
+  effects/                    # DSP: EQ, reverb, compressor, delay
+  project/                    # Project file save/load (.mapp format)
+  auth/                       # SQLite authentication
+  config/                     # App preferences persistence
+  browser/                    # File system browser + audio preview
+  presets/                    # Instrument & effect preset management
+  vst3/                       # VST3 plugin host
 
 docs/sprints/                 # Maestro sprint workflow
 ```
 
 ## Sprint Plan
 
-24 sprints across 8 epics. See `docs/sprints/` for the full plan.
+46 sprints across 11 epics. See `docs/sprints/` for the full plan.
+
+### Completed
+
+| Epic | Title | Sprints | Status |
+|------|-------|---------|--------|
+| 1 | Foundation & Infrastructure | 1, 2, 3, 4, 25, 26, 30 | Done |
+| 2 | Authentication & User Management | 5 | Done |
+| 3 | Software Instruments | 6, 7, 8, 9, 33 | Done |
+
+### Planned
 
 | Epic | Title | Sprints |
 |------|-------|---------|
-| 1 | Foundation & Infrastructure | 1–4 |
-| 2 | Authentication | 5 |
-| 3 | Software Instruments | 6–9 |
-| 4 | Composition Tools | 10–14 |
-| 5 | Audio Editing | 15–16 |
-| 6 | Mixer & Effects | 17–21 |
+| 4 | Composition Tools | 10, 11, 12, 13, 14, 36, 31, 32, 38, 44, 41, 43 |
+| 5 | Audio Editing | 15, 16 |
+| 6 | Mixer & Effects | 17, 18, 19, 20, 21, 37, 39, 42, 45 |
 | 7 | Export & Finalization | 22 |
-| 8 | VST3 Plugin Support | 23–24 |
+| 8 | VST3 Plugin Support | 23, 24 |
+| 9 | Settings & Preferences | 27, 46 |
+| 10 | Workflow & Productivity | 28, 29, 40 |
+| 11 | Preset Management | 34 |
 
 ## Repository
 
-GitHub: https://github.com/JustinSRao/Music_Application
+GitHub: https://github.com/JustinSRao/Auralis_DAW
