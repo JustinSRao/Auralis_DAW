@@ -1,3 +1,5 @@
+<img src="assets/README_icon.png" align="left" width="50" height="50" alt="Project Icon" />
+
 # Auralis DAW
 
 A desktop Digital Audio Workstation built with Tauri 2 + Rust + React/TypeScript, targeting Windows.
