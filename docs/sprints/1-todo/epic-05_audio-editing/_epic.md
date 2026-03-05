@@ -30,8 +30,11 @@ Provides non-destructive audio clip editing tools for working with recorded or i
 
 ## Backlog
 
-- [ ] Crossfade between spliced clips
 - [ ] Spectral editing view
+
+## Notes
+
+Clip fades and crossfades are implemented in Sprint 45 (Audio Clip Fades) which lives in Epic 06 (Mixer & Effects) due to its dependency on Sprint 37 (Audio Clip Playback Engine).
 
 ## Notes
 

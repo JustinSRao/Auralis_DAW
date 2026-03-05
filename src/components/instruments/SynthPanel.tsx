@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Knob } from "./Knob";
+import { LfoPanel } from "./LfoPanel";
 import { useSynthStore } from "../../stores/synthStore";
 import type { SynthParamName } from "../../lib/ipc";
 
@@ -230,6 +231,10 @@ export function SynthPanel() {
           Initialising...
         </div>
       )}
+
+      {/* LFO modulation section */}
+      <LfoPanel slot={1} />
+      <LfoPanel slot={2} />
     </div>
   );
 }

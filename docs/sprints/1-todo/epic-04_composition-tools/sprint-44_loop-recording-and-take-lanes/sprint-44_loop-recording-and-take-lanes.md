@@ -2,7 +2,7 @@
 sprint: 44
 title: "Loop Recording and Take Lanes"
 type: fullstack
-epic: 3
+epic: 4
 status: planning
 created: 2026-02-23T17:06:06Z
 started: null
@@ -20,7 +20,7 @@ workflow_version: "3.1.0"
 | Sprint | 44 |
 | Title | Loop Recording and Take Lanes |
 | Type | fullstack |
-| Epic | 3 |
+| Epic | 4 - Composition Tools |
 | Status | Planning |
 | Created | 2026-02-23 |
 | Started | - |

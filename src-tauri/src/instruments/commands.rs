@@ -7,6 +7,7 @@ use tauri::State;
 use crate::audio::commands::AudioEngineState;
 use crate::audio::engine::AudioCommand;
 use crate::audio::graph::AudioGraph;
+use crate::audio::transport::TransportAtomics;
 use crate::midi::commands::MidiManagerState;
 use crate::midi::types::TimestampedMidiEvent;
 
@@ -22,6 +23,9 @@ use super::sampler::zone::{
 };
 use super::sampler::SamplerCommand;
 use super::synth::SubtractiveSynth;
+use super::synth::lfo::{
+    set_lfo_param_by_name, LfoParams, LfoParamSnapshot, LfoParamsState, LfoStateSnapshot,
+};
 use super::synth::params::{set_param_by_name, SynthParamSnapshot, SynthParams};
 
 /// Type alias for the synthesizer parameter state managed by Tauri.
@@ -37,22 +41,33 @@ pub type SynthState = Arc<SynthParams>;
 pub type SynthMidiTxState =
     Arc<Mutex<Option<crossbeam_channel::Sender<TimestampedMidiEvent>>>>;
 
+/// Transport atomics shared between the audio engine and audio nodes (e.g., LFO BPM sync).
+///
+/// Created before the engine starts and injected so all consumers observe the same values.
+pub type TransportAtomicsState = TransportAtomics;
+
 /// Creates and registers the synthesizer instrument in the audio graph.
 ///
 /// Steps:
 /// 1. Creates a new MIDI channel pair for the synth.
 /// 2. Stores the sender in `SynthMidiTxState` and registers it with `MidiManager`
 ///    so incoming MIDI events are forwarded to the synth.
-/// 3. Builds a new `AudioGraph` containing `SubtractiveSynth` and publishes it
-///    via `AudioCommand::SwapGraph`.
+/// 3. Builds a new `AudioGraph` containing `SubtractiveSynth` (with both LFOs
+///    wired to shared `LfoParamsState` and the managed `TransportAtomics`)
+///    and publishes it via `AudioCommand::SwapGraph`.
 #[tauri::command]
 pub async fn create_synth_instrument(
     engine: State<'_, AudioEngineState>,
     synth_params: State<'_, SynthState>,
     synth_midi_tx: State<'_, SynthMidiTxState>,
     midi_manager: State<'_, MidiManagerState>,
+    lfo_params_state: State<'_, LfoParamsState>,
+    transport_atomics: State<'_, TransportAtomicsState>,
 ) -> Result<(), String> {
     let params = Arc::clone(&*synth_params);
+    let lfo1 = Arc::clone(&lfo_params_state.lfo1);
+    let lfo2 = Arc::clone(&lfo_params_state.lfo2);
+    let atomics = (*transport_atomics).clone();
 
     // Fresh dedicated MIDI channel for this synth instance
     let (midi_tx, midi_rx) =
@@ -76,7 +91,7 @@ pub async fn create_synth_instrument(
 
     // Build the audio graph containing the synth node
     let mut graph = AudioGraph::new(1024, 2);
-    let synth = SubtractiveSynth::new(params, midi_rx, 44100.0);
+    let synth = SubtractiveSynth::new(params, midi_rx, 44100.0, lfo1, lfo2, atomics);
     graph.add_node(Box::new(synth));
 
     // Swap the new graph into the running engine
@@ -597,6 +612,35 @@ pub fn drum_reset(cmd_tx_state: State<'_, DrumCmdTxState>) -> Result<(), String>
     let tx = guard.as_ref().ok_or("Drum machine not initialized")?;
     tx.try_send(DrumCommand::Reset)
         .map_err(|e| format!("Failed to send Reset: {}", e))
+}
+
+// ── LFO Tauri commands (Sprint 33) ────────────────────────────────────────────
+
+/// Sets a single parameter on LFO 1 or LFO 2 by name.
+///
+/// `slot` selects the LFO: 1 = LFO 1, any other value = LFO 2.
+/// `param` is the parameter name (e.g. `"rate"`, `"depth"`, `"destination"`).
+/// `value` is the new value to store.
+#[tauri::command]
+pub fn set_lfo_param(
+    lfo_params: State<'_, LfoParamsState>,
+    slot: u8,
+    param: String,
+    value: f32,
+) -> Result<(), String> {
+    let p: &LfoParams = if slot == 1 { &lfo_params.lfo1 } else { &lfo_params.lfo2 };
+    set_lfo_param_by_name(p, &param, value)
+}
+
+/// Returns a serializable snapshot of both LFO parameter stores.
+#[tauri::command]
+pub fn get_lfo_state(
+    lfo_params: State<'_, LfoParamsState>,
+) -> Result<LfoStateSnapshot, String> {
+    Ok(LfoStateSnapshot {
+        lfo1: LfoParamSnapshot::from_params(&lfo_params.lfo1),
+        lfo2: LfoParamSnapshot::from_params(&lfo_params.lfo2),
+    })
 }
 
 /// Returns a full serializable snapshot of the drum machine state.

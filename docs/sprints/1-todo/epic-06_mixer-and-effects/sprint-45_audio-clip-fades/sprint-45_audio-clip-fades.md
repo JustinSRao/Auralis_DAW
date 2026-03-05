@@ -2,7 +2,7 @@
 sprint: 45
 title: "Audio Clip Fades"
 type: fullstack
-epic: 5
+epic: 6
 status: planning
 created: 2026-02-23T17:06:07Z
 started: null
@@ -20,7 +20,7 @@ workflow_version: "3.1.0"
 | Sprint | 45 |
 | Title | Audio Clip Fades |
 | Type | fullstack |
-| Epic | 5 |
+| Epic | 6 - Mixer & Effects |
 | Status | Planning |
 | Created | 2026-02-23 |
 | Started | - |

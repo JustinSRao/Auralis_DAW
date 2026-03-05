@@ -14,10 +14,11 @@ use audio::transport::TransportSnapshot;
 use instruments::commands::{
     DrumAtomicsState, DrumCmdTxState, DrumPatternShadowState,
     SamplerCmdTxState, SamplerMidiTxState, SamplerState, SamplerZoneListState,
-    SynthMidiTxState, SynthState,
+    SynthMidiTxState, SynthState, TransportAtomicsState,
 };
 use instruments::drum_machine::{DrumAtomics, DrumPadSnapshot};
 use instruments::sampler::zone::SamplerParams;
+use instruments::synth::lfo::{LfoParams, LfoParamsState};
 use instruments::synth::params::SynthParams;
 use project::commands::{ProjectManager, ProjectManagerState};
 use project::track_commands::{
@@ -62,6 +63,17 @@ pub fn run() {
             let mut audio_engine = audio::engine::AudioEngine::new();
             audio_engine.set_midi_receiver(midi_rx);
 
+            // --- Sprint 33: Create TransportAtomics BEFORE starting the engine ---
+            // This lets the LFO (and future audio nodes) share the same atomics
+            // that the engine's TransportClock will write to.
+            let transport_atomics = audio::transport::TransportAtomics::new(120.0, 44100);
+            // Inject into engine so build_and_start_stream uses these atomics
+            audio_engine.set_transport_atomics(transport_atomics.clone());
+
+            // Manage as TransportAtomicsState so Tauri commands can access them
+            let transport_atomics_state: TransportAtomicsState = transport_atomics;
+            app.manage(transport_atomics_state);
+
             // Clone the transport snapshot Arc BEFORE moving engine into managed state.
             // The 60 fps poller needs it without holding the engine mutex.
             let transport_snapshot: Arc<Mutex<TransportSnapshot>> =
@@ -98,6 +110,15 @@ pub fn run() {
             // into the MIDI callback fan-out so real-time events reach the audio thread.
             let synth_midi_tx: SynthMidiTxState = Arc::new(Mutex::new(None));
             app.manage(synth_midi_tx);
+
+            // --- Sprint 33: LFO managed state ---
+            // Two LFO parameter stores; both live in one struct because Tauri
+            // can only manage one instance of a given type.
+            let lfo_params_state = LfoParamsState {
+                lfo1: LfoParams::new(),
+                lfo2: LfoParams::new(),
+            };
+            app.manage(lfo_params_state);
 
             // --- Sprint 7: Sampler managed state ---
 
@@ -290,6 +311,8 @@ pub fn run() {
             instruments::commands::drum_stop,
             instruments::commands::drum_reset,
             instruments::commands::get_drum_state,
+            instruments::commands::set_lfo_param,
+            instruments::commands::get_lfo_state,
             audio::commands::get_input_devices,
             audio::commands::set_input_device,
             audio::commands::start_recording,

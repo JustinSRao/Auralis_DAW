@@ -38,6 +38,28 @@ vi.mock("../../../stores/synthStore", () => ({
   useSynthStore: () => mockStoreState,
 }));
 
+// ── Mock the LFO store (used by LfoPanel rendered inside SynthPanel) ──────────
+const DEFAULT_LFO_PARAMS = {
+  rate: 1.0,
+  depth: 0.0,
+  waveform: 0,
+  bpm_sync: 0,
+  division: 1,
+  phase_reset: 0,
+  destination: 0,
+};
+
+vi.mock("../../../stores/lfoStore", () => ({
+  useLfoStore: () => ({
+    lfo1: { ...DEFAULT_LFO_PARAMS },
+    lfo2: { ...DEFAULT_LFO_PARAMS },
+    error: null,
+    setLfoParam: vi.fn(),
+    fetchLfoState: vi.fn(),
+    clearError: vi.fn(),
+  }),
+}));
+
 import { SynthPanel } from "../SynthPanel";
 
 describe("SynthPanel", () => {
@@ -77,10 +99,11 @@ describe("SynthPanel", () => {
 
   it("renders all 4 waveform buttons", () => {
     render(<SynthPanel />);
-    expect(screen.getByText("SAW")).toBeTruthy();
-    expect(screen.getByText("SQR")).toBeTruthy();
+    // Use getAllByText because LfoPanel also renders some of the same labels (SQR, TRI)
+    expect(screen.getAllByText("SAW").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("SQR").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("SIN")).toBeTruthy();
-    expect(screen.getByText("TRI")).toBeTruthy();
+    expect(screen.getAllByText("TRI").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders Attack knob label", () => {
@@ -148,5 +171,15 @@ describe("SynthPanel", () => {
     mockStoreState = { ...mockStoreState, isInitialized: true };
     render(<SynthPanel />);
     expect(mockInitialize).not.toHaveBeenCalled();
+  });
+
+  it("renders LFO 1 panel inside SynthPanel", () => {
+    render(<SynthPanel />);
+    expect(screen.getByText("LFO 1")).toBeTruthy();
+  });
+
+  it("renders LFO 2 panel inside SynthPanel", () => {
+    render(<SynthPanel />);
+    expect(screen.getByText("LFO 2")).toBeTruthy();
   });
 });

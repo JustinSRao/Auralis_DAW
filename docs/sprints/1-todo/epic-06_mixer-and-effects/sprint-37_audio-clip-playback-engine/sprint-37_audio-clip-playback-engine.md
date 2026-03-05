@@ -2,7 +2,7 @@
 sprint: 37
 title: "Audio Clip Playback Engine"
 type: fullstack
-epic: 4
+epic: 6
 status: planning
 created: 2026-02-23T12:32:34Z
 started: null
@@ -20,7 +20,7 @@ workflow_version: "3.1.0"
 | Sprint | 37 |
 | Title | Audio Clip Playback Engine |
 | Type | fullstack |
-| Epic | 4 |
+| Epic | 6 - Mixer & Effects |
 | Status | Planning |
 | Created | 2026-02-23 |
 | Started | - |

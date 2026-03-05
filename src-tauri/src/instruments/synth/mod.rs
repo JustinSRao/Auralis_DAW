@@ -1,23 +1,27 @@
 pub mod envelope;
 pub mod filter;
+pub mod lfo;
 pub mod oscillator;
 pub mod params;
 pub mod voice;
 
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use crossbeam_channel::Receiver;
 
 use crate::audio::graph::AudioNode;
+use crate::audio::transport::TransportAtomics;
 use crate::midi::types::{MidiEvent, TimestampedMidiEvent};
 
+use lfo::{Lfo, LfoParams, LfoWaveform};
 use params::SynthParams;
-use voice::SynthVoice;
+use voice::{RenderParams, SynthVoice};
 
 /// Maximum number of simultaneous voices.
 const MAX_VOICES: usize = 8;
 
-/// 8-voice polyphonic subtractive synthesizer.
+/// 8-voice polyphonic subtractive synthesizer with dual LFO modulation.
 ///
 /// Implements `AudioNode` so it can be inserted into the audio graph.
 /// MIDI events are drained from a dedicated crossbeam channel at the top
@@ -26,6 +30,10 @@ const MAX_VOICES: usize = 8;
 /// Voice stealing: when all 8 voices are active and a new note arrives,
 /// the voice with the smallest `age` value (i.e., the one that has been
 /// playing the longest) is stolen.
+///
+/// Both LFOs tick per-sample inside the voice render loop. LFO parameters
+/// are read from atomics once per buffer (outside the per-sample loop) to
+/// minimise atomic load overhead on the hot path.
 pub struct SubtractiveSynth {
     /// Fixed-size voice pool — never reallocated.
     voices: [SynthVoice; MAX_VOICES],
@@ -37,14 +45,27 @@ pub struct SubtractiveSynth {
     sample_rate: f32,
     /// Monotonically increasing global age counter (increments by buffer length).
     global_age: u64,
+    /// LFO 1 oscillator state (phase + S&H random).
+    lfo1: Lfo,
+    /// LFO 2 oscillator state.
+    lfo2: Lfo,
+    /// Shared LFO 1 parameter store (written by UI thread, read here lock-free).
+    pub lfo1_params: Arc<LfoParams>,
+    /// Shared LFO 2 parameter store.
+    pub lfo2_params: Arc<LfoParams>,
+    /// Transport atomics for BPM-sync LFO rate derivation.
+    transport_atomics: TransportAtomics,
 }
 
 impl SubtractiveSynth {
-    /// Creates a new synth with the given shared parameters and MIDI receiver.
+    /// Creates a new synth with the given shared parameters, MIDI receiver, and transport atomics.
     pub fn new(
         params: Arc<SynthParams>,
         midi_rx: Receiver<TimestampedMidiEvent>,
         sample_rate: f32,
+        lfo1_params: Arc<LfoParams>,
+        lfo2_params: Arc<LfoParams>,
+        transport_atomics: TransportAtomics,
     ) -> Self {
         Self {
             voices: std::array::from_fn(|_| SynthVoice::new()),
@@ -52,6 +73,11 @@ impl SubtractiveSynth {
             midi_rx,
             sample_rate,
             global_age: 0,
+            lfo1: Lfo::new(0x1234_5678),
+            lfo2: Lfo::new(0x9ABC_DEF0),
+            lfo1_params,
+            lfo2_params,
+            transport_atomics,
         }
     }
 
@@ -63,7 +89,7 @@ impl SubtractiveSynth {
     /// Steals the oldest active voice (the one with the smallest `age` value).
     ///
     /// The oldest voice is the one that has been playing the longest, because
-    /// `age` is stamped on note-on and the global counter grows forward.
+    /// `age` is stamped at note-on and the global counter grows forward.
     /// We find the voice with the *minimum* age among those with a note.
     fn steal_voice(&self) -> usize {
         self.voices
@@ -72,7 +98,7 @@ impl SubtractiveSynth {
             .filter(|(_, v)| v.note.is_some())
             .min_by_key(|(_, v)| v.age)
             .map(|(i, _)| i)
-            .unwrap_or(0) // Fallback: steal voice 0 if somehow all are free
+            .unwrap_or(0) // Safety: steal_voice is only called when all 8 voices are active; unreachable
     }
 
     /// Handles a single MIDI event.
@@ -97,6 +123,14 @@ impl SubtractiveSynth {
         let idx = self.find_free_voice().unwrap_or_else(|| self.steal_voice());
         self.voices[idx].age = self.global_age;
         self.voices[idx].note_on(note, self.sample_rate);
+
+        // Optionally reset LFO phases on note-on
+        if self.lfo1_params.phase_reset.load(Ordering::Relaxed) > 0.5 {
+            self.lfo1.reset_phase();
+        }
+        if self.lfo2_params.phase_reset.load(Ordering::Relaxed) > 0.5 {
+            self.lfo2.reset_phase();
+        }
     }
 
     fn handle_note_off(&mut self, note: u8) {
@@ -106,27 +140,115 @@ impl SubtractiveSynth {
             }
         }
     }
+
+    /// Derives the effective LFO rate in Hz.
+    ///
+    /// When BPM sync is enabled the rate is derived from `samples_per_beat`
+    /// and the chosen division. When disabled the free-running `rate` field is used.
+    #[inline]
+    fn effective_lfo_rate(
+        bpm_sync: f32,
+        free_rate: f32,
+        division: f32,
+        sample_rate: f32,
+        spb: f32,
+    ) -> f32 {
+        if bpm_sync > 0.5 && spb > 0.0 {
+            // division_idx: 0=1/4 note, 1=1/8, 2=1/16, 3=1/32
+            let beats_per_cycle: f32 = match division as u32 {
+                0 => 1.0,
+                1 => 0.5,
+                2 => 0.25,
+                _ => 0.125,
+            };
+            (sample_rate / spb) / beats_per_cycle
+        } else {
+            free_rate
+        }
+    }
 }
 
 impl AudioNode for SubtractiveSynth {
     fn process(&mut self, output: &mut [f32], sample_rate: u32, channels: u16) {
         self.sample_rate = sample_rate as f32;
+        let sr = self.sample_rate;
 
         // 1. Drain MIDI events — non-blocking, real-time safe
         while let Ok(msg) = self.midi_rx.try_recv() {
             self.handle_midi_event(&msg.event);
         }
 
-        // 2. Render active voices into the output buffer
+        // 2. Read synth params once per buffer (avoids per-sample atomic loads)
+        let waveform = self.params.waveform.load(Ordering::Relaxed);
+        let attack = self.params.attack.load(Ordering::Relaxed);
+        let decay = self.params.decay.load(Ordering::Relaxed);
+        let sustain = self.params.sustain.load(Ordering::Relaxed);
+        let release = self.params.release.load(Ordering::Relaxed);
+        let base_cutoff = self.params.cutoff.load(Ordering::Relaxed);
+        let base_resonance = self.params.resonance.load(Ordering::Relaxed);
+        let env_amount = self.params.env_amount.load(Ordering::Relaxed);
+        let volume = self.params.volume.load(Ordering::Relaxed);
+        let detune = self.params.detune.load(Ordering::Relaxed);
+        let pulse_width = self.params.pulse_width.load(Ordering::Relaxed);
+
+        // 3. Read LFO params once per buffer
+        let l1_rate = self.lfo1_params.rate.load(Ordering::Relaxed);
+        let l1_depth = self.lfo1_params.depth.load(Ordering::Relaxed);
+        let l1_waveform = LfoWaveform::from_f32(self.lfo1_params.waveform.load(Ordering::Relaxed));
+        let l1_bpm_sync = self.lfo1_params.bpm_sync.load(Ordering::Relaxed);
+        let l1_division = self.lfo1_params.division.load(Ordering::Relaxed);
+        let l1_dest = self.lfo1_params.destination.load(Ordering::Relaxed) as u8;
+
+        let l2_rate = self.lfo2_params.rate.load(Ordering::Relaxed);
+        let l2_depth = self.lfo2_params.depth.load(Ordering::Relaxed);
+        let l2_waveform = LfoWaveform::from_f32(self.lfo2_params.waveform.load(Ordering::Relaxed));
+        let l2_bpm_sync = self.lfo2_params.bpm_sync.load(Ordering::Relaxed);
+        let l2_division = self.lfo2_params.division.load(Ordering::Relaxed);
+        let l2_dest = self.lfo2_params.destination.load(Ordering::Relaxed) as u8;
+
+        // Derive samples_per_beat for BPM sync (f64 bits stored in AtomicU64)
+        let spb_bits = self.transport_atomics.samples_per_beat_bits.load(Ordering::Relaxed);
+        let spb = f64::from_bits(spb_bits) as f32;
+
+        let rate1 = Self::effective_lfo_rate(l1_bpm_sync, l1_rate, l1_division, sr, spb);
+        let rate2 = Self::effective_lfo_rate(l2_bpm_sync, l2_rate, l2_division, sr, spb);
+
+        // 4. Render per-sample
         let ch = channels as usize;
         let frames = output.len() / ch;
 
-        for frame_idx in 0..frames {
-            let mut mix = 0.0f32;
+        // Build the invariant part of RenderParams once per buffer — only lfo1_out
+        // and lfo2_out change each sample, so initialise them to 0.0 and update
+        // inside the loop.  All other fields are constant for the whole buffer.
+        let mut rp = RenderParams {
+            waveform,
+            attack,
+            decay,
+            sustain,
+            release,
+            cutoff: base_cutoff,
+            resonance: base_resonance,
+            env_amount,
+            volume,
+            detune,
+            pulse_width,
+            lfo1_out: 0.0,
+            lfo2_out: 0.0,
+            lfo1_depth: l1_depth,
+            lfo2_depth: l2_depth,
+            lfo1_dest: l1_dest,
+            lfo2_dest: l2_dest,
+        };
 
+        for frame_idx in 0..frames {
+            // Tick both LFOs once per sample and update the two varying fields
+            rp.lfo1_out = self.lfo1.tick(rate1, sr, l1_waveform);
+            rp.lfo2_out = self.lfo2.tick(rate2, sr, l2_waveform);
+
+            let mut mix = 0.0f32;
             for voice in &mut self.voices {
                 if !voice.is_free() || voice.note.is_some() {
-                    mix += voice.render(self.sample_rate, &self.params);
+                    mix += voice.render(sr, &rp);
                 }
             }
 
@@ -136,7 +258,7 @@ impl AudioNode for SubtractiveSynth {
             }
         }
 
-        // 3. Advance global age counter
+        // 5. Advance global age counter
         self.global_age = self.global_age.wrapping_add(frames as u64);
     }
 
@@ -153,12 +275,16 @@ unsafe impl Send for SubtractiveSynth {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::audio::transport::TransportAtomics;
     use crossbeam_channel::bounded;
 
     fn make_synth() -> (SubtractiveSynth, crossbeam_channel::Sender<TimestampedMidiEvent>) {
         let params = SynthParams::new();
+        let lfo1_params = LfoParams::new();
+        let lfo2_params = LfoParams::new();
+        let transport = TransportAtomics::new(120.0, 44100);
         let (tx, rx) = bounded(256);
-        let synth = SubtractiveSynth::new(params, rx, 44100.0);
+        let synth = SubtractiveSynth::new(params, rx, 44100.0, lfo1_params, lfo2_params, transport);
         (synth, tx)
     }
 
@@ -227,5 +353,30 @@ mod tests {
         // Audio should still be produced
         let max = buf.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
         assert!(max > 1e-4, "Should produce audio with stolen voice, got {}", max);
+    }
+
+    #[test]
+    fn test_lfo_depth_zero_silent_cutoff_mod() {
+        // With depth=0, the synth should produce audio identical with or without LFO wired
+        let (mut synth, tx) = make_synth();
+        // depth is already 0 by default — just verify audio works normally
+        send_note_on(&tx, 60, 100);
+        let mut buf = vec![0.0f32; 4096 * 2];
+        synth.process(&mut buf, 44100, 2);
+        let max = buf.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
+        assert!(max > 1e-4, "Should produce audio even with LFO depth 0");
+    }
+
+    #[test]
+    fn test_lfo_pitch_destination_produces_audio() {
+        // With pitch destination and depth > 0, notes should still produce audio
+        let (mut synth, tx) = make_synth();
+        synth.lfo1_params.depth.store(0.5, Ordering::Relaxed);
+        synth.lfo1_params.destination.store(1.0, Ordering::Relaxed); // 1=Pitch
+        send_note_on(&tx, 60, 100);
+        let mut buf = vec![0.0f32; 4096 * 2];
+        synth.process(&mut buf, 44100, 2);
+        let max = buf.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
+        assert!(max > 1e-4, "Pitch LFO should not silence output, got {}", max);
     }
 }

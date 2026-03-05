@@ -785,3 +785,56 @@ export async function setMonitoringEnabled(enabled: boolean): Promise<void> {
 export async function setMonitoringGain(gain: number): Promise<void> {
   return invoke<void>("set_monitoring_gain", { gain });
 }
+
+// ── LFO Modulation ────────────────────────────────────────────────────────────
+
+/** All valid LFO parameter names. */
+export type LfoParamName =
+  | "rate"
+  | "depth"
+  | "waveform"
+  | "bpm_sync"
+  | "division"
+  | "phase_reset"
+  | "destination";
+
+/**
+ * Snapshot of all parameters for a single LFO.
+ *
+ * - rate: 0.01–20.0 Hz (free-running frequency)
+ * - depth: 0.0–1.0 (modulation amount)
+ * - waveform: 0=Sine, 1=Triangle, 2=SawUp, 3=SawDown, 4=Square, 5=SampleAndHold
+ * - bpm_sync: 0.0=free, 1.0=BPM-synced
+ * - division: 0=1/4, 1=1/8, 2=1/16, 3=1/32 (active when bpm_sync=1)
+ * - phase_reset: 0.0=free, 1.0=reset phase on note-on
+ * - destination: 0=Cutoff, 1=Pitch, 2=Amplitude, 3=Resonance
+ */
+export interface LfoParams {
+  rate: number;
+  depth: number;
+  waveform: number;
+  bpm_sync: number;
+  division: number;
+  phase_reset: number;
+  destination: number;
+}
+
+/** Full LFO state snapshot for both LFO slots. */
+export interface LfoStateSnapshot {
+  lfo1: LfoParams;
+  lfo2: LfoParams;
+}
+
+/** Sets a single LFO parameter by name. slot must be 1 or 2. */
+export async function setLfoParam(
+  slot: 1 | 2,
+  param: LfoParamName,
+  value: number,
+): Promise<void> {
+  return invoke<void>("set_lfo_param", { slot, param, value });
+}
+
+/** Returns a snapshot of both LFO states. */
+export async function getLfoState(): Promise<LfoStateSnapshot> {
+  return invoke<LfoStateSnapshot>("get_lfo_state");
+}

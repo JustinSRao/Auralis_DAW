@@ -81,6 +81,12 @@ pub struct AudioEngine {
     /// Shared snapshot of transport state. Updated by the audio thread via
     /// `try_lock`; read by the 60 fps poller and `get_transport_state` IPC.
     pub transport_snapshot: Arc<Mutex<TransportSnapshot>>,
+    /// Optional pre-created transport atomics injected from managed state.
+    ///
+    /// When `Some`, `build_and_start_stream` uses this instead of creating new
+    /// atomics so that external consumers (LFO, step sequencer, etc.) that were
+    /// given a clone before engine start continue to share the same values.
+    pub external_transport_atomics: Option<TransportAtomics>,
 }
 
 impl AudioEngine {
@@ -96,6 +102,7 @@ impl AudioEngine {
             test_tone_amplitude: Arc::new(AtomicF32::new(0.0)),
             midi_event_rx: None,
             transport_snapshot: Arc::new(Mutex::new(TransportSnapshot::default())),
+            external_transport_atomics: None,
         }
     }
 
@@ -112,6 +119,18 @@ impl AudioEngine {
     /// Returns the current engine state as a u8 constant.
     pub fn current_state(&self) -> u8 {
         self.state.load(Ordering::Relaxed)
+    }
+
+    /// Provides a pre-created `TransportAtomics` instance that the engine will use
+    /// when it starts.
+    ///
+    /// Must be called before [`start`]. The caller is responsible for managing the
+    /// `Arc` copy that is placed in Tauri's managed state so that other audio nodes
+    /// (LFO, future nodes) can share the same atomics.
+    ///
+    /// If not called, the engine will create its own atomics on `start`.
+    pub fn set_transport_atomics(&mut self, atomics: TransportAtomics) {
+        self.external_transport_atomics = Some(atomics);
     }
 
     /// Starts the audio engine with the current configuration.
@@ -340,9 +359,14 @@ impl AudioEngine {
         let test_node = SineTestNode::with_shared_amplitude(self.test_tone_amplitude.clone());
         initial_graph.add_node(Box::new(test_node));
 
-        // Create transport atomics and clock
+        // Use pre-created transport atomics if provided (Sprint 33: LFO BPM sync).
+        // When the caller manages a clone in Tauri state, all consumers that received
+        // a clone before engine start continue to observe the same atomic values.
         let sr = self.config.sample_rate;
-        let atomics = TransportAtomics::new(120.0, sr);
+        let atomics = self
+            .external_transport_atomics
+            .take()
+            .unwrap_or_else(|| TransportAtomics::new(120.0, sr));
         let snapshot_arc = self.transport_snapshot.clone();
         let mut clock = TransportClock::new(sr, atomics.clone(), snapshot_arc);
 

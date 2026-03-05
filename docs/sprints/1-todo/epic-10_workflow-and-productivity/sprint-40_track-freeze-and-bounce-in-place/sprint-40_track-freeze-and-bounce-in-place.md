@@ -21,7 +21,7 @@ coverage_threshold: 75
 | Sprint | 40 |
 | Title | Track Freeze and Bounce in Place |
 | Type | fullstack |
-| Epic | 1 - Foundation & Infrastructure |
+| Epic | 10 - Workflow & Productivity |
 | Status | Planning |
 | Created | 2026-02-23 |
 | Started | - |

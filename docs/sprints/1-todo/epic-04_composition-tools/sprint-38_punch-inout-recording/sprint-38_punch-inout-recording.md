@@ -2,7 +2,7 @@
 sprint: 38
 title: "Punch In/Out Recording"
 type: fullstack
-epic: 3
+epic: 4
 status: planning
 created: 2026-02-23T12:32:35Z
 started: null
@@ -20,7 +20,7 @@ workflow_version: "3.1.0"
 | Sprint | 38 |
 | Title | Punch In/Out Recording |
 | Type | fullstack |
-| Epic | 3 |
+| Epic | 4 - Composition Tools |
 | Status | Planning |
 | Created | 2026-02-23 |
 | Started | - |

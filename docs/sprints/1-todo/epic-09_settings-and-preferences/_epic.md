@@ -20,19 +20,21 @@ Provides a unified Settings panel where users can configure every aspect of the 
 - [ ] Settings persist across app restarts (stored in SQLite or app config file)
 - [ ] Default project folder is configurable
 - [ ] UI preferences (theme, zoom level) are persisted
+- [ ] Users can remap any keyboard shortcut to a custom key combination with conflict detection
 
 ## Sprints
 
-| Sprint | Title | Status |
-|--------|-------|--------|
-| 27 | Settings & Preferences UI | planned |
+| Sprint | Title | Status | Key Dependencies |
+|--------|-------|--------|-----------------|
+| 27 | Settings & Preferences UI | planned | Sprint 2, 3 |
+| 46 | Keyboard Shortcut Remapping UI | planned | Sprint 27, 30 |
 
 ## Backlog
 
-- [ ] Keyboard shortcut remapping UI
 - [ ] Export format defaults
 - [ ] Auto-save interval setting
 
 ## Notes
 
 Created: 2026-02-23
+Updated: Sprint 46 (Keyboard Shortcut Remapping UI) added — it was deferred from Sprint 27 and Sprint 30 and belongs in this epic.
