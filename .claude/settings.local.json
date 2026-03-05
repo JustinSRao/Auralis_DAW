@@ -51,7 +51,13 @@
       "Bash(grep:*)",
       "Skill(sprint-complete)",
       "Skill(epic-complete)",
-      "Skill(sprint-start)"
+      "Skill(sprint-start)",
+      "WebSearch",
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:v2.tauri.app)",
+      "Skill(sprint-resume)",
+      "Bash(LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo check:*)",
+      "Bash(do:*)"
     ]
   }
 }

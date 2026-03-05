@@ -1,0 +1,69 @@
+{
+  "sprint_number": 6,
+  "sprint_file": "docs\\sprints\\2-in-progress\\epic-03_software-instruments\\sprint-06_subtractive-synthesizer\\sprint-06_subtractive-synthesizer.md",
+  "sprint_title": "Subtractive Synthesizer",
+  "status": "complete",
+  "current_phase": 4,
+  "current_step": "4.4",
+  "started_at": "2026-03-02T11:29:34Z",
+  "workflow_version": "3.0",
+  "completed_steps": [
+    {
+      "step": "1.1",
+      "completed_at": "2026-03-02T11:29:46.513747"
+    },
+    {
+      "step": "1.2",
+      "completed_at": "2026-03-02T11:34:05.178264"
+    },
+    {
+      "step": "1.3",
+      "completed_at": "2026-03-02T11:34:44.702924"
+    },
+    {
+      "step": "1.4",
+      "completed_at": "2026-03-02T11:34:47.167174"
+    },
+    {
+      "step": "2.1",
+      "completed_at": "2026-03-02T12:02:30.507938"
+    },
+    {
+      "step": "2.2",
+      "completed_at": "2026-03-02T12:02:30.754903"
+    },
+    {
+      "step": "2.3",
+      "completed_at": "2026-03-02T12:02:31.011963"
+    },
+    {
+      "step": "3.1",
+      "completed_at": "2026-03-02T12:04:12.256486"
+    },
+    {
+      "step": "3.2",
+      "completed_at": "2026-03-02T12:07:46.609036"
+    },
+    {
+      "step": "3.3",
+      "completed_at": "2026-03-02T12:07:46.890796"
+    },
+    {
+      "step": "3.4",
+      "completed_at": "2026-03-02T12:07:47.162737"
+    },
+    {
+      "step": "4.1",
+      "completed_at": "2026-03-02T12:07:47.389503"
+    },
+    {
+      "step": "4.2",
+      "completed_at": "2026-03-02T12:08:15.340573"
+    },
+    {
+      "step": "4.3",
+      "completed_at": "2026-03-02T12:08:15.570468"
+    }
+  ],
+  "completed_at": "2026-03-02T12:30:40.926996-08:00"
+}
