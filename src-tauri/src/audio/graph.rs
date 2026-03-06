@@ -97,7 +97,8 @@ impl AudioGraph {
     /// `max_channels` is the maximum number of audio channels (e.g., 2 for stereo).
     pub fn new(max_buffer_size: usize, max_channels: usize) -> Self {
         Self {
-            nodes: Vec::new(),
+            // Pre-allocate capacity so AddNode on the audio thread never reallocates.
+            nodes: Vec::with_capacity(8),
             mix_buffer: vec![0.0; max_buffer_size * max_channels],
         }
     }

@@ -8,7 +8,7 @@ use cpal::Stream;
 use crossbeam_channel::{bounded, Receiver, Sender};
 
 use super::devices;
-use super::graph::{AudioGraph, SineTestNode, TripleBuffer};
+use super::graph::{AudioGraph, AudioNode, SineTestNode, TripleBuffer};
 use super::metronome::MetronomeNode;
 use super::transport::{TransportAtomics, TransportClock, TransportSnapshot};
 use super::types::*;
@@ -22,6 +22,11 @@ use crate::midi::types::TimestampedMidiEvent;
 pub enum AudioCommand {
     /// Swap the audio graph with a new one via the triple buffer.
     SwapGraph(AudioGraph),
+    /// Add a single node to the current active graph without replacing it.
+    ///
+    /// The node must have been heap-allocated before sending (no alloc on audio thread).
+    /// `AudioGraph` must be created with `Vec::with_capacity` so push never reallocates.
+    AddNode(Box<dyn AudioNode>),
 
     // --- Transport commands (Sprint 25) ---
     /// Start playback from the current position.
@@ -457,6 +462,13 @@ fn audio_callback(
         match cmd {
             AudioCommand::SwapGraph(new_graph) => {
                 triple_buf.publish(new_graph);
+            }
+            AudioCommand::AddNode(node) => {
+                // Add node to the current active graph in place.
+                // Vec::push will not allocate because AudioGraph::new pre-reserves capacity.
+                if let Some(graph) = triple_buf.read() {
+                    graph.add_node(node);
+                }
             }
             // --- Transport commands ---
             AudioCommand::TransportPlay => clock.apply_play(),

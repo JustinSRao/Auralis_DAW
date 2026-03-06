@@ -62,7 +62,8 @@
       "Skill(sprint-postmortem)",
       "Bash(BASE=\"/c/Users/nitsu/.Application_Development/Music_Application/docs/sprints\")",
       "Read(//c/Users/nitsu/.Application_Development/Music_Application/$BASE/2-in-progress/**)",
-      "Read(//c/Users/nitsu/.Application_Development/Music_Application/$BASE/1-todo/**)"
+      "Read(//c/Users/nitsu/.Application_Development/Music_Application/$BASE/1-todo/**)",
+      "Skill(epic-start)"
     ]
   }
 }

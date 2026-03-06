@@ -6,6 +6,7 @@ import { HistoryPanel } from '@/components/daw/HistoryPanel';
 import { MenuBar } from '@/components/daw/MenuBar';
 import { TrackList } from '@/components/daw/TrackList';
 import { DrumMachinePanel } from '@/components/instruments/DrumMachinePanel';
+import { StepSequencerPanel } from '@/components/sequencer/StepSequencerPanel';
 import { RecordPanel } from '@/components/instruments/RecordPanel';
 import { SamplerPanel } from '@/components/instruments/SamplerPanel';
 import { SynthPanel } from '@/components/instruments/SynthPanel';
@@ -40,7 +41,7 @@ export function DAWLayout() {
   useGlobalKeyboard();
 
   const { browserOpen, mixerOpen } = useKeyboardStore();
-  const [activeInstrument, setActiveInstrument] = useState<'synth' | 'sampler' | 'drums'>('synth');
+  const [activeInstrument, setActiveInstrument] = useState<'synth' | 'sampler' | 'drums' | 'sequencer'>('synth');
 
   return (
     <div className="h-screen flex flex-col bg-[#1a1a1a] overflow-hidden">
@@ -102,7 +103,7 @@ export function DAWLayout() {
           <div className="flex flex-col flex-shrink-0">
             {/* Tab bar */}
             <div className="flex bg-[#1a1a1a] border-t border-[#3a3a3a] px-4 gap-1 pt-1">
-              {(['synth', 'sampler', 'drums'] as const).map((id) => (
+              {(['synth', 'sampler', 'drums', 'sequencer'] as const).map((id) => (
                 <button
                   key={id}
                   onClick={() => setActiveInstrument(id)}
@@ -113,7 +114,7 @@ export function DAWLayout() {
                       : 'border-transparent text-[#555555] hover:text-[#888888]',
                   ].join(' ')}
                 >
-                  {id === 'synth' ? 'SYNTH' : id === 'sampler' ? 'SAMPLER' : 'DRUMS'}
+                  {id === 'synth' ? 'SYNTH' : id === 'sampler' ? 'SAMPLER' : id === 'drums' ? 'DRUMS' : 'SEQUENCER'}
                 </button>
               ))}
             </div>
@@ -121,8 +122,10 @@ export function DAWLayout() {
               <SynthPanel />
             ) : activeInstrument === 'sampler' ? (
               <SamplerPanel />
-            ) : (
+            ) : activeInstrument === 'drums' ? (
               <DrumMachinePanel />
+            ) : (
+              <StepSequencerPanel />
             )}
           </div>
         </div>

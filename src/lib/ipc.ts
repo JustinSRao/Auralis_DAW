@@ -838,3 +838,99 @@ export async function setLfoParam(
 export async function getLfoState(): Promise<LfoStateSnapshot> {
   return invoke<LfoStateSnapshot>("get_lfo_state");
 }
+
+// ── Step Sequencer ────────────────────────────────────────────────────────────
+
+/** A single step in the sequencer pattern (mirrors Rust `SequencerStepSnapshot`). */
+export interface SequencerStep {
+  enabled: boolean;
+  /** MIDI note number 0–127. */
+  note: number;
+  /** Velocity 1–127. */
+  velocity: number;
+  /** Gate time 0.1–1.0. */
+  gate: number;
+  /** Trigger probability 0–100. */
+  probability: number;
+}
+
+/** Full step sequencer state snapshot returned by `get_sequencer_state`. */
+export interface SequencerSnapshot {
+  playing: boolean;
+  current_step: number;
+  /** Active pattern length: 16, 32, or 64. */
+  pattern_length: number;
+  /** Time division: 4=1/4, 8=1/8, 16=1/16, 32=1/32. */
+  time_div: number;
+  /** Semitone transpose -24..+24. */
+  transpose: number;
+  steps: SequencerStep[];
+}
+
+/** Creates the step sequencer in the audio graph. */
+export async function createSequencer(): Promise<void> {
+  return invoke<void>("create_sequencer");
+}
+
+/**
+ * Sets all parameters for a single sequencer step.
+ *
+ * @param idx         - Step index 0–63.
+ * @param enabled     - Whether the step fires.
+ * @param note        - MIDI note 0–127.
+ * @param velocity    - Velocity 1–127.
+ * @param gate        - Gate time 0.1–1.0.
+ * @param probability - Trigger probability 0–100.
+ */
+export async function setSequencerStep(
+  idx: number,
+  enabled: boolean,
+  note: number,
+  velocity: number,
+  gate: number,
+  probability: number,
+): Promise<void> {
+  return invoke<void>("set_sequencer_step", {
+    idx,
+    enabled,
+    note,
+    velocity,
+    gate,
+    probability,
+  });
+}
+
+/** Sets the active pattern length (16, 32, or 64 steps). */
+export async function setSequencerLength(length: number): Promise<void> {
+  return invoke<void>("set_sequencer_length", { length });
+}
+
+/** Sets the time division (4=1/4, 8=1/8, 16=1/16, 32=1/32). */
+export async function setSequencerTimeDiv(div: number): Promise<void> {
+  return invoke<void>("set_sequencer_time_div", { div });
+}
+
+/** Sets the transpose offset in semitones (-24..+24). */
+export async function setSequencerTranspose(semitones: number): Promise<void> {
+  return invoke<void>("set_sequencer_transpose", { semitones });
+}
+
+/** Returns a full snapshot of the step sequencer state. */
+export async function getSequencerState(): Promise<SequencerSnapshot> {
+  return invoke<SequencerSnapshot>("get_sequencer_state");
+}
+
+/** Starts step sequencer playback. */
+export async function sequencerPlay(): Promise<void> {
+  return invoke<void>("sequencer_play");
+}
+
+/** Stops step sequencer playback. */
+export async function sequencerStop(): Promise<void> {
+  return invoke<void>("sequencer_stop");
+}
+
+/** Stops playback and resets to step 0. */
+export async function sequencerReset(): Promise<void> {
+  return invoke<void>("sequencer_reset");
+}

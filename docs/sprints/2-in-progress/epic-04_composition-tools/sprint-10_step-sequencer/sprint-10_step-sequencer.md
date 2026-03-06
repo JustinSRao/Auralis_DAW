@@ -3,12 +3,15 @@ sprint: 10
 title: "Step Sequencer"
 type: fullstack
 epic: 4
-status: planning
+status: in-progress
 created: 2026-02-22T22:10:02Z
-started: null
+started: 2026-03-06T13:44:08Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
+
+
+
 ---
 
 # Sprint 10: Step Sequencer

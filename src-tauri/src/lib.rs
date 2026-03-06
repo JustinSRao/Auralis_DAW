@@ -4,6 +4,7 @@ pub mod effects;
 pub mod instruments;
 pub mod midi;
 pub mod project;
+pub mod sequencer;
 pub mod vst3;
 
 use std::sync::{Arc, Mutex};
@@ -21,6 +22,11 @@ use instruments::sampler::zone::SamplerParams;
 use instruments::synth::lfo::{LfoParams, LfoParamsState};
 use instruments::synth::params::SynthParams;
 use project::commands::{ProjectManager, ProjectManagerState};
+use sequencer::commands::{
+    SequencerAtomicsState, SequencerCmdTxState, SequencerStepShadowState,
+};
+use sequencer::step::SequencerStepSnapshot;
+use sequencer::step_sequencer::SequencerAtomics;
 use project::track_commands::{
     create_track, delete_track, rename_track, reorder_tracks, set_track_color,
 };
@@ -151,6 +157,18 @@ pub fn run() {
                     .collect(),
             ));
             app.manage(drum_shadow);
+
+            // --- Sprint 10: Step Sequencer managed state ---
+            let seq_atomics: SequencerAtomicsState = SequencerAtomics::new();
+            app.manage(seq_atomics);
+
+            let seq_cmd_tx: SequencerCmdTxState = Arc::new(Mutex::new(None));
+            app.manage(seq_cmd_tx);
+
+            let seq_step_shadow: SequencerStepShadowState = Arc::new(Mutex::new(
+                (0..64).map(|_| SequencerStepSnapshot::default()).collect(),
+            ));
+            app.manage(seq_step_shadow);
 
             // Initialize project manager
             let pm_state: ProjectManagerState =
@@ -320,6 +338,15 @@ pub fn run() {
             audio::commands::get_recording_status,
             audio::commands::set_monitoring_enabled,
             audio::commands::set_monitoring_gain,
+            sequencer::commands::create_sequencer,
+            sequencer::commands::set_sequencer_step,
+            sequencer::commands::set_sequencer_length,
+            sequencer::commands::set_sequencer_time_div,
+            sequencer::commands::set_sequencer_transpose,
+            sequencer::commands::get_sequencer_state,
+            sequencer::commands::sequencer_play,
+            sequencer::commands::sequencer_stop,
+            sequencer::commands::sequencer_reset,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
