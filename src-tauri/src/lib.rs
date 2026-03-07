@@ -347,6 +347,7 @@ pub fn run() {
             sequencer::commands::sequencer_play,
             sequencer::commands::sequencer_stop,
             sequencer::commands::sequencer_reset,
+            instruments::piano_roll_commands::preview_note,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

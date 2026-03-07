@@ -4,6 +4,7 @@ import * as Popover from '@radix-ui/react-popover';
 import type { DawTrack } from '@/lib/ipc';
 import { useTrackStore } from '@/stores/trackStore';
 import { useHistoryStore } from '@/stores/historyStore';
+import { usePianoRollStore } from '@/stores/pianoRollStore';
 import { RenameTrackCommand } from '@/lib/commands/RenameTrackCommand';
 import { DeleteTrackCommand } from '@/lib/commands/DeleteTrackCommand';
 
@@ -56,6 +57,7 @@ export function TrackHeader({ track, index = 0 }: TrackHeaderProps) {
     ((track: DawTrack, index: number) => void) | undefined;
 
   const push = useHistoryStore((s) => s.push);
+  const openPianoRoll = usePianoRollStore((s) => s.openForTrack);
 
   // -- Inline rename state --
   const [isEditing, setIsEditing] = useState(false);
@@ -130,6 +132,7 @@ export function TrackHeader({ track, index = 0 }: TrackHeaderProps) {
         role="row"
         aria-selected={isSelected}
         onClick={() => selectTrack(track.id)}
+        onDoubleClick={() => openPianoRoll(track.id)}
         onContextMenu={handleContextMenu}
         className={[
           'flex items-center gap-1 px-2 h-10 border-b border-[#2a2a2a] cursor-pointer select-none',

@@ -934,3 +934,23 @@ export async function sequencerStop(): Promise<void> {
 export async function sequencerReset(): Promise<void> {
   return invoke<void>("sequencer_reset");
 }
+
+// ── Piano Roll ────────────────────────────────────────────────────────────────
+
+/**
+ * Triggers a brief preview note on the active synth instrument.
+ *
+ * Silent no-op when no instrument has been loaded. Used by the on-screen
+ * piano keyboard in the Piano Roll editor.
+ *
+ * @param note       - MIDI note number 0–127.
+ * @param velocity   - MIDI velocity 1–127.
+ * @param durationMs - How long the note sounds, in milliseconds (default 200 ms).
+ */
+export async function previewNote(
+  note: number,
+  velocity: number,
+  durationMs: number = 200,
+): Promise<void> {
+  return invoke<void>("preview_note", { note, velocity, durationMs });
+}
