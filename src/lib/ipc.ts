@@ -313,6 +313,35 @@ export interface SampleReference {
   duration_secs: number;
 }
 
+// ── Pattern types (mirror Rust project::pattern) ──────────────────────────────
+
+/** A single MIDI note inside a pattern (camelCase to match pianoRollTypes.MidiNote). */
+export interface PatternMidiNote {
+  id: string;
+  pitch: number;
+  startBeats: number;
+  durationBeats: number;
+  velocity: number;
+  channel: number;
+}
+
+/** The content stored inside a pattern. */
+export type PatternContent =
+  | { type: 'Midi'; notes: PatternMidiNote[] }
+  | { type: 'Audio'; filePath: string };
+
+/** Valid pattern length values in bars. */
+export type PatternLengthBars = 1 | 2 | 4 | 8 | 16 | 32;
+
+/** A named, reusable musical pattern belonging to a track. */
+export interface PatternData {
+  id: string;
+  name: string;
+  trackId: string;
+  lengthBars: PatternLengthBars;
+  content: PatternContent;
+}
+
 export interface ProjectFileData {
   schema_version: SchemaVersion;
   id: string;
@@ -323,6 +352,8 @@ export interface ProjectFileData {
   tracks: TrackData[];
   master: MasterBusData;
   samples: SampleReference[];
+  /** All patterns in this project. May be absent in files saved before v1.1.0. */
+  patterns?: PatternData[];
 }
 
 export interface RecentProject {
@@ -953,4 +984,46 @@ export async function previewNote(
   durationMs: number = 200,
 ): Promise<void> {
   return invoke<void>("preview_note", { note, velocity, durationMs });
+}
+
+// ── Pattern management ────────────────────────────────────────────────────────
+
+/**
+ * Creates a new empty MIDI pattern for the given track.
+ * Returns the created pattern with a server-assigned UUID.
+ */
+export async function ipcCreatePattern(
+  trackId: string,
+  name: string,
+): Promise<PatternData> {
+  return invoke<PatternData>("create_pattern", { trackId, name });
+}
+
+/** Validates a pattern rename. The frontend store applies the rename on success. */
+export async function ipcRenamePattern(id: string, name: string): Promise<void> {
+  return invoke<void>("rename_pattern", { id, name });
+}
+
+/**
+ * Duplicates an existing pattern, returning the copy with a new UUID.
+ * The copy's name has " (copy)" appended and is truncated to 128 chars.
+ */
+export async function ipcDuplicatePattern(pattern: PatternData): Promise<PatternData> {
+  return invoke<PatternData>("duplicate_pattern", { pattern });
+}
+
+/** Validates a pattern deletion. The frontend store removes it on success. */
+export async function ipcDeletePattern(id: string): Promise<void> {
+  return invoke<void>("delete_pattern", { id });
+}
+
+/**
+ * Validates a pattern length change. `lengthBars` must be 1, 2, 4, 8, 16, or 32.
+ * The frontend store applies the change on success.
+ */
+export async function ipcSetPatternLength(
+  id: string,
+  lengthBars: PatternLengthBars,
+): Promise<void> {
+  return invoke<void>("set_pattern_length", { id, lengthBars });
 }

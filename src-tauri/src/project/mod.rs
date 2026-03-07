@@ -13,6 +13,8 @@
 pub mod commands;
 pub mod format;
 pub mod io;
+pub mod pattern;
+pub mod pattern_commands;
 pub mod recent;
 pub mod track;
 pub mod track_commands;

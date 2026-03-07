@@ -91,7 +91,7 @@ describe("fileStore", () => {
       await useFileStore.getState().save("/projects/test.mapp");
 
       expect(mockInvoke).toHaveBeenCalledWith("save_project", {
-        project: mockProject,
+        project: { ...mockProject, patterns: [] },
         filePath: "/projects/test.mapp",
       });
       const state = useFileStore.getState();

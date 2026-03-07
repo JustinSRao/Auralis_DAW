@@ -8,6 +8,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::project::pattern::Pattern;
 use crate::project::version::{SchemaVersion, CURRENT_SCHEMA};
 
 // ---------------------------------------------------------------------------
@@ -37,6 +38,8 @@ pub struct ProjectFile {
     pub master: MasterBusData,
     /// Table of all audio sample files referenced by clips in this project.
     pub samples: Vec<SampleReference>,
+    /// All named patterns belonging to this project, keyed by track.
+    pub patterns: Vec<Pattern>,
 }
 
 impl Default for ProjectFile {
@@ -52,6 +55,7 @@ impl Default for ProjectFile {
             tracks: Vec::new(),
             master: MasterBusData::default(),
             samples: Vec::new(),
+            patterns: Vec::new(),
         }
     }
 }

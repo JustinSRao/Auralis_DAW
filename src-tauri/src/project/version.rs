@@ -42,7 +42,7 @@ impl std::fmt::Display for SchemaVersion {
 /// Bump `patch` for clarifications that require no data changes.
 pub const CURRENT_SCHEMA: SchemaVersion = SchemaVersion {
     major: 1,
-    minor: 0,
+    minor: 1,
     patch: 0,
 };
 
@@ -62,11 +62,32 @@ struct Migration {
     apply: MigrationFn,
 }
 
+// ---------------------------------------------------------------------------
+// Migration functions
+// ---------------------------------------------------------------------------
+
+/// Migrates a project file from schema v1.0.0 to v1.1.0.
+///
+/// Injects an empty `"patterns": []` array if the field is absent.
+/// Existing `patterns` values (if any) are left untouched.
+fn migrate_1_0_0_to_1_1_0(data: &mut Value) -> Result<()> {
+    if let Some(obj) = data.as_object_mut() {
+        obj.entry("patterns")
+            .or_insert_with(|| serde_json::json!([]));
+    }
+    Ok(())
+}
+
 /// All registered migrations, in ascending `from` order.
 ///
 /// Add entries here whenever the schema version is bumped.
 static MIGRATIONS: &[Migration] = &[
-    // v1.0.0 is the baseline — no migration needed to reach it.
+    // v1.0.0 → v1.1.0: add `patterns` array (Sprint 12 Pattern System).
+    Migration {
+        from: SchemaVersion { major: 1, minor: 0, patch: 0 },
+        to: SchemaVersion { major: 1, minor: 1, patch: 0 },
+        apply: migrate_1_0_0_to_1_1_0,
+    },
 ];
 
 // ---------------------------------------------------------------------------
@@ -147,8 +168,8 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn current_schema_is_v1() {
-        assert_eq!(CURRENT_SCHEMA, SchemaVersion::new(1, 0, 0));
+    fn current_schema_is_v1_1() {
+        assert_eq!(CURRENT_SCHEMA, SchemaVersion::new(1, 1, 0));
     }
 
     #[test]
@@ -164,13 +185,41 @@ mod tests {
     #[test]
     fn no_migration_needed_for_current_version() {
         let mut data = json!({
-            "schema_version": { "major": 1, "minor": 0, "patch": 0 }
+            "schema_version": { "major": 1, "minor": 1, "patch": 0 },
+            "patterns": []
         });
         assert!(apply_migrations(&mut data).is_ok());
         // Schema version unchanged.
         let sv: SchemaVersion =
             serde_json::from_value(data["schema_version"].clone()).unwrap();
         assert_eq!(sv, CURRENT_SCHEMA);
+    }
+
+    #[test]
+    fn migration_1_0_0_to_1_1_0_injects_patterns_field() {
+        let mut data = json!({
+            "schema_version": { "major": 1, "minor": 0, "patch": 0 },
+            "name": "Old Project"
+        });
+        assert!(apply_migrations(&mut data).is_ok());
+        // Should have been bumped to current.
+        let sv: SchemaVersion =
+            serde_json::from_value(data["schema_version"].clone()).unwrap();
+        assert_eq!(sv, CURRENT_SCHEMA);
+        // patterns field must be present and empty.
+        assert_eq!(data["patterns"], json!([]));
+    }
+
+    #[test]
+    fn migration_1_0_0_to_1_1_0_preserves_existing_patterns() {
+        let existing = json!([{"id": "pat-1", "name": "Verse", "trackId": "t1",
+                               "lengthBars": 4, "content": {"type": "Midi", "notes": []}}]);
+        let mut data = json!({
+            "schema_version": { "major": 1, "minor": 0, "patch": 0 },
+            "patterns": existing.clone()
+        });
+        assert!(apply_migrations(&mut data).is_ok());
+        assert_eq!(data["patterns"], existing);
     }
 
     #[test]

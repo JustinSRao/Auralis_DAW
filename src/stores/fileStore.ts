@@ -3,6 +3,7 @@ import { immer } from "zustand/middleware/immer";
 
 import type { ProjectFileData, RecentProject } from "../lib/ipc";
 import { useHistoryStore } from "./historyStore";
+import { usePatternStore } from "./patternStore";
 import {
   getRecentProjects,
   loadProject,
@@ -50,6 +51,8 @@ export const useFileStore = create<FileStoreState>()(
           state.lastSavedAt = null;
           state.error = null;
         });
+        // Clear pattern store — prior patterns belong to the previous project.
+        usePatternStore.getState().loadFromProject([]);
         // Clear undo/redo history — prior commands belong to the previous project.
         useHistoryStore.getState().clear();
       } catch (e) {
@@ -63,9 +66,19 @@ export const useFileStore = create<FileStoreState>()(
       const { currentProject } = get();
       if (!currentProject) return;
 
+      // Inject current patterns from patternStore into the project before saving.
+      const projectToSave: ProjectFileData = {
+        ...currentProject,
+        patterns: Object.values(usePatternStore.getState().patterns),
+      };
+
       try {
-        const result = await saveProject(currentProject, filePath);
+        const result = await saveProject(projectToSave, filePath);
         set((state) => {
+          // Mirror the saved patterns back into currentProject so it stays in sync.
+          if (state.currentProject) {
+            state.currentProject.patterns = projectToSave.patterns;
+          }
           state.filePath = result.file_path;
           state.isDirty = false;
           state.lastSavedAt = new Date().toISOString();
@@ -88,6 +101,8 @@ export const useFileStore = create<FileStoreState>()(
           state.lastSavedAt = project.modified_at;
           state.error = null;
         });
+        // Populate pattern store from the loaded project.
+        usePatternStore.getState().loadFromProject(project.patterns ?? []);
         // Clear undo/redo history — prior commands belong to the previous project.
         useHistoryStore.getState().clear();
       } catch (e) {

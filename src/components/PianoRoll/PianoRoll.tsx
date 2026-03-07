@@ -14,6 +14,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import { usePianoRollStore } from '../../stores/pianoRollStore';
+import { usePatternStore } from '../../stores/patternStore';
 import { useHistoryStore } from '../../stores/historyStore';
 import { usePianoRollState } from './usePianoRollState';
 import { usePianoRollMouse } from './usePianoRollMouse';
@@ -48,6 +49,10 @@ export function PianoRoll() {
     usePianoRollState();
   const store = usePianoRollStore();
   const { undo, redo } = useHistoryStore();
+  const activePatternId = usePianoRollStore((s) => s.activePatternId);
+  const activePattern = usePatternStore((s) =>
+    activePatternId ? s.patterns[activePatternId] : null,
+  );
   const { deleteSelectedNotes, pasteAtBeat } = usePianoRollState();
 
   // ── Canvas refs ───────────────────────────────────────────────────────────
@@ -291,6 +296,19 @@ export function PianoRoll() {
   );
 
   // ---------------------------------------------------------------------------
+  // Close handler — saves pattern notes before closing
+  // ---------------------------------------------------------------------------
+
+  const handleClose = useCallback(() => {
+    const currentPatternId = usePianoRollStore.getState().activePatternId;
+    if (currentPatternId !== null) {
+      const currentNotes = usePianoRollStore.getState().notes;
+      usePatternStore.getState().updatePatternNotes(currentPatternId, currentNotes);
+    }
+    store.close();
+  }, [store]);
+
+  // ---------------------------------------------------------------------------
   // Keyboard shortcuts
   // ---------------------------------------------------------------------------
 
@@ -298,6 +316,12 @@ export function PianoRoll() {
     (e: ReactKeyboardEvent<HTMLDivElement>) => {
       // Don't intercept while typing in an input.
       if ((e.target as HTMLElement).tagName === 'INPUT') return;
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleClose();
+        return;
+      }
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
@@ -329,7 +353,7 @@ export function PianoRoll() {
         return;
       }
     },
-    [deleteSelectedNotes, undo, redo, store, pasteAtBeat],
+    [deleteSelectedNotes, undo, redo, store, pasteAtBeat, handleClose],
   );
 
   // ---------------------------------------------------------------------------
@@ -366,7 +390,9 @@ export function PianoRoll() {
       {/* ── Toolbar ─────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 px-4 h-10 bg-[#242424] border-b border-[#3a3a3a] flex-shrink-0">
         <span className="text-xs font-mono text-[#aaa] font-semibold">
-          PIANO ROLL{activeTrackId ? ` — track ${activeTrackId.slice(0, 8)}` : ''}
+          {activePattern
+            ? `PIANO ROLL — ${activePattern.name}`
+            : `PIANO ROLL${activeTrackId ? ` — track ${activeTrackId.slice(0, 8)}` : ''}`}
         </span>
 
         <div className="w-px h-4 bg-[#3a3a3a]" />
@@ -423,7 +449,7 @@ export function PianoRoll() {
 
         {/* Close */}
         <button
-          onClick={() => store.close()}
+          onClick={handleClose}
           className="w-7 h-7 flex items-center justify-center rounded text-[#888] hover:text-white hover:bg-[#3a3a3a] transition-colors text-sm font-mono"
           aria-label="Close Piano Roll"
         >

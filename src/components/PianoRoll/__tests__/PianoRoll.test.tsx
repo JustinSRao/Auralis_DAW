@@ -83,9 +83,17 @@ vi.mock('../../../lib/ipc', () => ({
 }));
 
 // Mock the stores that PianoRoll.tsx imports directly.
-vi.mock('../../../stores/pianoRollStore', () => ({
-  usePianoRollStore: vi.fn((selector?: (s: unknown) => unknown) => {
-    const state = {
+//
+// IMPORTANT: `vi.mock` factories are hoisted to the top of the file by Vitest.
+// Any reference to top-level `const` variables (like mockSetMode) inside the
+// factory body is evaluated lazily — it must be inside a nested function, not
+// at the factory's top level, to avoid TDZ errors.
+vi.mock('../../../stores/pianoRollStore', () => {
+  // Build the state object lazily so references to top-level spies (mockSetMode
+  // etc.) are only evaluated when the function is actually called, not at
+  // module-hoisting time.
+  function buildState() {
+    return {
       notes: [],
       selectedNoteIds: [],
       viewport: { scrollX: 0, scrollY: 600, pixelsPerBeat: 80, pixelsPerSemitone: 12 },
@@ -94,6 +102,7 @@ vi.mock('../../../stores/pianoRollStore', () => ({
       clipboardNotes: [],
       isOpen: true,
       activeTrackId: 'track-001',
+      activePatternId: null,
       setMode: mockSetMode,
       setQuantDiv: mockSetQuantDiv,
       setViewport: mockSetViewport,
@@ -108,13 +117,37 @@ vi.mock('../../../stores/pianoRollStore', () => ({
       copySelection: mockCopySelection,
       pasteAtBeat: vi.fn(),
       openForTrack: vi.fn(),
+      openForPattern: vi.fn(),
       close: mockClose,
     };
-    // Support selector pattern: usePianoRollStore((s) => s.viewport)
+  }
+  const storeFn = vi.fn((selector?: (s: ReturnType<typeof buildState>) => unknown) => {
+    const state = buildState();
     if (typeof selector === 'function') return selector(state);
     return state;
-  }),
-  selectViewport: vi.fn((s: { viewport: unknown }) => s.viewport),
+  });
+  // Attach getState so handleClose can call usePianoRollStore.getState().
+  // activePatternId: null means no pattern is active, so the save-back branch
+  // is skipped and store.close() is called directly — which is what we assert.
+  (storeFn as unknown as { getState: () => unknown }).getState = vi.fn(() => ({
+    activePatternId: null,
+    notes: [],
+  }));
+  return {
+    usePianoRollStore: storeFn,
+    selectViewport: vi.fn((s: { viewport: unknown }) => s.viewport),
+  };
+});
+
+vi.mock('../../../stores/patternStore', () => ({
+  usePatternStore: Object.assign(
+    vi.fn((selector?: (s: { patterns: Record<string, unknown> }) => unknown) => {
+      const state = { patterns: {} };
+      if (typeof selector === 'function') return selector(state);
+      return state;
+    }),
+    { getState: vi.fn(() => ({ patterns: {}, updatePatternNotes: vi.fn() })) },
+  ),
 }));
 
 vi.mock('../../../stores/historyStore', () => ({

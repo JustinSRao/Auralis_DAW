@@ -3,6 +3,7 @@ import { AudioSettingsPanel } from '@/components/audio/AudioSettingsPanel';
 import { MidiSettingsPanel } from '@/components/midi/MidiSettingsPanel';
 import { TransportBar } from '@/components/daw/TransportBar';
 import { HistoryPanel } from '@/components/daw/HistoryPanel';
+import { PatternBrowser } from '@/components/pattern/PatternBrowser';
 import { MenuBar } from '@/components/daw/MenuBar';
 import { TrackList } from '@/components/daw/TrackList';
 import { DrumMachinePanel } from '@/components/instruments/DrumMachinePanel';
@@ -64,12 +65,8 @@ export function DAWLayout() {
           aria-hidden={!browserOpen}
         >
           <HistoryPanel />
-          <div className="flex-1 flex items-center justify-center p-4">
-            <span className="text-[#888888] text-xs text-center">
-              Sample Browser
-              <br />
-              (Sprint 28)
-            </span>
+          <div className="flex-1 overflow-hidden relative">
+            <PatternBrowser />
           </div>
         </div>
 

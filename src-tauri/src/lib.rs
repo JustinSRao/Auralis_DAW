@@ -30,6 +30,9 @@ use sequencer::step_sequencer::SequencerAtomics;
 use project::track_commands::{
     create_track, delete_track, rename_track, reorder_tracks, set_track_color,
 };
+use project::pattern_commands::{
+    create_pattern, rename_pattern, duplicate_pattern, delete_pattern, set_pattern_length,
+};
 
 #[tauri::command]
 fn get_version() -> String {
@@ -348,6 +351,11 @@ pub fn run() {
             sequencer::commands::sequencer_stop,
             sequencer::commands::sequencer_reset,
             instruments::piano_roll_commands::preview_note,
+            create_pattern,
+            rename_pattern,
+            duplicate_pattern,
+            delete_pattern,
+            set_pattern_length,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

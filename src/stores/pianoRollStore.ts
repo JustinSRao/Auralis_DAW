@@ -28,6 +28,8 @@ interface PianoRollState {
   clipboardNotes: MidiNote[];
   isOpen: boolean;
   activeTrackId: string | null;
+  /** The pattern being edited, or null when opening from a raw track. */
+  activePatternId: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -37,6 +39,11 @@ interface PianoRollState {
 interface PianoRollActions {
   /** Open the editor and load the clip notes for the given track. */
   openForTrack(trackId: string): void;
+  /**
+   * Open the editor for a specific pattern, pre-loading its notes.
+   * Sets activePatternId so PianoRoll.tsx can save back on close.
+   */
+  openForPattern(trackId: string, patternId: string, notes: MidiNote[]): void;
   /** Close the editor. */
   close(): void;
   /** Switch between draw and select modes. */
@@ -95,12 +102,23 @@ export const usePianoRollStore = create<PianoRollState & PianoRollActions>()(
     clipboardNotes: [],
     isOpen: false,
     activeTrackId: null,
+    activePatternId: null,
 
     openForTrack: (trackId) =>
       set((s) => {
         s.isOpen = true;
         s.activeTrackId = trackId;
+        s.activePatternId = null;
         s.notes = [];
+        s.selectedNoteIds = [];
+      }),
+
+    openForPattern: (trackId, patternId, notes) =>
+      set((s) => {
+        s.isOpen = true;
+        s.activeTrackId = trackId;
+        s.activePatternId = patternId;
+        s.notes = notes;
         s.selectedNoteIds = [];
       }),
 
@@ -108,6 +126,7 @@ export const usePianoRollStore = create<PianoRollState & PianoRollActions>()(
       set((s) => {
         s.isOpen = false;
         s.activeTrackId = null;
+        s.activePatternId = null;
       }),
 
     setMode: (mode) => set((s) => { s.mode = mode; }),

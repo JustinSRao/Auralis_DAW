@@ -89,6 +89,36 @@ vi.mock("@/stores/historyStore", () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// patternStore mock (for PatternBrowser — Sprint 12)
+// ---------------------------------------------------------------------------
+
+vi.mock("@/stores/patternStore", () => ({
+  usePatternStore: Object.assign(
+    (selector?: (s: { patterns: Record<string, unknown>; selectedPatternId: null }) => unknown) => {
+      const state = { patterns: {}, selectedPatternId: null };
+      if (typeof selector === "function") return selector(state);
+      return state;
+    },
+    { getState: () => ({ patterns: {}, selectedPatternId: null, updatePatternNotes: () => {} }) },
+  ),
+}));
+
+// ---------------------------------------------------------------------------
+// pianoRollStore mock (for PatternBrowser / PianoRoll — Sprint 11/12)
+// ---------------------------------------------------------------------------
+
+vi.mock("@/stores/pianoRollStore", () => ({
+  usePianoRollStore: Object.assign(
+    (selector?: (s: { openForPattern: () => void; activePatternId: null }) => unknown) => {
+      const state = { openForPattern: () => {}, activePatternId: null };
+      if (typeof selector === "function") return selector(state);
+      return state;
+    },
+    { getState: () => ({ activePatternId: null, notes: [] }) },
+  ),
+}));
+
+// ---------------------------------------------------------------------------
 // synthStore mock (for SynthPanel — Sprint 6)
 // ---------------------------------------------------------------------------
 
@@ -244,10 +274,13 @@ describe("DAWLayout", () => {
   // keep the assertions flexible with queryBy so renames do not hard-fail.
   it("renders an instrument browser or track list area", () => {
     render(<DAWLayout />);
+    // PatternBrowser and TrackList both render "no tracks" empty-state text now;
+    // use queryAllByText to avoid "multiple elements" throw, then take the first.
     const browserLabel =
       screen.queryByText("Instrument Browser") ??
-      screen.queryByText(/no tracks/i) ??
-      screen.queryByText(/track/i);
+      screen.queryAllByText(/no tracks/i)[0] ??
+      screen.queryAllByText(/track/i)[0] ??
+      null;
     expect(browserLabel).not.toBeNull();
   });
 
@@ -273,11 +306,13 @@ describe("DAWLayout", () => {
 
   it("renders TrackList", () => {
     render(<DAWLayout />);
-    // TrackList renders empty state or track headers
+    // TrackList renders empty state or track headers.
+    // Both TrackList and PatternBrowser render "no tracks" text, so use
+    // queryAllByText to avoid "multiple elements" throw, then take the first.
     const trackListEl =
-      screen.queryByText(/no tracks/i) ??
+      screen.queryAllByText(/no tracks/i)[0] ??
       screen.queryByTestId("track-list") ??
-      document.querySelector("[data-testid='track-list']");
+      (document.querySelector("[data-testid='track-list']") as Element | null);
     // Also accept an "add track" button as proof of TrackList presence
     const addButton =
       screen.queryByRole("button", { name: /add track/i }) ??
@@ -288,10 +323,10 @@ describe("DAWLayout", () => {
   it("browser panel is visible when browserOpen=true", () => {
     mockKeyboardState = { ...mockKeyboardState, browserOpen: true };
     render(<DAWLayout />);
-    // Browser area visible — any matching label counts
+    // Browser panel now contains PatternBrowser (Sprint 12).
     const browserArea =
-      screen.queryByText("Instrument Browser") ??
-      screen.queryByText(/browser/i) ??
+      screen.queryByTestId("pattern-browser") ??
+      screen.queryByText("Patterns") ??
       document.querySelector("[data-panel='browser']");
     expect(browserArea).not.toBeNull();
   });
