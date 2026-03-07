@@ -106,13 +106,13 @@
     },
     "11": {
       "title": "Piano Roll Editor",
-      "status": "planning",
+      "status": "done",
       "epic": 4,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-06",
+      "hours": 9.6
     },
     "12": {
       "title": "Pattern System",
@@ -490,7 +490,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 12,
-      "completedSprints": 1
+      "completedSprints": 2
     },
     "5": {
       "title": "Audio Editing",

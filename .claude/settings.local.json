@@ -63,7 +63,8 @@
       "Bash(BASE=\"/c/Users/nitsu/.Application_Development/Music_Application/docs/sprints\")",
       "Read(//c/Users/nitsu/.Application_Development/Music_Application/$BASE/2-in-progress/**)",
       "Read(//c/Users/nitsu/.Application_Development/Music_Application/$BASE/1-todo/**)",
-      "Skill(epic-start)"
+      "Skill(epic-start)",
+      "Bash(npm run:*)"
     ]
   }
 }
