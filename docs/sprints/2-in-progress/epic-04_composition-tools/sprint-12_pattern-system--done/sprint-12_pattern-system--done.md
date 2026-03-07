@@ -3,12 +3,13 @@ sprint: 12
 title: "Pattern System"
 type: fullstack
 epic: 4
-status: in-progress
+status: done
 created: 2026-02-22T22:10:03Z
 started: 2026-03-06T20:24:41Z
-completed: null
+completed: 2026-03-07
 hours: null
 workflow_version: "3.1.0"
+
 
 ---
 
@@ -118,6 +119,10 @@ DAWs organize music into reusable blocks called patterns (also called clips or s
 - [ ] Double-clicking a MIDI pattern opens the piano roll with that pattern's note data
 - [ ] Drag from pattern browser provides the pattern ID for timeline drop targets
 - [ ] 500 patterns in a project do not cause UI lag in the browser
+
+## Postmortem
+
+See [Sprint 12 Postmortem](./sprint-12_postmortem.md)
 
 ## Notes
 

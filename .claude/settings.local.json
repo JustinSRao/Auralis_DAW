@@ -64,7 +64,9 @@
       "Read(//c/Users/nitsu/.Application_Development/Music_Application/$BASE/2-in-progress/**)",
       "Read(//c/Users/nitsu/.Application_Development/Music_Application/$BASE/1-todo/**)",
       "Skill(epic-start)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npx vitest:*)",
+      "Skill(sprint-status)"
     ]
   }
 }

@@ -116,13 +116,13 @@
     },
     "12": {
       "title": "Pattern System",
-      "status": "planning",
+      "status": "done",
       "epic": 4,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-07",
+      "hours": 13.4
     },
     "13": {
       "title": "Song Timeline & Playlist",
@@ -490,7 +490,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 12,
-      "completedSprints": 2
+      "completedSprints": 3
     },
     "5": {
       "title": "Audio Editing",
