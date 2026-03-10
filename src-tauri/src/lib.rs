@@ -33,6 +33,10 @@ use project::track_commands::{
 use project::pattern_commands::{
     create_pattern, rename_pattern, duplicate_pattern, delete_pattern, set_pattern_length,
 };
+use project::arrangement_commands::{
+    add_arrangement_clip, move_arrangement_clip, resize_arrangement_clip,
+    delete_arrangement_clip, duplicate_arrangement_clip,
+};
 
 #[tauri::command]
 fn get_version() -> String {
@@ -356,6 +360,11 @@ pub fn run() {
             duplicate_pattern,
             delete_pattern,
             set_pattern_length,
+            add_arrangement_clip,
+            move_arrangement_clip,
+            resize_arrangement_clip,
+            delete_arrangement_clip,
+            duplicate_arrangement_clip,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

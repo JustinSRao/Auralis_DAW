@@ -10,6 +10,8 @@
 //! | [`recent`] | Persisted recent-projects list |
 //! | [`commands`] | Tauri IPC commands and `ProjectManagerState` |
 
+pub mod arrangement;
+pub mod arrangement_commands;
 pub mod commands;
 pub mod format;
 pub mod io;

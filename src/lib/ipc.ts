@@ -342,6 +342,24 @@ export interface PatternData {
   content: PatternContent;
 }
 
+// ── Arrangement types (mirror Rust project::arrangement) ─────────────────────
+
+/** A single clip placed on the song timeline. References a Pattern by UUID. */
+export interface ArrangementClip {
+  id: string;
+  patternId: string;
+  trackId: string;
+  /** 0-indexed bar position. */
+  startBar: number;
+  /** Clip length in bars. */
+  lengthBars: number;
+}
+
+/** Root arrangement data embedded in ProjectFileData. */
+export interface ArrangementData {
+  clips: ArrangementClip[];
+}
+
 export interface ProjectFileData {
   schema_version: SchemaVersion;
   id: string;
@@ -354,6 +372,8 @@ export interface ProjectFileData {
   samples: SampleReference[];
   /** All patterns in this project. May be absent in files saved before v1.1.0. */
   patterns?: PatternData[];
+  /** Arrangement clip placements. May be absent in files saved before v1.2.0. */
+  arrangement?: ArrangementData;
 }
 
 export interface RecentProject {
@@ -1026,4 +1046,66 @@ export async function ipcSetPatternLength(
   lengthBars: PatternLengthBars,
 ): Promise<void> {
   return invoke<void>("set_pattern_length", { id, lengthBars });
+}
+
+// ── Arrangement clip management ───────────────────────────────────────────────
+
+/**
+ * Creates a new arrangement clip placement, assigning a UUID.
+ * Returns the full clip with its server-assigned id.
+ */
+export async function ipcAddArrangementClip(
+  patternId: string,
+  trackId: string,
+  startBar: number,
+  lengthBars: number,
+): Promise<ArrangementClip> {
+  return invoke<ArrangementClip>("add_arrangement_clip", {
+    patternId,
+    trackId,
+    startBar,
+    lengthBars,
+  });
+}
+
+/** Validates a clip move. Frontend applies the update on Ok. */
+export async function ipcMoveArrangementClip(
+  id: string,
+  newTrackId: string,
+  newStartBar: number,
+): Promise<void> {
+  return invoke<void>("move_arrangement_clip", { id, newTrackId, newStartBar });
+}
+
+/** Validates a clip resize. Frontend applies the update on Ok. */
+export async function ipcResizeArrangementClip(
+  id: string,
+  newLengthBars: number,
+): Promise<void> {
+  return invoke<void>("resize_arrangement_clip", { id, newLengthBars });
+}
+
+/** Validates a clip deletion. Frontend removes it on Ok. */
+export async function ipcDeleteArrangementClip(id: string): Promise<void> {
+  return invoke<void>("delete_arrangement_clip", { id });
+}
+
+/**
+ * Creates a duplicate clip at a new position.
+ * Returns the new clip with its server-assigned id.
+ */
+export async function ipcDuplicateArrangementClip(
+  sourceId: string,
+  newStartBar: number,
+  patternId: string,
+  trackId: string,
+  lengthBars: number,
+): Promise<ArrangementClip> {
+  return invoke<ArrangementClip>("duplicate_arrangement_clip", {
+    sourceId,
+    newStartBar,
+    patternId,
+    trackId,
+    lengthBars,
+  });
 }

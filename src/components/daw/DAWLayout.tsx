@@ -12,6 +12,7 @@ import { RecordPanel } from '@/components/instruments/RecordPanel';
 import { SamplerPanel } from '@/components/instruments/SamplerPanel';
 import { SynthPanel } from '@/components/instruments/SynthPanel';
 import { PianoRoll } from '@/components/PianoRoll/PianoRoll';
+import { Timeline } from '@/components/Timeline/Timeline';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useGlobalKeyboard } from '@/hooks/useGlobalKeyboard';
 import { useKeyboardStore } from '@/stores/keyboardStore';
@@ -78,12 +79,8 @@ export function DAWLayout() {
             {/* Track list (fixed width, scrollable) */}
             <TrackList />
 
-            {/* Timeline canvas placeholder */}
-            <div className="flex-1 bg-[#1e1e1e] flex items-center justify-center">
-              <span className="text-[#555555] text-xs">
-                Timeline (Sprint 13)
-              </span>
-            </div>
+            {/* Timeline canvas */}
+            <Timeline />
           </div>
 
           {/* Mixer panel (collapsible) */}

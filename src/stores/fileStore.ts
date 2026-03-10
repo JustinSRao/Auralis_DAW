@@ -4,6 +4,7 @@ import { immer } from "zustand/middleware/immer";
 import type { ProjectFileData, RecentProject } from "../lib/ipc";
 import { useHistoryStore } from "./historyStore";
 import { usePatternStore } from "./patternStore";
+import { useArrangementStore } from "./arrangementStore";
 import {
   getRecentProjects,
   loadProject,
@@ -53,6 +54,8 @@ export const useFileStore = create<FileStoreState>()(
         });
         // Clear pattern store — prior patterns belong to the previous project.
         usePatternStore.getState().loadFromProject([]);
+        // Clear arrangement store — prior clips belong to the previous project.
+        useArrangementStore.getState().loadFromProject([]);
         // Clear undo/redo history — prior commands belong to the previous project.
         useHistoryStore.getState().clear();
       } catch (e) {
@@ -66,10 +69,13 @@ export const useFileStore = create<FileStoreState>()(
       const { currentProject } = get();
       if (!currentProject) return;
 
-      // Inject current patterns from patternStore into the project before saving.
+      // Inject current patterns and arrangement clips before saving.
       const projectToSave: ProjectFileData = {
         ...currentProject,
         patterns: Object.values(usePatternStore.getState().patterns),
+        arrangement: {
+          clips: Object.values(useArrangementStore.getState().clips),
+        },
       };
 
       try {
@@ -103,6 +109,8 @@ export const useFileStore = create<FileStoreState>()(
         });
         // Populate pattern store from the loaded project.
         usePatternStore.getState().loadFromProject(project.patterns ?? []);
+        // Populate arrangement store from the loaded project.
+        useArrangementStore.getState().loadFromProject(project.arrangement?.clips ?? []);
         // Clear undo/redo history — prior commands belong to the previous project.
         useHistoryStore.getState().clear();
       } catch (e) {

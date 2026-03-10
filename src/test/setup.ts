@@ -9,3 +9,8 @@ vi.mock("@tauri-apps/api/core", () => ({
 vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn().mockResolvedValue(() => {}),
 }));
+
+// Canvas context returns null in jsdom — prevent draw crash in canvas components
+beforeAll(() => {
+  HTMLCanvasElement.prototype.getContext = () => null as unknown as CanvasRenderingContext2D;
+});

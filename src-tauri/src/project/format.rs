@@ -8,6 +8,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::project::arrangement::Arrangement;
 use crate::project::pattern::Pattern;
 use crate::project::version::{SchemaVersion, CURRENT_SCHEMA};
 
@@ -40,6 +41,11 @@ pub struct ProjectFile {
     pub samples: Vec<SampleReference>,
     /// All named patterns belonging to this project, keyed by track.
     pub patterns: Vec<Pattern>,
+    /// Arrangement clip placements for the song timeline.
+    ///
+    /// Absent in project files before v1.2.0 — defaults to an empty arrangement.
+    #[serde(default)]
+    pub arrangement: Arrangement,
 }
 
 impl Default for ProjectFile {
@@ -56,6 +62,7 @@ impl Default for ProjectFile {
             master: MasterBusData::default(),
             samples: Vec::new(),
             patterns: Vec::new(),
+            arrangement: Arrangement::default(),
         }
     }
 }

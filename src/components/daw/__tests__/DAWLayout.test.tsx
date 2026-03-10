@@ -89,6 +89,44 @@ vi.mock("@/stores/historyStore", () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// arrangementStore mock (for Timeline — Sprint 13)
+// ---------------------------------------------------------------------------
+
+vi.mock("@/stores/arrangementStore", () => ({
+  useArrangementStore: Object.assign(
+    (selector?: (s: unknown) => unknown) => {
+      const state = {
+        clips: {},
+        viewport: { scrollLeft: 0, pixelsPerBar: 80, trackHeight: 64 },
+        selectedClipId: null,
+        error: null,
+      };
+      if (typeof selector === "function") return selector(state);
+      return state;
+    },
+    {
+      getState: () => ({
+        clips: {},
+        viewport: { scrollLeft: 0, pixelsPerBar: 80, trackHeight: 64 },
+        selectedClipId: null,
+        error: null,
+        addClip: vi.fn(),
+        moveClip: vi.fn(),
+        resizeClip: vi.fn(),
+        deleteClip: vi.fn(),
+        duplicateClip: vi.fn(),
+        updateClipOptimistic: vi.fn(),
+        revertClipOptimistic: vi.fn(),
+        setViewport: vi.fn(),
+        selectClip: vi.fn(),
+        loadFromProject: vi.fn(),
+        clearError: vi.fn(),
+      }),
+    }
+  ),
+}));
+
+// ---------------------------------------------------------------------------
 // patternStore mock (for PatternBrowser — Sprint 12)
 // ---------------------------------------------------------------------------
 

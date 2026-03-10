@@ -3,12 +3,14 @@ sprint: 13
 title: "Song Timeline & Playlist"
 type: fullstack
 epic: 4
-status: planning
+status: in-progress
 created: 2026-02-22T22:10:03Z
-started: null
+started: 2026-03-10T14:20:54Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
+
+
 ---
 
 # Sprint 13: Song Timeline & Playlist
