@@ -126,13 +126,13 @@
     },
     "13": {
       "title": "Song Timeline & Playlist",
-      "status": "planning",
+      "status": "done",
       "epic": 4,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-10",
+      "hours": 7.7
     },
     "14": {
       "title": "Automation Editor",
@@ -490,7 +490,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 12,
-      "completedSprints": 3
+      "completedSprints": 4
     },
     "5": {
       "title": "Audio Editing",
