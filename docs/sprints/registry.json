@@ -306,13 +306,13 @@
     },
     "31": {
       "title": "Arrangement Playback Engine",
-      "status": "planning",
+      "status": "done",
       "epic": 4,
       "type": "backend",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-15",
+      "hours": 8.4
     },
     "32": {
       "title": "MIDI File Import",
@@ -490,7 +490,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 12,
-      "completedSprints": 5
+      "completedSprints": 6
     },
     "5": {
       "title": "Audio Editing",
