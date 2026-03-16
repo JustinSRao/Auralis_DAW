@@ -3,13 +3,14 @@ sprint: 32
 title: "MIDI File Import"
 type: fullstack
 epic: 4
-status: planning
+status: in-progress
 created: 2026-02-23T00:00:00Z
-started: null
+started: 2026-03-15T18:48:05Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
 coverage_threshold: 80
+
 ---
 
 # Sprint 32: MIDI File Import
