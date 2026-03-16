@@ -82,7 +82,10 @@
       "Bash(cd \"C:/Users/nitsu/.Application_Development/Music_Application/src-tauri\" && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test --lib -- audio::scheduler 2>&1 | tail -20)",
       "Bash(cd /c/Users/nitsu/.Application_Development/Music_Application/src-tauri && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo search midly 2>&1 | head -20)",
       "Bash(cd \"C:/Users/nitsu/.Application_Development/Music_Application/src-tauri\" && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test --lib midi 2>&1)",
-      "Bash(cd \"C:/Users/nitsu/.Application_Development/Music_Application/src-tauri\" && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test --lib 2>&1 | tail -5)"
+      "Bash(cd \"C:/Users/nitsu/.Application_Development/Music_Application/src-tauri\" && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test --lib 2>&1 | tail -5)",
+      "Bash(cd C:/Users/nitsu/.Application_Development/Music_Application/src-tauri && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo doc --message-format short 2>&1 | grep -i \"crossbeam\" | head -5)",
+      "Bash(cd C:/Users/nitsu/.Application_Development/Music_Application/src-tauri && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test --lib 2>&1 | tail -30)",
+      "Bash(cd C:/Users/nitsu/.Application_Development/Music_Application/src-tauri && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test --lib 2>&1 | grep \"recording\")"
     ]
   }
 }

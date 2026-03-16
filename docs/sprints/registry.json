@@ -346,13 +346,13 @@
     },
     "36": {
       "title": "MIDI Recording",
-      "status": "planning",
+      "status": "done",
       "epic": 4,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-15",
+      "hours": 8.0
     },
     "37": {
       "title": "Audio Clip Playback Engine",
@@ -490,7 +490,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 12,
-      "completedSprints": 7
+      "completedSprints": 8
     },
     "5": {
       "title": "Audio Editing",
