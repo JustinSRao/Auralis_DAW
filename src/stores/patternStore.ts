@@ -19,6 +19,9 @@ import {
   type PatternMidiNote,
 } from '../lib/ipc';
 
+// Re-export PatternData so consumers can import from the store.
+export type { PatternData };
+
 // ---------------------------------------------------------------------------
 // State shape
 // ---------------------------------------------------------------------------
@@ -71,6 +74,12 @@ interface PatternStoreActions {
 
   /** Returns the count of patterns belonging to a specific track. */
   getPatternCount(trackId: string): number;
+
+  /**
+   * Ingests patterns returned by `create_patterns_from_import`.
+   * Adds each pattern to the store without clearing existing patterns.
+   */
+  addImportedPatterns(patterns: PatternData[]): void;
 
   /**
    * Replaces the entire patterns map from a loaded project.
@@ -191,6 +200,15 @@ export const usePatternStore = create<PatternStoreState & PatternStoreActions>()
 
     getPatternCount: (trackId) =>
       Object.values(get().patterns).filter((p) => p.trackId === trackId).length,
+
+    // ── Import ────────────────────────────────────────────────────────────
+
+    addImportedPatterns: (patterns) =>
+      set((s) => {
+        for (const p of patterns) {
+          s.patterns[p.id] = p;
+        }
+      }),
 
     // ── Project load/save ─────────────────────────────────────────────────
 

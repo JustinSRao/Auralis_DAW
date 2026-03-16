@@ -323,4 +323,38 @@ describe('patternStore', () => {
 
     expect(Object.keys(usePatternStore.getState().patterns)).toHaveLength(0);
   });
+
+  // ── addImportedPatterns ───────────────────────────────────────────────────
+
+  it('addImportedPatterns adds patterns to the store', () => {
+    usePatternStore.setState({ patterns: {} });
+    const imported = [
+      makePattern({ id: 'imp-1', name: 'Imported A' }),
+      makePattern({ id: 'imp-2', name: 'Imported B' }),
+    ];
+    usePatternStore.getState().addImportedPatterns(imported);
+
+    const state = usePatternStore.getState();
+    expect(state.patterns['imp-1']).toEqual(imported[0]);
+    expect(state.patterns['imp-2']).toEqual(imported[1]);
+  });
+
+  it('addImportedPatterns does not clear existing patterns', () => {
+    const existing = makePattern({ id: 'existing' });
+    usePatternStore.setState({ patterns: { existing } });
+
+    usePatternStore.getState().addImportedPatterns([makePattern({ id: 'new-import' })]);
+
+    const state = usePatternStore.getState();
+    expect(state.patterns['existing']).toEqual(existing);
+    expect(state.patterns['new-import']).toBeDefined();
+    expect(Object.keys(state.patterns)).toHaveLength(2);
+  });
+
+  it('addImportedPatterns with empty array is a no-op', () => {
+    const p = makePattern({ id: 'p-noop' });
+    usePatternStore.setState({ patterns: { 'p-noop': p } });
+    usePatternStore.getState().addImportedPatterns([]);
+    expect(Object.keys(usePatternStore.getState().patterns)).toHaveLength(1);
+  });
 });

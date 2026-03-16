@@ -10,11 +10,14 @@
  */
 
 import { useRef, useState, type KeyboardEvent } from 'react';
+import { open } from '@tauri-apps/plugin-dialog';
 import { usePatternStore } from '../../stores/patternStore';
 import { usePianoRollStore } from '../../stores/pianoRollStore';
 import { useTrackStore } from '../../stores/trackStore';
-import type { PatternData, PatternLengthBars } from '../../lib/ipc';
+import type { PatternData, PatternLengthBars, MidiFileInfo, ImportTrackPayload } from '../../lib/ipc';
+import { ipcImportMidiFile, ipcCreatePatternsFromImport } from '../../lib/ipc';
 import type { MidiNote } from '../PianoRoll/pianoRollTypes';
+import { MidiImportDialog } from '../daw/MidiImportDialog';
 
 // ---------------------------------------------------------------------------
 // Context menu
@@ -310,6 +313,8 @@ export function PatternBrowser() {
   const patterns = usePatternStore((s) => s.patterns);
 
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [importDialogInfo, setImportDialogInfo] = useState<MidiFileInfo | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   // Use a ref to track toast timeout so we can clear it on unmount.
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -339,6 +344,33 @@ export function PatternBrowser() {
     setContextMenu({ patternId: id, x, y });
   }
 
+  async function handleImportMidi() {
+    setImportError(null);
+    try {
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: 'MIDI Files', extensions: ['mid', 'midi'] }],
+      });
+      if (!selected) return; // user cancelled
+      const path = typeof selected === 'string' ? selected : selected.path;
+      const fileInfo = await ipcImportMidiFile(path);
+      setImportDialogInfo(fileInfo);
+    } catch (e) {
+      setImportError(String(e));
+    }
+  }
+
+  async function handleImportConfirm(payloads: ImportTrackPayload[]) {
+    setImportDialogInfo(null);
+    if (payloads.length === 0) return;
+    try {
+      const patterns = await ipcCreatePatternsFromImport(payloads);
+      patternStore.addImportedPatterns(patterns);
+    } catch (e) {
+      setImportError(String(e));
+    }
+  }
+
   // Only show tracks that exist in trackStore.
   const tracksWithPatterns = tracks.map((t) => ({
     track: t,
@@ -352,6 +384,13 @@ export function PatternBrowser() {
         <span className="text-[10px] font-mono text-[#666] uppercase tracking-widest">
           Patterns
         </span>
+        <button
+          onClick={() => void handleImportMidi()}
+          data-testid="import-midi-btn"
+          className="ml-auto text-[9px] text-[#555] hover:text-[#888] transition-colors font-mono"
+        >
+          + Import MIDI
+        </button>
       </div>
 
       {/* Scrollable list */}
@@ -394,6 +433,18 @@ export function PatternBrowser() {
         </div>
       )}
 
+      {/* Import error toast */}
+      {importError && (
+        <div
+          className="absolute bottom-2 left-2 right-2 bg-[#3a1a1a] border border-[#664444] text-[#ff8888] text-[10px] font-mono rounded px-2 py-1.5 text-center cursor-pointer"
+          role="alert"
+          onClick={() => setImportError(null)}
+          data-testid="import-error-toast"
+        >
+          {importError}
+        </div>
+      )}
+
       {/* Right-click context menu */}
       {contextMenu && (
         <PatternContextMenu
@@ -401,6 +452,15 @@ export function PatternBrowser() {
           x={contextMenu.x}
           y={contextMenu.y}
           onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {/* MIDI Import dialog */}
+      {importDialogInfo && (
+        <MidiImportDialog
+          fileInfo={importDialogInfo}
+          onConfirm={(payloads) => void handleImportConfirm(payloads)}
+          onCancel={() => setImportDialogInfo(null)}
         />
       )}
     </div>

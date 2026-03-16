@@ -10,6 +10,11 @@ vi.mock("@tauri-apps/api/event", () => ({
   listen: vi.fn().mockResolvedValue(() => {}),
 }));
 
+// Mock the Tauri dialog plugin — open() returns null by default (no file selected)
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  open: vi.fn().mockResolvedValue(null),
+}));
+
 // Canvas context returns null in jsdom — prevent draw crash in canvas components
 beforeAll(() => {
   HTMLCanvasElement.prototype.getContext = () => null as unknown as CanvasRenderingContext2D;

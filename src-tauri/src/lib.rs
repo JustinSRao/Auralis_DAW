@@ -40,6 +40,7 @@ use project::arrangement_commands::{
     add_arrangement_clip, move_arrangement_clip, resize_arrangement_clip,
     delete_arrangement_clip, duplicate_arrangement_clip,
 };
+use midi::import_commands::{import_midi_file, create_patterns_from_import};
 
 #[tauri::command]
 fn get_version() -> String {
@@ -399,6 +400,8 @@ pub fn run() {
             automation::commands::record_automation_batch,
             audio::scheduler_commands::set_arrangement_clips,
             audio::scheduler_commands::register_scheduler_sender,
+            import_midi_file,
+            create_patterns_from_import,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

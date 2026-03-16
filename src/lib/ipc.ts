@@ -1232,3 +1232,64 @@ export async function ipcRegisterSchedulerSender(
 ): Promise<void> {
   return invoke<void>("register_scheduler_sender", { trackId });
 }
+
+// ── MIDI File Import (Sprint 32) ─────────────────────────────────────────────
+
+/** A single note returned from MIDI file parsing, with timing in beats. */
+export interface ImportedNote {
+  pitch: number;
+  velocity: number;
+  channel: number;
+  startBeats: number;
+  durationBeats: number;
+}
+
+/** A single MIDI track parsed from a .mid file. */
+export interface ImportedTrack {
+  /** 0-based MIDI track index within the file. */
+  midiTrackIndex: number;
+  /** Human-readable track name from the MIDI TrackName meta-event. */
+  name: string;
+  /** All notes in this track, converted to beat positions. */
+  notes: ImportedNote[];
+  /** True if this track contains no NoteOn events. */
+  isEmpty: boolean;
+}
+
+/** Top-level result of parsing a .mid file. */
+export interface MidiFileInfo {
+  /** MIDI format: 0 = Type 0 (single track), 1 = Type 1 (multi-track). */
+  format: number;
+  /** BPM suggestion extracted from the first tempo meta-event (default 120). */
+  suggestedBpm: number;
+  /** All parsed tracks. */
+  tracks: ImportedTrack[];
+}
+
+/** Per-track payload the user sends back after confirming the import dialog. */
+export interface ImportTrackPayload {
+  midiTrackIndex: number;
+  patternName: string;
+  trackId: string;
+  notes: ImportedNote[];
+  /** Must be 1, 2, 4, 8, 16, or 32. */
+  lengthBars: PatternLengthBars;
+}
+
+/**
+ * Parses a .mid file at `path` and returns track metadata with notes already
+ * converted to beat positions.
+ */
+export async function ipcImportMidiFile(path: string): Promise<MidiFileInfo> {
+  return invoke<MidiFileInfo>("import_midi_file", { path });
+}
+
+/**
+ * Creates Pattern structs from the user-confirmed import payload.
+ * Returns the created patterns for the frontend to inject into patternStore.
+ */
+export async function ipcCreatePatternsFromImport(
+  payloads: ImportTrackPayload[],
+): Promise<PatternData[]> {
+  return invoke<PatternData[]>("create_patterns_from_import", { payloads });
+}

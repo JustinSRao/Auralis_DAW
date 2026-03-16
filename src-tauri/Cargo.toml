@@ -70,6 +70,9 @@ chrono = { version = "0.4", features = ["serde"] }
 # ZIP archive for .mapp project files
 zip = "2"
 
+# MIDI file parsing (Type 0 and Type 1 SMF)
+midly = "0.5"
+
 [dev-dependencies]
 tempfile = "3"
 
