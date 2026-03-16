@@ -446,6 +446,46 @@ async fn disk_write_task(
     state.store(REC_IDLE, Ordering::Release);
 }
 
+/// Applies a linear fade-in ramp to the first `fade_frames` samples.
+///
+/// Each sample is scaled from `0.0` (at index 0) up to `1.0` (at index
+/// `fade_frames - 1`). If `fade_frames` is `0` or larger than
+/// `samples.len()`, the entire slice is faded.
+pub fn apply_fade_in(samples: &mut [f32], fade_frames: usize) {
+    let len = samples.len();
+    if len == 0 {
+        return;
+    }
+    let frames = if fade_frames == 0 || fade_frames > len {
+        len
+    } else {
+        fade_frames
+    };
+    for (i, s) in samples[..frames].iter_mut().enumerate() {
+        *s *= i as f32 / frames as f32;
+    }
+}
+
+/// Applies a linear fade-out ramp to the last `fade_frames` samples.
+///
+/// The last sample in the fade region is scaled to `0.0`. If `fade_frames`
+/// is `0` or larger than `samples.len()`, the entire slice is faded.
+pub fn apply_fade_out(samples: &mut [f32], fade_frames: usize) {
+    let len = samples.len();
+    if len == 0 {
+        return;
+    }
+    let frames = if fade_frames == 0 || fade_frames > len {
+        len
+    } else {
+        fade_frames
+    };
+    let start = len - frames;
+    for (i, s) in samples[start..].iter_mut().enumerate() {
+        *s *= 1.0 - ((i + 1) as f32 / frames as f32);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -565,5 +605,76 @@ mod tests {
         assert_eq!(status.state, "idle");
         assert!(status.input_device.is_none());
         assert!(status.output_path.is_none());
+    }
+
+    // --- Crossfade helpers ---
+
+    #[test]
+    fn test_fade_in_first_sample_is_zero() {
+        let mut buf = vec![1.0f32; 8];
+        apply_fade_in(&mut buf, 8);
+        assert!(buf[0].abs() < 1e-6, "first sample after fade-in should be ~0");
+    }
+
+    #[test]
+    fn test_fade_in_last_faded_sample_approaches_one() {
+        let mut buf = vec![1.0f32; 8];
+        apply_fade_in(&mut buf, 8);
+        // Last sample in the fade region: scale = (7/8) = 0.875
+        assert!((buf[7] - 0.875).abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_fade_in_partial_leaves_tail_unchanged() {
+        let mut buf = vec![1.0f32; 8];
+        apply_fade_in(&mut buf, 4);
+        // Samples after the fade region should be untouched
+        for &s in &buf[4..] {
+            assert!((s - 1.0).abs() < 1e-6);
+        }
+    }
+
+    #[test]
+    fn test_fade_out_last_sample_is_zero() {
+        let mut buf = vec![1.0f32; 8];
+        apply_fade_out(&mut buf, 8);
+        assert!(buf[7].abs() < 1e-6, "last sample after fade-out should be ~0");
+    }
+
+    #[test]
+    fn test_fade_out_partial_leaves_head_unchanged() {
+        let mut buf = vec![1.0f32; 8];
+        apply_fade_out(&mut buf, 4);
+        // Samples before the fade region should be untouched
+        for &s in &buf[..4] {
+            assert!((s - 1.0).abs() < 1e-6);
+        }
+    }
+
+    #[test]
+    fn test_fade_in_empty_slice_no_panic() {
+        let mut buf: Vec<f32> = Vec::new();
+        apply_fade_in(&mut buf, 4); // should not panic
+    }
+
+    #[test]
+    fn test_fade_out_empty_slice_no_panic() {
+        let mut buf: Vec<f32> = Vec::new();
+        apply_fade_out(&mut buf, 4); // should not panic
+    }
+
+    #[test]
+    fn test_fade_in_zero_fade_frames_fades_whole_slice() {
+        let mut buf = vec![1.0f32; 4];
+        apply_fade_in(&mut buf, 0);
+        // With fade_frames=0, entire slice is faded: scale = i/len
+        assert!(buf[0].abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_fade_out_zero_fade_frames_fades_whole_slice() {
+        let mut buf = vec![1.0f32; 4];
+        apply_fade_out(&mut buf, 0);
+        assert!(buf[3].abs() < 1e-6);
     }
 }

@@ -13,6 +13,7 @@ import {
   newProject,
   saveProject,
 } from "../lib/ipc";
+import { usePunchStore } from "./punchStore";
 
 interface FileStoreState {
   filePath: string | null;
@@ -129,6 +130,12 @@ export const useFileStore = create<FileStoreState>()(
         useArrangementStore.getState().loadFromProject(project.arrangement?.clips ?? []);
         // Load automation lanes from patterns.
         useAutomationStore.getState().loadFromProject(project.patterns ?? []);
+        // Apply punch markers from the loaded project.
+        const punch = usePunchStore.getState();
+        const t = project.transport;
+        void punch.setPunchIn(t.punch_in_beats ?? 0);
+        void punch.setPunchOut(t.punch_out_beats ?? 8);
+        void punch.togglePunchMode(t.punch_enabled ?? false);
         // Clear undo/redo history — prior commands belong to the previous project.
         useHistoryStore.getState().clear();
       } catch (e) {

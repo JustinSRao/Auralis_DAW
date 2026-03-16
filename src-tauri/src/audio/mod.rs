@@ -5,6 +5,8 @@ pub mod devices;
 pub mod engine;
 pub mod graph;
 pub mod metronome;
+pub mod punch;
+pub mod punch_commands;
 pub mod recorder;
 pub mod scheduler;
 pub mod scheduler_commands;

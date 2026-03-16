@@ -62,6 +62,12 @@ pub enum AudioCommand {
     SetMonitoringConsumer(ringbuf::HeapConsumer<f32>),
     /// Enable or disable input monitoring.
     SetMonitoringEnabled(bool),
+
+    // --- Sprint 38: Punch in/out commands ---
+    /// Set the punch in/out region in beats.
+    TransportSetPunchRegion { in_beats: f64, out_beats: f64 },
+    /// Enable or disable punch recording mode.
+    TransportTogglePunch(bool),
 }
 
 /// The core audio engine managing cpal stream lifecycle and the audio graph.
@@ -532,6 +538,13 @@ fn audio_callback(
             }
             AudioCommand::SetMonitoringEnabled(enabled) => {
                 *monitoring_enabled = enabled;
+            }
+            // --- Sprint 38: Punch in/out commands ---
+            AudioCommand::TransportSetPunchRegion { in_beats, out_beats } => {
+                clock.apply_set_punch_region(in_beats, out_beats);
+            }
+            AudioCommand::TransportTogglePunch(enabled) => {
+                clock.apply_toggle_punch(enabled);
             }
         }
     }

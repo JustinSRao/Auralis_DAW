@@ -114,6 +114,15 @@ pub struct TransportSnapshot {
     pub metronome_pitch_hz: f32,
     /// Whether a track is armed for recording.
     pub record_armed: bool,
+    /// Whether punch recording mode is active.
+    #[serde(default)]
+    pub punch_enabled: bool,
+    /// Punch-in point in samples (where recording starts automatically).
+    #[serde(default)]
+    pub punch_in_samples: u64,
+    /// Punch-out point in samples (where recording stops automatically).
+    #[serde(default)]
+    pub punch_out_samples: u64,
 }
 
 impl Default for TransportSnapshot {
@@ -132,6 +141,9 @@ impl Default for TransportSnapshot {
             metronome_volume: 0.5,
             metronome_pitch_hz: 1000.0,
             record_armed: false,
+            punch_enabled: false,
+            punch_in_samples: 0,
+            punch_out_samples: 0,
         }
     }
 }
@@ -235,6 +247,16 @@ pub struct TransportClock {
     pub metronome_pitch_hz: f32,
     /// Whether a track is armed for recording.
     pub record_armed: bool,
+    /// Whether punch recording mode is enabled.
+    pub punch_enabled: bool,
+    /// Punch-in point in beats (authoritative).
+    pub punch_in_beats: f64,
+    /// Punch-out point in beats (authoritative).
+    pub punch_out_beats: f64,
+    /// Punch-in in samples (derived from beats + BPM).
+    pub punch_in_samples: u64,
+    /// Punch-out in samples (derived from beats + BPM).
+    pub punch_out_samples: u64,
     /// Derived: samples per beat at current BPM. Recomputed on BPM change.
     samples_per_beat: f64,
     /// Lock-free atomics shared with MetronomeNode and future audio nodes.
@@ -268,6 +290,11 @@ impl TransportClock {
             metronome_volume: 0.5,
             metronome_pitch_hz: 1000.0,
             record_armed: false,
+            punch_enabled: false,
+            punch_in_beats: 0.0,
+            punch_out_beats: 0.0,
+            punch_in_samples: 0,
+            punch_out_samples: 0,
             samples_per_beat: spb,
             atomics,
             snapshot,
@@ -380,6 +407,10 @@ impl TransportClock {
         self.loop_start_samples = (self.loop_start_beats * new_spb) as u64;
         self.loop_end_samples = (self.loop_end_beats * new_spb) as u64;
 
+        // Recalculate punch region from beat-authoritative values
+        self.punch_in_samples = (self.punch_in_beats * new_spb) as u64;
+        self.punch_out_samples = (self.punch_out_beats * new_spb) as u64;
+
         self.atomics
             .samples_per_beat_bits
             .store(new_spb.to_bits(), Ordering::Release);
@@ -458,6 +489,29 @@ impl TransportClock {
         self.try_write_snapshot();
     }
 
+    /// Sets the punch in/out region in beats and derives the sample positions.
+    ///
+    /// Both values are clamped to `>= 0.0`. If `in_beats >= out_beats` the
+    /// call is silently ignored (a degenerate region is meaningless).
+    pub fn apply_set_punch_region(&mut self, in_beats: f64, out_beats: f64) {
+        let in_b = in_beats.max(0.0);
+        let out_b = out_beats.max(0.0);
+        if in_b >= out_b {
+            return;
+        }
+        self.punch_in_beats = in_b;
+        self.punch_out_beats = out_b;
+        self.punch_in_samples = (in_b * self.samples_per_beat) as u64;
+        self.punch_out_samples = (out_b * self.samples_per_beat) as u64;
+        self.try_write_snapshot();
+    }
+
+    /// Enables or disables punch recording mode.
+    pub fn apply_toggle_punch(&mut self, enabled: bool) {
+        self.punch_enabled = enabled;
+        self.try_write_snapshot();
+    }
+
     /// Seeks to an absolute sample position. Only effective when stopped or paused.
     pub fn apply_seek(&mut self, position_samples: u64) {
         if self.state == TransportState::Stopped || self.state == TransportState::Paused {
@@ -520,6 +574,9 @@ impl TransportClock {
             snap.metronome_volume = self.metronome_volume;
             snap.metronome_pitch_hz = self.metronome_pitch_hz;
             snap.record_armed = self.record_armed;
+            snap.punch_enabled = self.punch_enabled;
+            snap.punch_in_samples = self.punch_in_samples;
+            snap.punch_out_samples = self.punch_out_samples;
         }
         // If try_lock fails, silently skip — audio thread must never block.
     }

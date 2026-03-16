@@ -6,6 +6,7 @@ import type { ArrangementClip } from '../../stores/arrangementStore'
 import { useTrackStore } from '../../stores/trackStore'
 import { usePatternStore } from '../../stores/patternStore'
 import { useAutomationStore } from '../../stores/automationStore'
+import { usePunchStore } from '../../stores/punchStore'
 import { AutomationRow } from '../automation/AutomationRow'
 import { TimeRuler, RULER_HEIGHT } from './TimeRuler'
 import { PlayheadOverlay } from './PlayheadOverlay'
@@ -103,6 +104,14 @@ export function Timeline() {
   // Time signature numerator (beats per bar) from last transport event
   const [beatsPerBar, setBeatsPerBar] = useState(4)
 
+  // BPM from last transport event (for punch marker sample→bar conversion)
+  const [currentBpm, setCurrentBpm] = useState(120)
+
+  // Punch in/out state (sample positions from transport snapshot)
+  const [punchInSamples, setPunchInSamples] = useState<number | null>(null)
+  const [punchOutSamples, setPunchOutSamples] = useState<number | null>(null)
+  const [punchEnabled, setPunchEnabled] = useState(false)
+
   // Automation panel expand state
   const expandedTrackIds = useAutomationStore((s) => s.expandedTrackIds)
   const { toggleTrackExpanded } = useAutomationStore.getState()
@@ -139,6 +148,7 @@ export function Timeline() {
       const snap = ev.payload
       const timeSig = snap.time_sig_numerator > 0 ? snap.time_sig_numerator : 4
       setBeatsPerBar(timeSig)
+      setCurrentBpm(snap.bpm)
       playheadBarRef.current = samplesToBar(snap.position_samples, snap.bpm, timeSig, 44100)
 
       // Update loop region bars (convert from samples)
@@ -149,6 +159,11 @@ export function Timeline() {
         setLoopStart(null)
         setLoopEnd(null)
       }
+
+      // Update punch marker state
+      setPunchEnabled(snap.punch_enabled)
+      setPunchInSamples(snap.punch_in_samples > 0 ? snap.punch_in_samples : null)
+      setPunchOutSamples(snap.punch_out_samples > 0 ? snap.punch_out_samples : null)
 
       drawPlayheadRef.current()
     }).then((fn) => {
@@ -415,6 +430,15 @@ export function Timeline() {
     }
   }
 
+  // Punch marker callbacks (forwarded from TimeRuler)
+  function handlePunchInSet(beats: number) {
+    void usePunchStore.getState().setPunchIn(beats)
+  }
+
+  function handlePunchOutSet(beats: number) {
+    void usePunchStore.getState().setPunchOut(beats)
+  }
+
   // ---------------------------------------------------------------------------
   // Drop handler (patterns from PatternBrowser)
   // ---------------------------------------------------------------------------
@@ -495,6 +519,13 @@ export function Timeline() {
         loopStart={loopStart}
         loopEnd={loopEnd}
         onRulerPointerDown={handleRulerPointerDown}
+        onPunchInSet={handlePunchInSet}
+        onPunchOutSet={handlePunchOutSet}
+        punchEnabled={punchEnabled}
+        punchInSamples={punchInSamples}
+        punchOutSamples={punchOutSamples}
+        bpm={currentBpm}
+        beatsPerBar={beatsPerBar}
       />
 
       {/* Clips canvas area */}

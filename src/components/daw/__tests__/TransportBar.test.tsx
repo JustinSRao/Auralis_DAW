@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { TransportBar } from "../TransportBar";
 import { useTransportStore } from "@/stores/transportStore";
+import { usePunchStore } from "@/stores/punchStore";
 import type { TransportSnapshot } from "@/lib/ipc";
 
 // ---------------------------------------------------------------------------
@@ -28,6 +29,9 @@ const defaultSnapshot: TransportSnapshot = {
   metronome_volume: 0.5,
   metronome_pitch_hz: 1000.0,
   record_armed: false,
+  punch_enabled: false,
+  punch_in_samples: 0,
+  punch_out_samples: 0,
 };
 
 // ---------------------------------------------------------------------------
@@ -36,9 +40,18 @@ const defaultSnapshot: TransportSnapshot = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Reset store to clean state
+  // Reset transport store to clean state
   useTransportStore.setState({
     snapshot: defaultSnapshot,
+    isLoading: false,
+    error: null,
+  });
+  // Reset punch store to clean state
+  usePunchStore.setState({
+    punchEnabled: false,
+    punchInBeats: 0,
+    punchOutBeats: 4,
+    preRollBars: 2,
     isLoading: false,
     error: null,
   });
@@ -313,5 +326,50 @@ describe("TransportBar", () => {
   it("does not show record armed indicator when record_armed is false", () => {
     render(<TransportBar />);
     expect(screen.queryByLabelText(/record armed/i)).not.toBeInTheDocument();
+  });
+
+  // -------------------------------------------------------------------------
+  // Punch mode controls
+  // -------------------------------------------------------------------------
+
+  it("renders PUNCH button", () => {
+    render(<TransportBar />);
+    expect(screen.getByTestId("punch-toggle")).toBeInTheDocument();
+  });
+
+  it("PUNCH button has correct text", () => {
+    render(<TransportBar />);
+    expect(screen.getByTestId("punch-toggle")).toHaveTextContent("PUNCH");
+  });
+
+  it("clicking PUNCH button calls togglePunchMode with toggled value", async () => {
+    // Reset punch store
+    usePunchStore.setState({ punchEnabled: false });
+
+    render(<TransportBar />);
+    await userEvent.click(screen.getByTestId("punch-toggle"));
+
+    expect(mockInvoke).toHaveBeenCalledWith("toggle_punch_mode", { enabled: true });
+  });
+
+  it("clicking PUNCH button when enabled calls togglePunchMode with false", async () => {
+    usePunchStore.setState({ punchEnabled: true });
+
+    render(<TransportBar />);
+    await userEvent.click(screen.getByTestId("punch-toggle"));
+
+    expect(mockInvoke).toHaveBeenCalledWith("toggle_punch_mode", { enabled: false });
+  });
+
+  it("renders PRE-ROLL input", () => {
+    render(<TransportBar />);
+    expect(screen.getByTestId("pre-roll-input")).toBeInTheDocument();
+  });
+
+  it("PRE-ROLL input reflects preRollBars from punchStore", () => {
+    usePunchStore.setState({ preRollBars: 3 });
+    render(<TransportBar />);
+    const input = screen.getByTestId("pre-roll-input") as HTMLInputElement;
+    expect(input.value).toBe("3");
   });
 });

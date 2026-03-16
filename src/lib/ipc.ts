@@ -227,6 +227,10 @@ export interface TransportSettings {
   loop_enabled: boolean;
   loop_start_beats: number;
   loop_end_beats: number;
+  punch_enabled: boolean;
+  punch_in_beats: number;
+  punch_out_beats: number;
+  pre_roll_bars: number;
 }
 
 export interface MidiNoteData {
@@ -474,6 +478,9 @@ export interface TransportSnapshot {
   metronome_volume: number;
   metronome_pitch_hz: number;
   record_armed: boolean;
+  punch_enabled: boolean;
+  punch_in_samples: number;
+  punch_out_samples: number;
 }
 
 // --- Transport commands ---
@@ -1340,4 +1347,39 @@ export async function ipcStopMidiRecording(): Promise<void> {
 /** Updates the quantize grid for the active recording session. */
 export async function ipcSetRecordQuantize(quantize: RecordQuantize): Promise<void> {
   return invoke<void>("set_record_quantize", { quantize });
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 38: Punch In/Out Recording
+// ---------------------------------------------------------------------------
+
+/**
+ * Punch marker positions in both beats and samples.
+ * Mirrors Rust `PunchMarkers` struct.
+ */
+export interface PunchMarkers {
+  punch_in_beats: number;
+  punch_out_beats: number;
+  punch_in_samples: number;
+  punch_out_samples: number;
+}
+
+/** Sets the punch-in point in beats. */
+export async function setPunchIn(beats: number): Promise<void> {
+  return invoke<void>("set_punch_in", { beats });
+}
+
+/** Sets the punch-out point in beats. */
+export async function setPunchOut(beats: number): Promise<void> {
+  return invoke<void>("set_punch_out", { beats });
+}
+
+/** Enables or disables punch mode. */
+export async function togglePunchMode(enabled: boolean): Promise<void> {
+  return invoke<void>("toggle_punch_mode", { enabled });
+}
+
+/** Returns the current punch-in/out marker positions. */
+export async function getPunchMarkers(): Promise<PunchMarkers> {
+  return invoke<PunchMarkers>("get_punch_markers");
 }

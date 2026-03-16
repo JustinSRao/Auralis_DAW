@@ -3,12 +3,14 @@ sprint: 38
 title: "Punch In/Out Recording"
 type: fullstack
 epic: 4
-status: planning
+status: in-progress
 created: 2026-02-23T12:32:35Z
-started: null
+started: 2026-03-16T11:07:37Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
+
+
 ---
 
 # Sprint 38: Punch In/Out Recording
@@ -125,6 +127,33 @@ Sprint 9 (Audio Recording) explicitly placed punch in/out out of scope: "Punch-i
 - [ ] Pre-roll provides lead-in bars before the punch-in point
 - [ ] Punch state persists in the project file
 - [ ] All tests pass
+
+## Team Strategy
+
+### Architecture Summary
+`PunchController` lives in Tauri managed state (not on the audio thread). A Tokio background task polls `TransportAtomics::playhead_samples` at ~50Hz and calls `PunchController::tick()` to determine when to start/stop the audio or MIDI recorder. This avoids adding any blocking or allocation to the audio callback.
+
+### Clarifications (Step 1.3)
+- **Punch marker input**: Ctrl+drag on timeline ruler sets punch region (Ctrl+click = in, Ctrl+Alt+click = out). Mirrors loop Shift+drag pattern.
+- **Crossfade**: Applied post-process in disk write task — linear ramp on first/last ~220 samples of the recorded WAV. Audio callback unchanged.
+- **Track arming**: `TrackHeader` already has an arm (REC) button from Sprint 9 — no new UI needed.
+
+### Team Composition
+
+| Agent | Owns |
+|-------|------|
+| Backend (product-engineer) | `punch.rs`, `punch_commands.rs`, `transport.rs` extensions, `engine.rs` AudioCommand variants, `recorder.rs` crossfade helpers, `project/format.rs` persistence, `lib.rs` wiring |
+| Frontend (product-engineer) | `punchStore.ts`, `ipc.ts` additions, `TimeRuler.tsx` punch drawing, `Timeline.tsx` punch state + Ctrl+drag, `TransportBar.tsx` PUNCH button + IN/OUT display + PRE-ROLL |
+
+### Integration Points
+- `AudioRecorder::start_recording` / `stop_recording` — called directly by punch watcher task (lock-free TransportAtomics read, then lock recorder Mutex)
+- `start_midi_recording` / `stop_midi_recording` in `src-tauri/src/midi/recording_commands.rs` — called directly by punch watcher with cloned managed-state Arcs
+- `TransportSnapshot` extended with `punch_enabled`, `punch_in_samples`, `punch_out_samples` — `#[serde(default)]` for backward compat, no schema migration needed
+
+### Test Strategy
+- Unit tests: `PunchController::tick` boundary conditions, `PunchMarkers::from_beats` sample math, crossfade ramp helpers
+- TS unit tests: `punchStore` IPC calls, `TimeRuler` smoke renders with/without punch markers
+- Skip: crossfade audio quality, end-to-end timing — covered by manual smoke test
 
 ## Notes
 

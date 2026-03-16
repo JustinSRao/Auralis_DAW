@@ -82,6 +82,9 @@ const defaultSnapshot: TransportSnapshot = {
   metronome_volume: 0.5,
   metronome_pitch_hz: 1000.0,
   record_armed: false,
+  punch_enabled: false,
+  punch_in_samples: 0,
+  punch_out_samples: 0,
 };
 
 // ---------------------------------------------------------------------------

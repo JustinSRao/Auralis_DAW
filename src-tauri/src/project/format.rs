@@ -71,6 +71,11 @@ impl Default for ProjectFile {
 // Transport / tempo
 // ---------------------------------------------------------------------------
 
+/// Returns the default number of pre-roll bars (2).
+fn default_pre_roll() -> u32 {
+    2
+}
+
 /// Global playback and tempo settings for the project.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TransportSettings {
@@ -88,6 +93,23 @@ pub struct TransportSettings {
     pub loop_start_beats: f64,
     /// Loop region end, in beats.
     pub loop_end_beats: f64,
+    /// Whether punch recording mode is enabled.
+    #[serde(default)]
+    pub punch_enabled: bool,
+    /// Punch-in point in beats.
+    #[serde(default)]
+    pub punch_in_beats: f64,
+    /// Punch-out point in beats.
+    #[serde(default = "default_punch_out")]
+    pub punch_out_beats: f64,
+    /// Number of pre-roll bars before punch-in.
+    #[serde(default = "default_pre_roll")]
+    pub pre_roll_bars: u32,
+}
+
+/// Returns the default punch-out point in beats (8.0).
+fn default_punch_out() -> f64 {
+    8.0
 }
 
 impl Default for TransportSettings {
@@ -100,6 +122,10 @@ impl Default for TransportSettings {
             loop_enabled: false,
             loop_start_beats: 0.0,
             loop_end_beats: 16.0,
+            punch_enabled: false,
+            punch_in_beats: 0.0,
+            punch_out_beats: 8.0,
+            pre_roll_bars: 2,
         }
     }
 }

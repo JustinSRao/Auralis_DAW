@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { TransportSnapshot, RecordQuantize, RecordingStartedEvent, RecordingStoppedEvent, RecordedNoteEvent } from "@/lib/ipc";
 import { useTransportStore } from "@/stores/transportStore";
 import { usePatternStore } from "@/stores/patternStore";
+import { usePunchStore } from "@/stores/punchStore";
 
 // ---------------------------------------------------------------------------
 // Time signature denominator options
@@ -42,6 +43,12 @@ export function TransportBar() {
   const { snapshot } = store;
   const addRecordedNote = usePatternStore((s) => s.addRecordedNote);
   const [isRecording, setIsRecording] = useState(false);
+
+  // Punch store
+  const punchEnabled = usePunchStore((s) => s.punchEnabled);
+  const punchInBeats = usePunchStore((s) => s.punchInBeats);
+  const punchOutBeats = usePunchStore((s) => s.punchOutBeats);
+  const preRollBars = usePunchStore((s) => s.preRollBars);
 
   // Local BPM input state — allows typing without firing an IPC call per keystroke
   const [bpmInput, setBpmInput] = useState(String(snapshot.bpm));
@@ -150,6 +157,21 @@ export function TransportBar() {
 
   function handleMetronomeToggle() {
     void store.toggleMetronome(!snapshot.metronome_enabled);
+  }
+
+  // -------------------------------------------------------------------------
+  // Punch handlers
+  // -------------------------------------------------------------------------
+
+  function handlePunchToggle() {
+    void usePunchStore.getState().togglePunchMode(!punchEnabled);
+  }
+
+  function handlePreRollChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = parseInt(e.target.value, 10);
+    if (!isNaN(val) && val >= 0 && val <= 8) {
+      usePunchStore.getState().setPreRollBars(val);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -337,6 +359,59 @@ export function TransportBar() {
       >
         CLICK
       </button>
+
+      {/* Divider */}
+      <div className="w-px h-5 bg-[#3a3a3a]" />
+
+      {/* --- Punch mode toggle --- */}
+      <button
+        onClick={handlePunchToggle}
+        aria-label={punchEnabled ? "Disable punch mode" : "Enable punch mode"}
+        aria-pressed={punchEnabled}
+        data-testid="punch-toggle"
+        className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+          punchEnabled
+            ? "bg-orange-500 text-white"
+            : "text-[#888888] hover:bg-[#3a3a3a] hover:text-[#c8c8c8]"
+        }`}
+      >
+        PUNCH
+      </button>
+
+      {/* --- Punch marker display --- */}
+      <div className="flex items-center gap-1" aria-label="Punch markers">
+        <span className="text-[9px] font-mono text-green-400">
+          IN:{punchInBeats.toFixed(1)}
+        </span>
+        <span className="text-[9px] font-mono text-red-400">
+          OUT:{punchOutBeats.toFixed(1)}
+        </span>
+      </div>
+
+      {/* --- Pre-roll control --- */}
+      <div className="flex items-center gap-1">
+        <label
+          htmlFor="pre-roll-input"
+          className="text-[10px] text-[#888888] uppercase tracking-wide"
+        >
+          PRE
+        </label>
+        <input
+          id="pre-roll-input"
+          type="number"
+          min={0}
+          max={8}
+          value={preRollBars}
+          onChange={handlePreRollChange}
+          aria-label="Pre-roll bars"
+          data-testid="pre-roll-input"
+          className="w-8 text-center text-sm font-mono bg-[#1a1a1a] text-[#e0e0e0]
+                     border border-[#3a3a3a] rounded px-1 py-0.5
+                     focus:outline-none focus:border-[#6c63ff]
+                     [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none
+                     [&::-webkit-inner-spin-button]:appearance-none"
+        />
+      </div>
 
       {/* --- Record arm indicator --- */}
       {snapshot.record_armed && (

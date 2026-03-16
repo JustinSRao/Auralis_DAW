@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { TimelineViewport } from '../../stores/arrangementStore'
-import { barToX, xToBar, snapToBar } from './timelineCoords'
+import { barToX, xToBar, snapToBar, samplesToBar } from './timelineCoords'
 
 export const RULER_HEIGHT = 32
 
@@ -11,9 +11,26 @@ interface TimeRulerProps {
   loopStart: number | null
   /** Loop region end in bars, or null if loop is disabled / unset. */
   loopEnd: number | null
-  /** Called when the user clicks or shift-drags on the ruler. */
+  /** Called when the user clicks or shift-drags on the ruler (non-Ctrl). */
   onRulerPointerDown: (e: React.PointerEvent<HTMLCanvasElement>) => void
+  /** Called when the user Ctrl+clicks/drags to set punch-in position (beats). */
+  onPunchInSet?: (beats: number) => void
+  /** Called when the user Ctrl+Alt+clicks/drags to set punch-out position (beats). */
+  onPunchOutSet?: (beats: number) => void
+  /** Whether punch mode is active. */
+  punchEnabled?: boolean
+  /** Punch-in position in samples, or null when not set. */
+  punchInSamples?: number | null
+  /** Punch-out position in samples, or null when not set. */
+  punchOutSamples?: number | null
+  /** Current BPM — used to convert samples to bar position for drawing. */
+  bpm?: number
+  /** Beats per bar — used to convert samples to bar position. */
+  beatsPerBar?: number
 }
+
+// Hardcoded sample rate (matches Timeline.tsx tech debt note)
+const SAMPLE_RATE = 44100
 
 /**
  * Horizontal bar/beat ruler drawn on a canvas.
@@ -22,6 +39,12 @@ interface TimeRulerProps {
  * - Bar number labels at each visible bar
  * - Minor beat ticks when zoom is high enough
  * - Semi-transparent blue fill over the loop region
+ * - Amber fill + green/red flags over the punch region (when punch mode active)
+ *
+ * Interaction:
+ * - Click / Shift+drag → forwarded to `onRulerPointerDown` (playhead / loop)
+ * - Ctrl+click → sets punch-in at that beat position
+ * - Ctrl+Alt+click → sets punch-out at that beat position
  */
 export function TimeRuler({
   width,
@@ -29,8 +52,17 @@ export function TimeRuler({
   loopStart,
   loopEnd,
   onRulerPointerDown,
+  onPunchInSet,
+  onPunchOutSet,
+  punchEnabled = false,
+  punchInSamples = null,
+  punchOutSamples = null,
+  bpm = 120,
+  beatsPerBar = 4,
 }: TimeRulerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  // Track whether a punch drag is in progress (Ctrl drag)
+  const punchDragRef = useRef<'in' | 'out' | null>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -62,6 +94,23 @@ export function TimeRuler({
       ctx.restore()
     }
 
+    // Punch region fill (amber) — only when both markers are set and punch is enabled
+    if (
+      punchEnabled &&
+      punchInSamples !== null &&
+      punchOutSamples !== null &&
+      punchOutSamples > punchInSamples
+    ) {
+      const punchInBar = samplesToBar(punchInSamples, bpm, beatsPerBar, SAMPLE_RATE)
+      const punchOutBar = samplesToBar(punchOutSamples, bpm, beatsPerBar, SAMPLE_RATE)
+      const px = barToX(punchInBar, viewport)
+      const pw = barToX(punchOutBar, viewport) - px
+      ctx.save()
+      ctx.fillStyle = 'rgba(251, 146, 60, 0.20)'
+      ctx.fillRect(px, 0, pw, RULER_HEIGHT - 1)
+      ctx.restore()
+    }
+
     // Determine which bars are visible
     const firstBar = snapToBar(xToBar(0, viewport))
     const lastBar = Math.ceil(xToBar(canvas.width, viewport)) + 1
@@ -88,9 +137,9 @@ export function TimeRuler({
 
       // Beat subdivisions when zoomed in enough
       if (viewport.pixelsPerBar >= 60) {
-        const beatsPerBar = 4
-        for (let beat = 1; beat < beatsPerBar; beat++) {
-          const beatX = x + (beat / beatsPerBar) * viewport.pixelsPerBar
+        const beatsPerBarLocal = 4
+        for (let beat = 1; beat < beatsPerBarLocal; beat++) {
+          const beatX = x + (beat / beatsPerBarLocal) * viewport.pixelsPerBar
           ctx.strokeStyle = '#333333'
           ctx.lineWidth = 1
           ctx.beginPath()
@@ -100,7 +149,104 @@ export function TimeRuler({
         }
       }
     }
-  }, [width, viewport, loopStart, loopEnd])
+
+    // Punch-in flag (green downward triangle + "IN" label) — only when punch mode enabled
+    if (punchEnabled && punchInSamples !== null) {
+      const punchInBar = samplesToBar(punchInSamples, bpm, beatsPerBar, SAMPLE_RATE)
+      const fx = barToX(punchInBar, viewport)
+      ctx.save()
+      ctx.fillStyle = 'rgb(34, 197, 94)'
+      ctx.beginPath()
+      ctx.moveTo(fx - 5, 2)
+      ctx.lineTo(fx + 5, 2)
+      ctx.lineTo(fx, 12)
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillStyle = 'rgb(34, 197, 94)'
+      ctx.font = '8px monospace'
+      ctx.textBaseline = 'top'
+      ctx.fillText('IN', fx + 6, 2)
+      ctx.restore()
+    }
+
+    // Punch-out flag (red downward triangle + "OUT" label) — only when punch mode enabled
+    if (punchEnabled && punchOutSamples !== null) {
+      const punchOutBar = samplesToBar(punchOutSamples, bpm, beatsPerBar, SAMPLE_RATE)
+      const fx = barToX(punchOutBar, viewport)
+      ctx.save()
+      ctx.fillStyle = 'rgb(239, 68, 68)'
+      ctx.beginPath()
+      ctx.moveTo(fx - 5, 2)
+      ctx.lineTo(fx + 5, 2)
+      ctx.lineTo(fx, 12)
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillStyle = 'rgb(239, 68, 68)'
+      ctx.font = '8px monospace'
+      ctx.textBaseline = 'top'
+      ctx.fillText('OUT', fx + 6, 2)
+      ctx.restore()
+    }
+  }, [
+    width,
+    viewport,
+    loopStart,
+    loopEnd,
+    punchEnabled,
+    punchInSamples,
+    punchOutSamples,
+    bpm,
+    beatsPerBar,
+  ])
+
+  // ---------------------------------------------------------------------------
+  // Pointer handlers
+  // ---------------------------------------------------------------------------
+
+  function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
+    if (e.ctrlKey) {
+      // Ctrl+drag → set punch markers
+      e.currentTarget.setPointerCapture(e.pointerId)
+      const rect = e.currentTarget.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      // Convert X to beats: bar * beatsPerBar
+      const bar = xToBar(x, viewport)
+      const beats = bar * beatsPerBar
+
+      if (e.altKey) {
+        punchDragRef.current = 'out'
+        onPunchOutSet?.(beats)
+      } else {
+        punchDragRef.current = 'in'
+        onPunchInSet?.(beats)
+      }
+      // Do not forward to parent handler
+      return
+    }
+
+    punchDragRef.current = null
+    onRulerPointerDown(e)
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
+    const dragKind = punchDragRef.current
+    if (!dragKind) return
+
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const bar = xToBar(x, viewport)
+    const beats = bar * beatsPerBar
+
+    if (dragKind === 'in') {
+      onPunchInSet?.(beats)
+    } else {
+      onPunchOutSet?.(beats)
+    }
+  }
+
+  function handlePointerUp() {
+    punchDragRef.current = null
+  }
 
   return (
     <canvas
@@ -108,7 +254,9 @@ export function TimeRuler({
       width={width}
       height={RULER_HEIGHT}
       style={{ display: 'block', cursor: 'pointer' }}
-      onPointerDown={onRulerPointerDown}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
     />
   )
 }

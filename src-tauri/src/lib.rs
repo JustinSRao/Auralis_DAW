@@ -43,6 +43,8 @@ use project::arrangement_commands::{
 use midi::import_commands::{import_midi_file, create_patterns_from_import};
 use midi::recording::MidiRecorderState;
 use midi::recording_commands::{start_midi_recording, stop_midi_recording, set_record_quantize};
+use audio::punch::PunchControllerState;
+use audio::punch_commands::{set_punch_in, set_punch_out, toggle_punch_mode, get_punch_markers};
 
 #[tauri::command]
 fn get_version() -> String {
@@ -99,8 +101,11 @@ pub fn run() {
             // Inject into engine so build_and_start_stream uses these atomics
             audio_engine.set_transport_atomics(transport_atomics.clone());
 
-            // Manage as TransportAtomicsState so Tauri commands can access them
+            // Manage as TransportAtomicsState so Tauri commands can access them.
+            // Clone it before moving into managed state so the punch watcher task
+            // (spawned later) can read transport position atomics.
             let transport_atomics_state: TransportAtomicsState = transport_atomics;
+            let punch_watcher_atomics = transport_atomics_state.clone();
             app.manage(transport_atomics_state);
 
             // Clone the transport snapshot Arc BEFORE moving engine into managed state.
@@ -130,6 +135,77 @@ pub fn run() {
             // --- Sprint 36: MIDI Recorder managed state ---
             let midi_recorder: MidiRecorderState = Arc::new(Mutex::new(None));
             app.manage(midi_recorder);
+
+            // --- Sprint 9: Audio Recorder managed state ---
+            // Created here (before Sprint 38 punch controller) so the punch watcher
+            // task can capture a clone of the Arc before it's moved into managed state.
+            let (audio_recorder, rms_rx) = audio::recorder::AudioRecorder::new(44100);
+            let audio_recorder_state: audio::recorder::AudioRecorderState =
+                std::sync::Arc::new(std::sync::Mutex::new(audio_recorder));
+            // Clone before managing so the punch watcher task can access it.
+            let punch_watcher_recorder = audio_recorder_state.clone();
+            app.manage(audio_recorder_state);
+
+            // --- Sprint 38: Punch controller managed state ---
+            let punch_controller: PunchControllerState =
+                Arc::new(Mutex::new(audio::punch::PunchController::new()));
+            app.manage(punch_controller.clone());
+
+            // Spawn punch watcher task (~50 Hz)
+            let punch_watcher_punch = punch_controller.clone();
+            let app_handle_punch = app.handle().clone();
+            tokio::spawn(async move {
+                let mut interval = tokio::time::interval(std::time::Duration::from_millis(20));
+                // Track last-known SPB to detect BPM changes and recalculate punch samples.
+                let mut last_spb_bits: u64 = 0;
+                loop {
+                    interval.tick().await;
+                    let playhead = punch_watcher_atomics.playhead_samples.load(std::sync::atomic::Ordering::Relaxed);
+                    let is_playing = punch_watcher_atomics.is_playing.load(std::sync::atomic::Ordering::Relaxed);
+                    let current_spb_bits = punch_watcher_atomics.samples_per_beat_bits.load(std::sync::atomic::Ordering::Relaxed);
+                    let recorder_is_active = {
+                        if let Ok(rec) = punch_watcher_recorder.lock() {
+                            rec.atomics.state.load(std::sync::atomic::Ordering::Relaxed) == audio::recorder::REC_RECORDING
+                        } else {
+                            false
+                        }
+                    };
+                    let action = {
+                        if let Ok(mut punch) = punch_watcher_punch.lock() {
+                            // If BPM changed, recalculate punch sample positions before tick.
+                            if current_spb_bits != last_spb_bits {
+                                let new_spb = f64::from_bits(current_spb_bits);
+                                punch.recalculate_samples(new_spb);
+                                last_spb_bits = current_spb_bits;
+                            }
+                            punch.tick(playhead, is_playing, recorder_is_active)
+                        } else {
+                            audio::punch::PunchAction::Nothing
+                        }
+                    };
+                    match action {
+                        audio::punch::PunchAction::StartAudioRecording => {
+                            let mut rec = match punch_watcher_recorder.lock() { Ok(r) => r, Err(_) => continue };
+                            if let Err(e) = rec.start_recording(app_handle_punch.clone()) {
+                                log::warn!("Punch watcher: failed to start recording: {}", e);
+                            }
+                        }
+                        audio::punch::PunchAction::StopAudioRecording => {
+                            let mut rec = match punch_watcher_recorder.lock() { Ok(r) => r, Err(_) => continue };
+                            if let Err(e) = rec.stop_recording() {
+                                log::warn!("Punch watcher: failed to stop recording: {}", e);
+                            }
+                        }
+                        audio::punch::PunchAction::StartMidiRecording => {
+                            log::info!("Punch watcher: MIDI punch-in deferred to future sprint");
+                        }
+                        audio::punch::PunchAction::StopMidiRecording => {
+                            log::info!("Punch watcher: MIDI punch-out deferred to future sprint");
+                        }
+                        audio::punch::PunchAction::Nothing => {}
+                    }
+                }
+            });
 
             // --- Sprint 6: Synthesizer managed state ---
 
@@ -239,12 +315,6 @@ pub fn run() {
                     }
                 }
             });
-
-            // --- Sprint 9: Audio Recorder managed state ---
-            let (audio_recorder, rms_rx) = audio::recorder::AudioRecorder::new(44100);
-            let audio_recorder_state: audio::recorder::AudioRecorderState =
-                std::sync::Arc::new(std::sync::Mutex::new(audio_recorder));
-            app.manage(audio_recorder_state);
 
             // Spawn RMS level poller (~30 Hz) — emits "input-level-changed" Tauri event
             let app_handle_rms = app.handle().clone();
@@ -411,6 +481,10 @@ pub fn run() {
             start_midi_recording,
             stop_midi_recording,
             set_record_quantize,
+            set_punch_in,
+            set_punch_out,
+            toggle_punch_mode,
+            get_punch_markers,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
