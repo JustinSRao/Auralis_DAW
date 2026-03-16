@@ -1,0 +1,65 @@
+{
+  "sprint_number": 38,
+  "sprint_file": "docs\\sprints\\2-in-progress\\epic-04_composition-tools\\sprint-38_punch-inout-recording\\sprint-38_punch-inout-recording.md",
+  "sprint_title": "Punch In/Out Recording",
+  "status": "complete",
+  "current_phase": 4,
+  "current_step": "4.3",
+  "started_at": "2026-03-16T11:07:37Z",
+  "workflow_version": "3.0",
+  "completed_steps": [
+    {
+      "step": "1.1",
+      "completed_at": "2026-03-16T11:07:41.789338"
+    },
+    {
+      "step": "1.2",
+      "completed_at": "2026-03-16T11:11:38.089153"
+    },
+    {
+      "step": "1.3",
+      "completed_at": "2026-03-16T11:15:11.776143"
+    },
+    {
+      "step": "1.4",
+      "completed_at": "2026-03-16T11:16:16.035469"
+    },
+    {
+      "step": "2.1",
+      "completed_at": "2026-03-16T11:25:30.415699"
+    },
+    {
+      "step": "2.2",
+      "completed_at": "2026-03-16T11:25:34.346572"
+    },
+    {
+      "step": "2.3",
+      "completed_at": "2026-03-16T11:27:27.298330"
+    },
+    {
+      "step": "3.1",
+      "completed_at": "2026-03-16T11:27:27.536133"
+    },
+    {
+      "step": "3.2",
+      "completed_at": "2026-03-16T11:27:30.050367"
+    },
+    {
+      "step": "3.3",
+      "completed_at": "2026-03-16T11:30:17.545220"
+    },
+    {
+      "step": "3.4",
+      "completed_at": "2026-03-16T11:33:01.300747"
+    },
+    {
+      "step": "4.1",
+      "completed_at": "2026-03-16T11:39:36.768640"
+    },
+    {
+      "step": "4.2",
+      "completed_at": "2026-03-16T11:39:39.637187"
+    }
+  ],
+  "completed_at": "2026-03-16T11:45:09.547962-07:00"
+}
