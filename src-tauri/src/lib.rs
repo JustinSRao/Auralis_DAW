@@ -13,6 +13,7 @@ use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 
 use audio::transport::TransportSnapshot;
+use audio::scheduler_commands::SchedulerCmdTxState;
 use automation::commands::{AutomationCmdTxState, AutomationLaneStore};
 use instruments::commands::{
     DrumAtomicsState, DrumCmdTxState, DrumPatternShadowState,
@@ -77,6 +78,16 @@ pub fn run() {
             // Initialize audio engine with MIDI event receiver
             let mut audio_engine = audio::engine::AudioEngine::new();
             audio_engine.set_midi_receiver(midi_rx);
+
+            // --- Sprint 31: Arrangement scheduler command channel ---
+            // The sender lives in managed state so Tauri commands can reach the scheduler.
+            // The receiver is moved into the audio callback closure when the engine starts.
+            let (scheduler_cmd_tx, scheduler_cmd_rx) =
+                crossbeam_channel::bounded::<audio::scheduler::SchedulerCommand>(64);
+            audio_engine.set_scheduler_receiver(scheduler_cmd_rx);
+            let scheduler_cmd_tx_state: SchedulerCmdTxState =
+                std::sync::Arc::new(std::sync::Mutex::new(Some(scheduler_cmd_tx)));
+            app.manage(scheduler_cmd_tx_state);
 
             // --- Sprint 33: Create TransportAtomics BEFORE starting the engine ---
             // This lets the LFO (and future audio nodes) share the same atomics
@@ -386,6 +397,8 @@ pub fn run() {
             automation::commands::get_automation_lane,
             automation::commands::enable_automation_lane,
             automation::commands::record_automation_batch,
+            audio::scheduler_commands::set_arrangement_clips,
+            audio::scheduler_commands::register_scheduler_sender,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

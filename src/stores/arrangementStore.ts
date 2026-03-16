@@ -1,14 +1,17 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
-import type { ArrangementClip } from '../lib/ipc'
+import type { ArrangementClip, ScheduledNotePayload } from '../lib/ipc'
 import {
   ipcAddArrangementClip,
   ipcMoveArrangementClip,
   ipcResizeArrangementClip,
   ipcDeleteArrangementClip,
   ipcDuplicateArrangementClip,
+  ipcSetArrangementClips,
 } from '../lib/ipc'
+import { usePatternStore } from './patternStore'
+import { useTransportStore } from './transportStore'
 
 export type { ArrangementClip }
 
@@ -50,6 +53,12 @@ interface ArrangementActions {
   /** Replaces all clips from a loaded project. Called by fileStore.open(). */
   loadFromProject(clips: ArrangementClip[]): void
   clearError(): void
+  /**
+   * Rebuilds the scheduler's note list from the current clips + pattern MIDI notes
+   * + transport BPM. Call after any arrangement or tempo change. Fire-and-forget
+   * (errors are logged, not re-thrown).
+   */
+  syncScheduler(): void
 }
 
 export type ArrangementStore = ArrangementState & ArrangementActions
@@ -65,6 +74,7 @@ export const useArrangementStore = create<ArrangementStore>()(
       try {
         const clip = await ipcAddArrangementClip(patternId, trackId, startBar, lengthBars)
         set((s) => { s.clips[clip.id] = clip })
+        useArrangementStore.getState().syncScheduler()
       } catch (e) {
         set((s) => { s.error = String(e) })
       }
@@ -79,6 +89,7 @@ export const useArrangementStore = create<ArrangementStore>()(
             s.clips[id].startBar = newStartBar
           }
         })
+        useArrangementStore.getState().syncScheduler()
       } catch (e) {
         set((s) => { s.error = String(e) })
       }
@@ -88,6 +99,7 @@ export const useArrangementStore = create<ArrangementStore>()(
       try {
         await ipcResizeArrangementClip(id, newLengthBars)
         set((s) => { if (s.clips[id]) s.clips[id].lengthBars = newLengthBars })
+        useArrangementStore.getState().syncScheduler()
       } catch (e) {
         set((s) => { s.error = String(e) })
       }
@@ -100,6 +112,7 @@ export const useArrangementStore = create<ArrangementStore>()(
           delete s.clips[id]
           if (s.selectedClipId === id) s.selectedClipId = null
         })
+        useArrangementStore.getState().syncScheduler()
       } catch (e) {
         set((s) => { s.error = String(e) })
       }
@@ -109,6 +122,7 @@ export const useArrangementStore = create<ArrangementStore>()(
       try {
         const clip = await ipcDuplicateArrangementClip(sourceId, newStartBar, patternId, trackId, lengthBars)
         set((s) => { s.clips[clip.id] = clip })
+        useArrangementStore.getState().syncScheduler()
       } catch (e) {
         set((s) => { s.error = String(e) })
       }
@@ -126,14 +140,64 @@ export const useArrangementStore = create<ArrangementStore>()(
     selectClip: (id) =>
       set((s) => { s.selectedClipId = id }),
 
-    loadFromProject: (clips) =>
+    loadFromProject: (clips) => {
       set((s) => {
         s.clips = {}
         for (const c of clips) s.clips[c.id] = c
         s.selectedClipId = null
         s.error = null
-      }),
+      })
+      useArrangementStore.getState().syncScheduler()
+    },
 
     clearError: () => set((s) => { s.error = null }),
+
+    syncScheduler: () => {
+      // Read current state without subscribing.
+      const clips = Object.values(useArrangementStore.getState().clips)
+      const patterns = usePatternStore.getState().patterns
+      const snap = useTransportStore.getState().snapshot
+      const bpm = snap.bpm
+      const beatsPerBar = snap.time_sig_numerator
+      const sampleRate = 44100
+
+      const samplesPerBeat = (sampleRate * 60) / bpm
+      const samplesPerBar = samplesPerBeat * beatsPerBar
+
+      const notes: ScheduledNotePayload[] = []
+
+      for (const clip of clips) {
+        const pattern = patterns[clip.patternId]
+        if (!pattern) continue
+        if (pattern.content.type !== 'Midi') continue
+
+        const clipStartSample = Math.floor(clip.startBar * samplesPerBar)
+        const clipEndSample = Math.floor((clip.startBar + clip.lengthBars) * samplesPerBar)
+
+        for (const note of pattern.content.notes) {
+          const onSample = clipStartSample + Math.floor(note.startBeats * samplesPerBeat)
+          const offSample = Math.min(
+            clipStartSample + Math.floor((note.startBeats + note.durationBeats) * samplesPerBeat),
+            clipEndSample,
+          )
+          if (onSample >= clipEndSample) continue
+          notes.push({
+            onSample,
+            offSample,
+            pitch: note.pitch,
+            velocity: note.velocity,
+            channel: note.channel,
+            trackId: clip.trackId,
+          })
+        }
+      }
+
+      // Sort ascending by onSample before sending.
+      notes.sort((a, b) => a.onSample - b.onSample)
+
+      ipcSetArrangementClips(notes).catch((e) => {
+        console.warn('[arrangementStore] syncScheduler failed:', e)
+      })
+    },
   }))
 )

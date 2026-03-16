@@ -6,5 +6,7 @@ pub mod engine;
 pub mod graph;
 pub mod metronome;
 pub mod recorder;
+pub mod scheduler;
+pub mod scheduler_commands;
 pub mod transport;
 pub mod types;

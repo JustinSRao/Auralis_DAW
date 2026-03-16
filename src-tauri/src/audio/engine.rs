@@ -10,7 +10,8 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 use super::devices;
 use super::graph::{AudioGraph, AudioNode, SineTestNode, TripleBuffer};
 use super::metronome::MetronomeNode;
-use super::transport::{TransportAtomics, TransportClock, TransportSnapshot};
+use super::scheduler::{ArrangementScheduler, SchedulerCommand};
+use super::transport::{TransportAtomics, TransportClock, TransportSnapshot, TransportState};
 use super::types::*;
 use crate::midi::types::TimestampedMidiEvent;
 
@@ -83,6 +84,8 @@ pub struct AudioEngine {
     test_tone_amplitude: Arc<AtomicF32>,
     /// Receiver for MIDI events from MidiManager (set before starting engine).
     midi_event_rx: Option<Receiver<TimestampedMidiEvent>>,
+    /// Receiver for scheduler commands from the main thread (set before starting engine).
+    scheduler_cmd_rx: Option<Receiver<SchedulerCommand>>,
     /// Shared snapshot of transport state. Updated by the audio thread via
     /// `try_lock`; read by the 60 fps poller and `get_transport_state` IPC.
     pub transport_snapshot: Arc<Mutex<TransportSnapshot>>,
@@ -106,6 +109,7 @@ impl AudioEngine {
             test_tone_active: false,
             test_tone_amplitude: Arc::new(AtomicF32::new(0.0)),
             midi_event_rx: None,
+            scheduler_cmd_rx: None,
             transport_snapshot: Arc::new(Mutex::new(TransportSnapshot::default())),
             external_transport_atomics: None,
         }
@@ -284,6 +288,14 @@ impl AudioEngine {
         self.midi_event_rx = Some(rx);
     }
 
+    /// Sets the arrangement scheduler command receiver. Must be called before starting.
+    ///
+    /// The receiver is moved into the audio callback closure. The corresponding
+    /// sender is held in [`crate::audio::scheduler_commands::SchedulerCmdTxState`].
+    pub fn set_scheduler_receiver(&mut self, rx: Receiver<SchedulerCommand>) {
+        self.scheduler_cmd_rx = Some(rx);
+    }
+
     /// Toggles the 440 Hz test tone on or off.
     ///
     /// Lock-free — writes to a shared `AtomicF32` read by the audio thread.
@@ -386,6 +398,14 @@ impl AudioEngine {
         let state = self.state.clone();
         let midi_rx = self.midi_event_rx.take();
 
+        // Build the arrangement scheduler. Falls back to a no-op scheduler with a
+        // disconnected channel if set_scheduler_receiver was not called.
+        let scheduler_rx = self.scheduler_cmd_rx.take().unwrap_or_else(|| {
+            let (_, rx) = crossbeam_channel::bounded(1);
+            rx
+        });
+        let mut scheduler = ArrangementScheduler::new(scheduler_rx);
+
         // Monitoring state: owned by the audio thread inside the closure
         let mut monitoring_cons: Option<ringbuf::HeapConsumer<f32>> = None;
         let mut monitoring_enabled_flag = false;
@@ -405,6 +425,7 @@ impl AudioEngine {
                         &state,
                         &mut monitoring_cons,
                         &mut monitoring_enabled_flag,
+                        &mut scheduler,
                     );
                 },
                 move |err| {
@@ -456,6 +477,7 @@ fn audio_callback(
     _state: &AtomicU8,
     monitoring_cons: &mut Option<ringbuf::HeapConsumer<f32>>,
     monitoring_enabled: &mut bool,
+    scheduler: &mut ArrangementScheduler,
 ) {
     // Drain commands (non-blocking)
     while let Ok(cmd) = command_rx.try_recv() {
@@ -472,7 +494,10 @@ fn audio_callback(
             }
             // --- Transport commands ---
             AudioCommand::TransportPlay => clock.apply_play(),
-            AudioCommand::TransportStop => clock.apply_stop(),
+            AudioCommand::TransportStop => {
+                clock.apply_stop();
+                scheduler.handle_stop();
+            }
             AudioCommand::TransportPause => clock.apply_pause(),
             AudioCommand::TransportRecord => clock.apply_record(),
             AudioCommand::TransportSetBpm(bpm) => clock.apply_set_bpm(bpm),
@@ -497,7 +522,10 @@ fn audio_callback(
             AudioCommand::TransportSetRecordArmed(armed) => {
                 clock.apply_set_record_armed(armed)
             }
-            AudioCommand::TransportSeek(pos) => clock.apply_seek(pos),
+            AudioCommand::TransportSeek(pos) => {
+                clock.apply_seek(pos);
+                scheduler.handle_seek(pos);
+            }
             // --- Sprint 9: Input monitoring commands ---
             AudioCommand::SetMonitoringConsumer(cons) => {
                 *monitoring_cons = Some(cons);
@@ -517,6 +545,15 @@ fn audio_callback(
 
     // Advance the transport clock by this buffer's frame count
     let buffer_frames = data.len() / channels as usize;
+
+    // Tick the arrangement scheduler BEFORE advancing the clock so that
+    // `clock.position_samples` represents the *start* of the current buffer window.
+    let is_playing = matches!(
+        clock.state,
+        TransportState::Playing | TransportState::Recording
+    );
+    scheduler.tick(clock.position_samples, buffer_frames, is_playing);
+
     clock.advance(buffer_frames);
 
     // Process the current graph

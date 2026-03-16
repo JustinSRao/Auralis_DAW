@@ -1194,3 +1194,41 @@ export async function ipcRecordAutomationBatch(
 ): Promise<void> {
   return invoke<void>("record_automation_batch", { events });
 }
+
+// ── Sprint 31: Arrangement Scheduler ─────────────────────────────────────────
+
+/**
+ * A single MIDI note pre-expanded from an arrangement clip, with sample-accurate
+ * timing. The frontend computes these from clip bar positions + pattern MIDI notes
+ * + current BPM before sending to the backend scheduler.
+ */
+export interface ScheduledNotePayload {
+  onSample: number;
+  offSample: number;
+  pitch: number;
+  velocity: number;
+  channel: number;
+  trackId: string;
+}
+
+/**
+ * Sends the pre-computed scheduled note list to the arrangement scheduler.
+ *
+ * Call this whenever: arrangement clips change, BPM changes, project loads.
+ * Notes must be sorted ascending by `onSample`.
+ */
+export async function ipcSetArrangementClips(
+  notes: ScheduledNotePayload[],
+): Promise<void> {
+  return invoke<void>("set_arrangement_clips", { notes });
+}
+
+/**
+ * Registers the current synth's MIDI sender with the scheduler for a track.
+ * Call after `create_synth_instrument` succeeds for a track.
+ */
+export async function ipcRegisterSchedulerSender(
+  trackId: string,
+): Promise<void> {
+  return invoke<void>("register_scheduler_sender", { trackId });
+}
