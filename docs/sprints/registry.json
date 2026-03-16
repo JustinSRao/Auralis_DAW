@@ -316,13 +316,13 @@
     },
     "32": {
       "title": "MIDI File Import",
-      "status": "planning",
+      "status": "done",
       "epic": 4,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-15",
+      "hours": 7.6
     },
     "33": {
       "title": "LFO Modulation Routing",
@@ -490,7 +490,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 12,
-      "completedSprints": 6
+      "completedSprints": 7
     },
     "5": {
       "title": "Audio Editing",
