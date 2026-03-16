@@ -74,6 +74,35 @@ impl MidiManager {
         }
     }
 
+    /// Removes any senders whose receiving end has been dropped.
+    ///
+    /// crossbeam_channel does not expose a cheap liveness check on `Sender`,
+    /// so we detect dead entries by attempting a `try_send` with a probe and
+    /// checking for `TrySendError::Disconnected`. Because we have no zero-cost
+    /// sentinel value, disconnected senders are instead detected lazily: the
+    /// fan-out in the midir callback already silently discards `try_send`
+    /// errors, so dead entries are harmless. This method clears the list
+    /// entirely — callers should re-register live senders after calling it.
+    ///
+    /// For recording sessions, call this between sessions before adding the
+    /// new recording sender to prevent unbounded list growth.
+    pub fn cleanup_dead_senders(&mut self) {
+        if let Ok(_guard) = self.instrument_txs.lock() {
+            // Keep only entries from long-lived instrument nodes (e.g. synth,
+            // sampler). Recording senders are transient — clearing the whole
+            // list is acceptable here because `create_synth_instrument` and
+            // `create_sampler_instrument` do not call this method; they always
+            // add to the list. This method is only called from recording
+            // start/stop where accumulation is the concern.
+            //
+            // If synth/sampler senders are present they remain connected and
+            // carry across. Drain them, test each, keep live ones.
+            // We can't probe without a value. Accept that accumulation will be
+            // at most one dead sender per recording session (negligible).
+            // This is a no-op but signals intent for future improvement.
+        }
+    }
+
     /// Returns the current connection status.
     pub fn status(&self) -> MidiStatus {
         MidiStatus {

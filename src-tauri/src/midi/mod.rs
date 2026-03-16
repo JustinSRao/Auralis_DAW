@@ -6,5 +6,9 @@ pub mod import;
 pub mod import_commands;
 /// MIDI device manager: enumeration, connections, hot-plug scanning.
 pub mod manager;
+/// MIDI recording session: beat-timestamped capture of NoteOn/NoteOff pairs.
+pub mod recording;
+/// Tauri IPC commands for MIDI recording.
+pub mod recording_commands;
 /// MIDI event types, byte parser, and IPC-serializable structs.
 pub mod types;

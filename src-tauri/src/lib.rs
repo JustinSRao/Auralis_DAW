@@ -41,6 +41,8 @@ use project::arrangement_commands::{
     delete_arrangement_clip, duplicate_arrangement_clip,
 };
 use midi::import_commands::{import_midi_file, create_patterns_from_import};
+use midi::recording::MidiRecorderState;
+use midi::recording_commands::{start_midi_recording, stop_midi_recording, set_record_quantize};
 
 #[tauri::command]
 fn get_version() -> String {
@@ -124,6 +126,10 @@ pub fn run() {
             }
             app.manage(midi_state);
             log::info!("MIDI manager initialized");
+
+            // --- Sprint 36: MIDI Recorder managed state ---
+            let midi_recorder: MidiRecorderState = Arc::new(Mutex::new(None));
+            app.manage(midi_recorder);
 
             // --- Sprint 6: Synthesizer managed state ---
 
@@ -402,6 +408,9 @@ pub fn run() {
             audio::scheduler_commands::register_scheduler_sender,
             import_midi_file,
             create_patterns_from_import,
+            start_midi_recording,
+            stop_midi_recording,
+            set_record_quantize,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

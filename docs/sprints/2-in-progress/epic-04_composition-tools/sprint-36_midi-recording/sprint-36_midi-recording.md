@@ -3,12 +3,13 @@ sprint: 36
 title: "MIDI Recording"
 type: fullstack
 epic: 4
-status: planning
+status: in-progress
 created: 2026-02-23T12:31:29Z
-started: null
+started: 2026-03-15T19:22:28Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
+
 ---
 
 # Sprint 36: MIDI Recording

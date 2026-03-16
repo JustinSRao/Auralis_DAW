@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
-import type { TransportSnapshot } from "@/lib/ipc";
+import type { TransportSnapshot, RecordQuantize, RecordingStartedEvent, RecordingStoppedEvent, RecordedNoteEvent } from "@/lib/ipc";
 import { useTransportStore } from "@/stores/transportStore";
+import { usePatternStore } from "@/stores/patternStore";
 
 // ---------------------------------------------------------------------------
 // Time signature denominator options
@@ -9,6 +10,18 @@ import { useTransportStore } from "@/stores/transportStore";
 
 const DENOMINATOR_OPTIONS = [2, 4, 8, 16] as const;
 type TimeSigDenominator = (typeof DENOMINATOR_OPTIONS)[number];
+
+// ---------------------------------------------------------------------------
+// Record quantize options
+// ---------------------------------------------------------------------------
+
+const QUANTIZE_OPTIONS: { value: RecordQuantize; label: string }[] = [
+  { value: 'off', label: 'Q: Off' },
+  { value: 'quarter', label: 'Q: 1/4' },
+  { value: 'eighth', label: 'Q: 1/8' },
+  { value: 'sixteenth', label: 'Q: 1/16' },
+  { value: 'thirtySecond', label: 'Q: 1/32' },
+];
 
 // ---------------------------------------------------------------------------
 // TransportBar
@@ -27,6 +40,8 @@ type TimeSigDenominator = (typeof DENOMINATOR_OPTIONS)[number];
 export function TransportBar() {
   const store = useTransportStore();
   const { snapshot } = store;
+  const addRecordedNote = usePatternStore((s) => s.addRecordedNote);
+  const [isRecording, setIsRecording] = useState(false);
 
   // Local BPM input state — allows typing without firing an IPC call per keystroke
   const [bpmInput, setBpmInput] = useState(String(snapshot.bpm));
@@ -35,25 +50,39 @@ export function TransportBar() {
   // Prevents commitBpm from firing on the blur that follows an Escape keydown
   const bpmEscaped = useRef(false);
 
-  // Subscribe to transport-state Tauri events
+  // Subscribe to transport-state and MIDI recording Tauri events
   useEffect(() => {
-    let unlisten: (() => void) | null = null;
+    const unlisteners: (() => void)[] = [];
 
     listen<TransportSnapshot>("transport-state", (event) => {
       store.applySnapshot(event.payload);
     })
-      .then((fn) => {
-        unlisten = fn;
-      })
-      .catch((err) => {
-        console.error("Failed to subscribe to transport-state event:", err);
-      });
+      .then((fn) => unlisteners.push(fn))
+      .catch((err) => console.error("Failed to subscribe to transport-state event:", err));
+
+    listen<RecordingStartedEvent>("recording-started", () => {
+      setIsRecording(true);
+    })
+      .then((fn) => unlisteners.push(fn))
+      .catch((err) => console.error("Failed to subscribe to recording-started:", err));
+
+    listen<RecordingStoppedEvent>("recording-stopped", () => {
+      setIsRecording(false);
+    })
+      .then((fn) => unlisteners.push(fn))
+      .catch((err) => console.error("Failed to subscribe to recording-stopped:", err));
+
+    listen<RecordedNoteEvent>("midi-recorded-note", (event) => {
+      addRecordedNote(event.payload.patternId, event.payload.note);
+    })
+      .then((fn) => unlisteners.push(fn))
+      .catch((err) => console.error("Failed to subscribe to midi-recorded-note:", err));
 
     // Fetch initial state
     store.refreshState();
 
     return () => {
-      if (unlisten) unlisten();
+      for (const fn of unlisteners) fn();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -313,13 +342,49 @@ export function TransportBar() {
       {snapshot.record_armed && (
         <div
           aria-label="Record armed"
+          data-testid="record-arm-indicator"
           className={`w-2.5 h-2.5 rounded-full ${
-            snapshot.state === "recording"
+            isRecording
               ? "bg-red-500 animate-pulse"
               : "bg-red-400"
           }`}
         />
       )}
+
+      {/* --- Recording controls (quantize + overdub) --- */}
+      <div className="flex items-center gap-1.5">
+        {/* Quantize selector */}
+        <select
+          value={store.recordQuantize}
+          onChange={(e) => void store.setRecordQuantize(e.target.value as RecordQuantize)}
+          aria-label="Record quantize"
+          data-testid="record-quantize-select"
+          className="text-[9px] bg-[#1a1a1a] text-[#888888] border border-[#3a3a3a]
+                     rounded px-1 py-0.5 focus:outline-none focus:border-[#6c63ff]
+                     font-mono"
+        >
+          {QUANTIZE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        {/* Overdub toggle */}
+        <button
+          onClick={() => store.setRecordOverdub(!store.recordOverdub)}
+          aria-label={store.recordOverdub ? "Switch to replace mode" : "Switch to overdub mode"}
+          aria-pressed={store.recordOverdub}
+          data-testid="record-overdub-toggle"
+          className={`px-2 py-0.5 rounded text-[9px] font-mono transition-colors ${
+            store.recordOverdub
+              ? "bg-[#ff4444] text-white"
+              : "text-[#888888] hover:bg-[#3a3a3a] hover:text-[#c8c8c8]"
+          }`}
+        >
+          OVR
+        </button>
+      </div>
 
       {/* --- State badge (paused indicator) --- */}
       {isPaused && (

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import type { TransportSnapshot } from "../lib/ipc";
+import type { TransportSnapshot, RecordQuantize } from "../lib/ipc";
 import {
   getTransportState,
   transportPlay,
@@ -14,6 +14,7 @@ import {
   setMetronomeVolume,
   setMetronomePitch,
   setRecordArmed,
+  ipcSetRecordQuantize,
 } from "../lib/ipc";
 
 // ---------------------------------------------------------------------------
@@ -42,6 +43,14 @@ interface TransportStoreState {
   setMetronomeVolume: (volume: number) => Promise<void>;
   setMetronomePitch: (pitchHz: number) => Promise<void>;
   setRecordArmed: (armed: boolean) => Promise<void>;
+
+  // -- Recording options (local UI state — not persisted to backend) --
+  /** Current record quantize grid. */
+  recordQuantize: RecordQuantize;
+  /** Whether to overdub (true) or replace (false) existing notes. */
+  recordOverdub: boolean;
+  setRecordQuantize: (q: RecordQuantize) => Promise<void>;
+  setRecordOverdub: (overdub: boolean) => void;
 
   // -- Sync --
   /** Fetches the current snapshot via IPC and stores it. */
@@ -95,6 +104,8 @@ export const useTransportStore = create<TransportStoreState>()(
     snapshot: defaultSnapshot,
     isLoading: false,
     error: null,
+    recordQuantize: 'off' as RecordQuantize,
+    recordOverdub: false,
 
     // -- Playback --
 
@@ -256,6 +267,24 @@ export const useTransportStore = create<TransportStoreState>()(
           s.error = String(e);
         });
       }
+    },
+
+    setRecordQuantize: async (q) => {
+      set((s) => {
+        s.recordQuantize = q;
+      });
+      try {
+        await ipcSetRecordQuantize(q);
+      } catch (e) {
+        // Non-fatal: quantize change is best-effort during recording
+        console.warn('setRecordQuantize failed:', e);
+      }
+    },
+
+    setRecordOverdub: (overdub) => {
+      set((s) => {
+        s.recordOverdub = overdub;
+      });
     },
 
     // -- Sync --

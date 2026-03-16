@@ -2,9 +2,12 @@ import { useRef, useState } from 'react';
 import { Mic, Music2 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import type { DawTrack } from '@/lib/ipc';
+import { ipcStartMidiRecording, ipcStopMidiRecording } from '@/lib/ipc';
 import { useTrackStore } from '@/stores/trackStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { usePianoRollStore } from '@/stores/pianoRollStore';
+import { usePatternStore } from '@/stores/patternStore';
+import { useTransportStore } from '@/stores/transportStore';
 import { RenameTrackCommand } from '@/lib/commands/RenameTrackCommand';
 import { DeleteTrackCommand } from '@/lib/commands/DeleteTrackCommand';
 
@@ -58,6 +61,9 @@ export function TrackHeader({ track, index = 0 }: TrackHeaderProps) {
 
   const push = useHistoryStore((s) => s.push);
   const openPianoRoll = usePianoRollStore((s) => s.openForTrack);
+  const getPatternsForTrack = usePatternStore((s) => s.getPatternsForTrack);
+  const selectedPatternId = usePatternStore((s) => s.selectedPatternId);
+  const { recordQuantize, recordOverdub } = useTransportStore();
 
   // -- Inline rename state --
   const [isEditing, setIsEditing] = useState(false);
@@ -111,6 +117,47 @@ export function TrackHeader({ track, index = 0 }: TrackHeaderProps) {
     if (!removeTrackLocal || !insertTrack) return; // Guard for test environments
     const cmd = new DeleteTrackCommand(insertTrack, removeTrackLocal, track, index);
     push(cmd);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Recording helpers
+  // ---------------------------------------------------------------------------
+
+  async function handleArmToggle(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (track.armed) {
+      // Disarm: stop recording
+      toggleArm(track.id);
+      try {
+        await ipcStopMidiRecording();
+      } catch (err) {
+        console.warn('Failed to stop MIDI recording:', err);
+      }
+    } else {
+      // Arm: find a pattern to record into (selected pattern if it belongs to
+      // this track, otherwise the first pattern for this track)
+      const trackPatterns = getPatternsForTrack(track.id);
+      const targetPattern =
+        trackPatterns.find((p) => p.id === selectedPatternId) ??
+        trackPatterns[0];
+      if (!targetPattern) {
+        // No pattern to record into — arm visually only (no IPC)
+        toggleArm(track.id);
+        return;
+      }
+      toggleArm(track.id);
+      try {
+        await ipcStartMidiRecording(
+          targetPattern.id,
+          track.id,
+          recordOverdub,
+          recordQuantize,
+        );
+      } catch (err) {
+        console.warn('Failed to start MIDI recording:', err);
+        toggleArm(track.id); // Revert arm state on error
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -239,7 +286,7 @@ export function TrackHeader({ track, index = 0 }: TrackHeaderProps) {
         </button>
 
         <button
-          onClick={(e) => { e.stopPropagation(); toggleArm(track.id); }}
+          onClick={(e) => void handleArmToggle(e)}
           title="Record arm"
           aria-label="Arm track for recording"
           aria-pressed={track.armed}

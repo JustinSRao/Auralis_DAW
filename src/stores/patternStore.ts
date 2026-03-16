@@ -82,6 +82,13 @@ interface PatternStoreActions {
   addImportedPatterns(patterns: PatternData[]): void;
 
   /**
+   * Appends a single note to a MIDI pattern's note list.
+   * Called from the `midi-recorded-note` Tauri event handler as notes arrive
+   * during a live recording session.
+   */
+  addRecordedNote(patternId: string, note: PatternMidiNote): void;
+
+  /**
    * Replaces the entire patterns map from a loaded project.
    * Called by fileStore after a successful project open.
    */
@@ -200,6 +207,16 @@ export const usePatternStore = create<PatternStoreState & PatternStoreActions>()
 
     getPatternCount: (trackId) =>
       Object.values(get().patterns).filter((p) => p.trackId === trackId).length,
+
+    // ── Recording ─────────────────────────────────────────────────────────
+
+    addRecordedNote: (patternId, note) =>
+      set((s) => {
+        const p = s.patterns[patternId];
+        if (p?.content.type === 'Midi') {
+          p.content.notes.push(note);
+        }
+      }),
 
     // ── Import ────────────────────────────────────────────────────────────
 

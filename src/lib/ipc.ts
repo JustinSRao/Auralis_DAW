@@ -1293,3 +1293,51 @@ export async function ipcCreatePatternsFromImport(
 ): Promise<PatternData[]> {
   return invoke<PatternData[]>("create_patterns_from_import", { payloads });
 }
+
+// ---------------------------------------------------------------------------
+// Sprint 36: MIDI Recording
+// ---------------------------------------------------------------------------
+
+/** Quantize grid applied to recorded note start times. */
+export type RecordQuantize = 'off' | 'quarter' | 'eighth' | 'sixteenth' | 'thirtySecond';
+
+/** Recording mode. */
+export type RecordMode = 'replace' | 'overdub';
+
+/** Tauri event payload emitted when a note completes recording. */
+export interface RecordedNoteEvent {
+  patternId: string;
+  note: PatternMidiNote;
+}
+
+/** Tauri event payload emitted when recording starts. */
+export interface RecordingStartedEvent {
+  patternId: string;
+  trackId: string;
+  mode: string;
+}
+
+/** Tauri event payload emitted when recording stops. */
+export interface RecordingStoppedEvent {
+  patternId: string;
+}
+
+/** Starts a MIDI recording session into the given pattern. */
+export async function ipcStartMidiRecording(
+  patternId: string,
+  trackId: string,
+  overdub: boolean,
+  quantize: RecordQuantize,
+): Promise<void> {
+  return invoke<void>("start_midi_recording", { patternId, trackId, overdub, quantize });
+}
+
+/** Stops the active MIDI recording session and flushes pending notes. */
+export async function ipcStopMidiRecording(): Promise<void> {
+  return invoke<void>("stop_midi_recording");
+}
+
+/** Updates the quantize grid for the active recording session. */
+export async function ipcSetRecordQuantize(quantize: RecordQuantize): Promise<void> {
+  return invoke<void>("set_record_quantize", { quantize });
+}
