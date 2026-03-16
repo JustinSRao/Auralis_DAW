@@ -3,12 +3,13 @@ sprint: 38
 title: "Punch In/Out Recording"
 type: fullstack
 epic: 4
-status: in-progress
+status: done
 created: 2026-02-23T12:32:35Z
 started: 2026-03-16T11:07:37Z
-completed: null
+completed: 2026-03-16
 hours: null
 workflow_version: "3.1.0"
+
 
 
 ---

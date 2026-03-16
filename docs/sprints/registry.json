@@ -366,13 +366,13 @@
     },
     "38": {
       "title": "Punch In/Out Recording",
-      "status": "planning",
+      "status": "done",
       "epic": 4,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-16",
+      "hours": 7.6
     },
     "39": {
       "title": "Sidechain Compression",
@@ -490,7 +490,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 12,
-      "completedSprints": 8
+      "completedSprints": 9
     },
     "5": {
       "title": "Audio Editing",
