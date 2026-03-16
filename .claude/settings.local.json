@@ -73,7 +73,11 @@
       "Bash(cd \"C:/Users/nitsu/.Application_Development/Music_Application\" && PYTHONUTF8=1 python3 ~/.claude/scripts/sprint_lifecycle.py advance-step 13 && PYTHONUTF8=1 python3 ~/.claude/scripts/sprint_lifecycle.py advance-step 13)",
       "Bash(cd \"C:/Users/nitsu/.Application_Development/Music_Application\" && PYTHONUTF8=1 python3 ~/.claude/scripts/sprint_lifecycle.py advance-step 13 && PYTHONUTF8=1 python3 ~/.claude/scripts/sprint_lifecycle.py advance-step 13 && PYTHONUTF8=1 python3 ~/.claude/scripts/sprint_lifecycle.py advance-step 13 && PYTHONUTF8=1 python3 ~/.claude/scripts/sprint_lifecycle.py advance-step 13)",
       "Bash(cd \"C:/Users/nitsu/.Application_Development/Music_Application\" && PYTHONUTF8=1 python3 ~/.claude/scripts/sprint_lifecycle.py generate-postmortem 13)",
-      "Bash(cd \"C:/Users/nitsu/.Application_Development/Music_Application\" && PYTHONUTF8=1 python3 ~/.claude/scripts/sprint_lifecycle.py complete-sprint 13)"
+      "Bash(cd \"C:/Users/nitsu/.Application_Development/Music_Application\" && PYTHONUTF8=1 python3 ~/.claude/scripts/sprint_lifecycle.py complete-sprint 13)",
+      "Bash(cd \"C:\\\\Users\\\\nitsu\\\\.Application_Development\\\\Music_Application\" && npx tsc --noEmit 2>&1 | grep \"AutomationLaneCanvas\\\\|SynthPanel\\\\|fileStore\\\\|automationStore\" | head -30)",
+      "Bash(cd \"C:\\\\Users\\\\nitsu\\\\.Application_Development\\\\Music_Application\" && npx tsc --noEmit 2>&1 | head -50)",
+      "Bash(cd \"C:\\\\Users\\\\nitsu\\\\.Application_Development\\\\Music_Application\\\\src-tauri\" && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test --lib 2>&1 | tail -40)",
+      "Bash(cd \"C:\\\\Users\\\\nitsu\\\\.Application_Development\\\\Music_Application\\\\src-tauri\" && LIBCLANG_PATH=\"C:/Program Files/LLVM/bin\" CPAL_ASIO_DIR=\"C:/Users/nitsu/ASIO_SDK\" cargo test --lib 2>&1 | tail -30)"
     ]
   }
 }

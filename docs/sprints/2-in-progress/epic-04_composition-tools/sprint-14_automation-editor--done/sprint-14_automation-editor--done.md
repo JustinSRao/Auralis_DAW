@@ -3,12 +3,13 @@ sprint: 14
 title: "Automation Editor"
 type: fullstack
 epic: 4
-status: in-progress
+status: done
 created: 2026-02-22T22:10:03Z
 started: 2026-03-15T15:09:50Z
-completed: null
+completed: 2026-03-15
 hours: null
 workflow_version: "3.1.0"
+
 
 
 ---

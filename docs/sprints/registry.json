@@ -136,13 +136,13 @@
     },
     "14": {
       "title": "Automation Editor",
-      "status": "planning",
+      "status": "done",
       "epic": 4,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-15",
+      "hours": 9.0
     },
     "15": {
       "title": "Waveform Editor (Cut, Trim, Reverse, Splice)",
@@ -490,7 +490,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 12,
-      "completedSprints": 4
+      "completedSprints": 5
     },
     "5": {
       "title": "Audio Editing",
