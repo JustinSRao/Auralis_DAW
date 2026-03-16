@@ -135,3 +135,8 @@ Sprint 11 (Piano Roll) provides a visual editor for drawing and editing MIDI not
 
 Created: 2026-02-23
 This sprint fixes the broken cross-reference in Sprint 11 which incorrectly cited Sprint 9 (audio recording) as the owner of MIDI recording. Sprint 11's out-of-scope now correctly references this sprint (Sprint 36).
+
+
+## Postmortem
+
+See [Sprint 36 Postmortem](./sprint-36_postmortem.md)
