@@ -8,6 +8,8 @@ use crate::audio::commands::AudioEngineState;
 use crate::audio::engine::AudioCommand;
 use crate::audio::graph::AudioGraph;
 use crate::audio::transport::TransportAtomics;
+use crate::automation::commands::{AutomationCmdTxState, AutomationLaneStore};
+use crate::automation::engine::{AutomationCommand, AutomationEngine};
 use crate::midi::commands::MidiManagerState;
 use crate::midi::types::TimestampedMidiEvent;
 
@@ -63,6 +65,8 @@ pub async fn create_synth_instrument(
     midi_manager: State<'_, MidiManagerState>,
     lfo_params_state: State<'_, LfoParamsState>,
     transport_atomics: State<'_, TransportAtomicsState>,
+    auto_cmd_tx_state: State<'_, AutomationCmdTxState>,
+    _auto_lane_store: State<'_, AutomationLaneStore>,
 ) -> Result<(), String> {
     let params = Arc::clone(&*synth_params);
     let lfo1 = Arc::clone(&lfo_params_state.lfo1);
@@ -89,8 +93,32 @@ pub async fn create_synth_instrument(
         mgr.add_instrument_sender(midi_tx);
     }
 
-    // Build the audio graph containing the synth node
+    // Create a fresh AutomationEngine with its own command channel.
+    // The engine MUST be the first node in the graph so parameter values are
+    // written before the synth reads them in the same audio callback.
+    let (auto_cmd_tx, auto_cmd_rx) =
+        crossbeam_channel::bounded::<AutomationCommand>(256);
+    let auto_engine = AutomationEngine::new(atomics.clone(), auto_cmd_rx);
+
+    // Register synth params as write targets in the new engine
+    for (param_id, atomic) in params.iter_automation_targets() {
+        let _ = auto_cmd_tx.try_send(AutomationCommand::RegisterTarget {
+            parameter_id: param_id,
+            target: atomic,
+        });
+    }
+
+    // Update managed AutomationCmdTxState with the fresh sender
+    {
+        let mut guard = auto_cmd_tx_state
+            .lock()
+            .map_err(|e| format!("Failed to lock automation cmd tx state: {}", e))?;
+        *guard = Some(auto_cmd_tx);
+    }
+
+    // Build the audio graph: AutomationEngine first, then Synth
     let mut graph = AudioGraph::new(1024, 2);
+    graph.add_node(Box::new(auto_engine));
     let synth = SubtractiveSynth::new(params, midi_rx, 44100.0, lfo1, lfo2, atomics);
     graph.add_node(Box::new(synth));
 

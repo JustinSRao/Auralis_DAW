@@ -99,6 +99,7 @@ pub fn duplicate_pattern(pattern: Pattern) -> Result<Pattern, String> {
         track_id: pattern.track_id,
         length_bars: pattern.length_bars,
         content: pattern.content,
+        automation: std::collections::HashMap::new(),
     })
 }
 

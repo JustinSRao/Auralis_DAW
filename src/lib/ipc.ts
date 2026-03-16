@@ -334,12 +334,39 @@ export type PatternContent =
 export type PatternLengthBars = 1 | 2 | 4 | 8 | 16 | 32;
 
 /** A named, reusable musical pattern belonging to a track. */
+/** Sprint 14: Automation interpolation mode. Matches Rust `Interp` enum. */
+export type AutomationInterp = 'Linear' | 'Exponential' | 'Step';
+
+/** A single automation breakpoint. Matches Rust `ControlPointSnapshot`. */
+export interface ControlPointData {
+  tick: number;
+  value: number;
+  interp: AutomationInterp;
+}
+
+/** All breakpoints for one parameter in one pattern. Matches Rust `AutomationLaneSnapshot`. */
+export interface AutomationLaneData {
+  patternId: string;
+  parameterId: string;
+  enabled: boolean;
+  points: ControlPointData[];
+}
+
+/** A single timestamped record event. Matches Rust `AutomationRecordEvent`. */
+export interface AutomationRecordEvent {
+  parameterId: string;
+  value: number;
+  tick: number;
+}
+
 export interface PatternData {
   id: string;
   name: string;
   trackId: string;
   lengthBars: PatternLengthBars;
   content: PatternContent;
+  /** Automation lanes keyed by parameterId. Present in project files >= v1.1.0. */
+  automation?: Record<string, AutomationLaneData>;
 }
 
 // ── Arrangement types (mirror Rust project::arrangement) ─────────────────────
@@ -1108,4 +1135,62 @@ export async function ipcDuplicateArrangementClip(
     trackId,
     lengthBars,
   });
+}
+
+// ── Sprint 14: Automation ─────────────────────────────────────────────────────
+
+/** Adds or updates a control point in a lane. Returns the created/updated point. */
+export async function ipcSetAutomationPoint(
+  patternId: string,
+  parameterId: string,
+  tick: number,
+  value: number,
+  interp: AutomationInterp,
+): Promise<ControlPointData> {
+  return invoke<ControlPointData>("set_automation_point", {
+    patternId, parameterId, tick, value, interp,
+  });
+}
+
+/** Removes a control point from a lane. */
+export async function ipcDeleteAutomationPoint(
+  patternId: string,
+  parameterId: string,
+  tick: number,
+): Promise<void> {
+  return invoke<void>("delete_automation_point", { patternId, parameterId, tick });
+}
+
+/** Changes the interpolation mode of an existing control point. */
+export async function ipcSetAutomationInterp(
+  patternId: string,
+  parameterId: string,
+  tick: number,
+  interp: AutomationInterp,
+): Promise<void> {
+  return invoke<void>("set_automation_interp", { patternId, parameterId, tick, interp });
+}
+
+/** Returns the current lane snapshot for a (patternId, parameterId) pair. */
+export async function ipcGetAutomationLane(
+  patternId: string,
+  parameterId: string,
+): Promise<AutomationLaneData> {
+  return invoke<AutomationLaneData>("get_automation_lane", { patternId, parameterId });
+}
+
+/** Enables or disables an automation lane without deleting its breakpoints. */
+export async function ipcEnableAutomationLane(
+  patternId: string,
+  parameterId: string,
+  enabled: boolean,
+): Promise<void> {
+  return invoke<void>("enable_automation_lane", { patternId, parameterId, enabled });
+}
+
+/** Sends a batch of record events to the automation engine. */
+export async function ipcRecordAutomationBatch(
+  events: AutomationRecordEvent[],
+): Promise<void> {
+  return invoke<void>("record_automation_batch", { events });
 }

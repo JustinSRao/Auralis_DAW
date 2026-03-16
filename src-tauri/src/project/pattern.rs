@@ -5,8 +5,12 @@
 //! They are stored in [`crate::project::format::ProjectFile::patterns`] and
 //! referenced from timeline clips via `ClipContent::Pattern { pattern_id }`.
 
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+use crate::automation::lane::AutomationLane;
 
 /// Alias for the string UUID that uniquely identifies a pattern.
 pub type PatternId = String;
@@ -70,6 +74,12 @@ pub struct Pattern {
     pub length_bars: u8,
     /// The musical content of this pattern (MIDI notes or audio file path).
     pub content: PatternContent,
+    /// Automation lanes for this pattern, keyed by `parameter_id`.
+    ///
+    /// Absent in older project files — deserialises as an empty map via
+    /// `#[serde(default)]`.
+    #[serde(default)]
+    pub automation: HashMap<String, AutomationLane>,
 }
 
 impl Pattern {
@@ -83,6 +93,7 @@ impl Pattern {
             track_id: track_id.into(),
             length_bars: 4,
             content: PatternContent::Midi { notes: Vec::new() },
+            automation: HashMap::new(),
         }
     }
 }
@@ -177,6 +188,7 @@ mod tests {
             content: PatternContent::Audio {
                 file_path: "/samples/loop.wav".to_string(),
             },
+            automation: std::collections::HashMap::new(),
         };
         let json = serde_json::to_string(&pattern).expect("serialize");
         let decoded: Pattern = serde_json::from_str(&json).expect("deserialize");

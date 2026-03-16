@@ -5,6 +5,7 @@ import type { ProjectFileData, RecentProject } from "../lib/ipc";
 import { useHistoryStore } from "./historyStore";
 import { usePatternStore } from "./patternStore";
 import { useArrangementStore } from "./arrangementStore";
+import { useAutomationStore } from "./automationStore";
 import {
   getRecentProjects,
   loadProject,
@@ -56,6 +57,8 @@ export const useFileStore = create<FileStoreState>()(
         usePatternStore.getState().loadFromProject([]);
         // Clear arrangement store — prior clips belong to the previous project.
         useArrangementStore.getState().loadFromProject([]);
+        // Clear automation lanes.
+        useAutomationStore.getState().clear();
         // Clear undo/redo history — prior commands belong to the previous project.
         useHistoryStore.getState().clear();
       } catch (e) {
@@ -69,10 +72,23 @@ export const useFileStore = create<FileStoreState>()(
       const { currentProject } = get();
       if (!currentProject) return;
 
-      // Inject current patterns and arrangement clips before saving.
+      // Inject current patterns (with automation lanes), arrangement clips before saving.
+      const patternStoreState = usePatternStore.getState();
+      const automationLanes = useAutomationStore.getState().lanes;
+      const patternsWithAutomation = Object.values(patternStoreState.patterns).map((p) => {
+        // Collect automation lanes for this pattern
+        const automation: Record<string, typeof automationLanes[string]> = {};
+        for (const lane of Object.values(automationLanes)) {
+          if (lane.patternId === p.id) {
+            automation[lane.parameterId] = lane;
+          }
+        }
+        return { ...p, automation };
+      });
+
       const projectToSave: ProjectFileData = {
         ...currentProject,
-        patterns: Object.values(usePatternStore.getState().patterns),
+        patterns: patternsWithAutomation,
         arrangement: {
           clips: Object.values(useArrangementStore.getState().clips),
         },
@@ -111,6 +127,8 @@ export const useFileStore = create<FileStoreState>()(
         usePatternStore.getState().loadFromProject(project.patterns ?? []);
         // Populate arrangement store from the loaded project.
         useArrangementStore.getState().loadFromProject(project.arrangement?.clips ?? []);
+        // Load automation lanes from patterns.
+        useAutomationStore.getState().loadFromProject(project.patterns ?? []);
         // Clear undo/redo history — prior commands belong to the previous project.
         useHistoryStore.getState().clear();
       } catch (e) {

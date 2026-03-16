@@ -1,5 +1,6 @@
 pub mod audio;
 pub mod auth;
+pub mod automation;
 pub mod effects;
 pub mod instruments;
 pub mod midi;
@@ -12,6 +13,7 @@ use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 
 use audio::transport::TransportSnapshot;
+use automation::commands::{AutomationCmdTxState, AutomationLaneStore};
 use instruments::commands::{
     DrumAtomicsState, DrumCmdTxState, DrumPatternShadowState,
     SamplerCmdTxState, SamplerMidiTxState, SamplerState, SamplerZoneListState,
@@ -176,6 +178,19 @@ pub fn run() {
                 (0..64).map(|_| SequencerStepSnapshot::default()).collect(),
             ));
             app.manage(seq_step_shadow);
+
+            // --- Sprint 14: Automation managed state ---
+
+            // Lane store: Tauri-side source of truth for all automation lanes.
+            let auto_lane_store: AutomationLaneStore =
+                Arc::new(Mutex::new(std::collections::HashMap::new()));
+            app.manage(auto_lane_store);
+
+            // Automation engine command sender: None until create_synth_instrument
+            // populates it with a fresh channel when an instrument is instantiated.
+            let auto_cmd_tx_state: AutomationCmdTxState =
+                Arc::new(Mutex::new(None));
+            app.manage(auto_cmd_tx_state);
 
             // Initialize project manager
             let pm_state: ProjectManagerState =
@@ -365,6 +380,12 @@ pub fn run() {
             resize_arrangement_clip,
             delete_arrangement_clip,
             duplicate_arrangement_clip,
+            automation::commands::set_automation_point,
+            automation::commands::delete_automation_point,
+            automation::commands::set_automation_interp,
+            automation::commands::get_automation_lane,
+            automation::commands::enable_automation_lane,
+            automation::commands::record_automation_batch,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

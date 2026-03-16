@@ -49,7 +49,25 @@ impl SynthParams {
             pulse_width: Arc::new(AtomicF32::new(0.5)),
         })
     }
-}
+
+    /// Returns all automatable parameters paired with their `"synth.<name>"` keys.
+    ///
+    /// Used to register write targets with [`AutomationEngine`] after the synth
+    /// is added to the audio graph.
+    ///
+    /// [`AutomationEngine`]: crate::automation::engine::AutomationEngine
+    pub fn iter_automation_targets(&self) -> Vec<(String, Arc<AtomicF32>)> {
+        vec![
+            ("synth.cutoff".to_string(), Arc::clone(&self.cutoff)),
+            ("synth.resonance".to_string(), Arc::clone(&self.resonance)),
+            ("synth.volume".to_string(), Arc::clone(&self.volume)),
+            ("synth.attack".to_string(), Arc::clone(&self.attack)),
+            ("synth.decay".to_string(), Arc::clone(&self.decay)),
+            ("synth.sustain".to_string(), Arc::clone(&self.sustain)),
+            ("synth.release".to_string(), Arc::clone(&self.release)),
+        ]
+    }
+}  // end impl SynthParams
 
 impl Default for SynthParams {
     fn default() -> Self {

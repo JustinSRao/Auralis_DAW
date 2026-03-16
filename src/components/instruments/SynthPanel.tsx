@@ -1,7 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Knob } from "./Knob";
 import { LfoPanel } from "./LfoPanel";
 import { useSynthStore } from "../../stores/synthStore";
+import { useAutomationStore } from "../../stores/automationStore";
+import { useTransportStore } from "../../stores/transportStore";
 import type { SynthParamName } from "../../lib/ipc";
 
 // ─── Normalisation helpers ────────────────────────────────────────────────────
@@ -92,11 +94,48 @@ export function SynthPanel() {
   const { params, isInitialized, isLoading, error, initialize, setParam } =
     useSynthStore();
 
+  const recordEnabled = useAutomationStore((s) => s.recordEnabled);
+  const flushIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     if (!isInitialized && !isLoading) {
       void initialize();
     }
   }, [isInitialized, isLoading, initialize]);
+
+  // 100 ms flush interval for automation record events
+  useEffect(() => {
+    if (recordEnabled) {
+      flushIntervalRef.current = setInterval(() => {
+        void useAutomationStore.getState().flushRecordBatch();
+      }, 100);
+    } else {
+      if (flushIntervalRef.current !== null) {
+        clearInterval(flushIntervalRef.current);
+        flushIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (flushIntervalRef.current !== null) {
+        clearInterval(flushIntervalRef.current);
+        flushIntervalRef.current = null;
+      }
+    };
+  }, [recordEnabled]);
+
+  /** Wraps setParam with automation record event capture. */
+  function setParamWithRecord(name: SynthParamName, value: number) {
+    void setParam(name, value);
+    const { recordEnabled: recOn, recordPatternId, pushRecordEvent } =
+      useAutomationStore.getState();
+    if (!recOn || !recordPatternId) return;
+    const snap = useTransportStore.getState().snapshot;
+    if (snap.state !== 'playing') return;
+    const bpm = snap.bpm > 0 ? snap.bpm : 120;
+    const samplesPerBeat = (60 / bpm) * 44100;
+    const tick = Math.round((snap.position_samples / samplesPerBeat) * 480);
+    pushRecordEvent({ parameterId: `synth.${name}`, value, tick });
+  }
 
   // Wrapper that handles normalisation for a given parameter
   function knob(
@@ -114,7 +153,7 @@ export function SynthPanel() {
         value={norm}
         unit={unit}
         displayValue={formatDisplay(denorm(norm))}
-        onValue={(n) => void setParam(name, denorm(n))}
+        onValue={(n) => setParamWithRecord(name, denorm(n))}
       />
     );
   }
@@ -231,6 +270,25 @@ export function SynthPanel() {
           Initialising...
         </div>
       )}
+
+      {/* Automation record toggle */}
+      <div className="flex flex-col gap-2 ml-auto flex-shrink-0">
+        <span className="text-[9px] text-[#666666] uppercase tracking-widest font-mono">
+          Automation
+        </span>
+        <button
+          onClick={() => useAutomationStore.getState().setRecordEnabled(!recordEnabled)}
+          className={[
+            'px-2 py-0.5 text-[10px] font-mono rounded border',
+            recordEnabled
+              ? 'bg-red-700 border-red-600 text-white'
+              : 'bg-transparent border-[#4a4a4a] text-[#888888] hover:border-red-500 hover:text-[#aaaaaa]',
+          ].join(' ')}
+          title={recordEnabled ? 'Stop recording automation' : 'Record automation'}
+        >
+          {recordEnabled ? '● REC' : '○ REC'}
+        </button>
+      </div>
 
       {/* LFO modulation section */}
       <LfoPanel slot={1} />

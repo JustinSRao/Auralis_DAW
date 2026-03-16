@@ -5,6 +5,8 @@ import { useArrangementStore } from '../../stores/arrangementStore'
 import type { ArrangementClip } from '../../stores/arrangementStore'
 import { useTrackStore } from '../../stores/trackStore'
 import { usePatternStore } from '../../stores/patternStore'
+import { useAutomationStore } from '../../stores/automationStore'
+import { AutomationRow } from '../automation/AutomationRow'
 import { TimeRuler, RULER_HEIGHT } from './TimeRuler'
 import { PlayheadOverlay } from './PlayheadOverlay'
 import {
@@ -98,6 +100,14 @@ export function Timeline() {
   const [loopStart, setLoopStart] = useState<number | null>(null)
   const [loopEnd, setLoopEnd] = useState<number | null>(null)
 
+  // Time signature numerator (beats per bar) from last transport event
+  const [beatsPerBar, setBeatsPerBar] = useState(4)
+
+  // Automation panel expand state
+  const expandedTrackIds = useAutomationStore((s) => s.expandedTrackIds)
+  const { toggleTrackExpanded } = useAutomationStore.getState()
+  const allLanes = useAutomationStore((s) => s.lanes)
+
   // Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
 
@@ -128,6 +138,7 @@ export function Timeline() {
       if (cancelled) return
       const snap = ev.payload
       const timeSig = snap.time_sig_numerator > 0 ? snap.time_sig_numerator : 4
+      setBeatsPerBar(timeSig)
       playheadBarRef.current = samplesToBar(snap.position_samples, snap.bpm, timeSig, 44100)
 
       // Update loop region bars (convert from samples)
@@ -508,7 +519,78 @@ export function Timeline() {
           viewport={viewport}
           drawFnRef={drawPlayheadRef}
         />
+
+        {/* Automation expand buttons — one per track, overlaid on the left edge */}
+        <div className="absolute top-0 left-0 pointer-events-none" style={{ width: 16 }}>
+          {tracks.map((track, idx) => (
+            <button
+              key={track.id}
+              className={[
+                'pointer-events-auto absolute flex items-center justify-center text-[8px] font-mono',
+                'bg-[#1a1a1a] border border-[#3a3a3a] rounded-sm hover:border-[#5b8def] hover:text-[#5b8def]',
+                expandedTrackIds.includes(track.id) ? 'text-[#5b8def]' : 'text-[#555]',
+              ].join(' ')}
+              style={{
+                top: idx * viewport.trackHeight + 2,
+                left: 2,
+                width: 12,
+                height: 12,
+              }}
+              title={expandedTrackIds.includes(track.id) ? 'Collapse automation' : 'Expand automation'}
+              onClick={() => toggleTrackExpanded(track.id)}
+            >
+              {expandedTrackIds.includes(track.id) ? '▼' : '▶'}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Automation panel — shows lanes for each expanded track */}
+      {expandedTrackIds.length > 0 && (
+        <div className="flex-shrink-0 border-t border-[#3a3a3a] overflow-y-auto" style={{ maxHeight: 320 }}>
+          {tracks
+            .filter((t) => expandedTrackIds.includes(t.id))
+            .map((track) => {
+              // Collect automation lanes for patterns on this track
+              const trackPatterns = usePatternStore.getState().getPatternsForTrack(track.id)
+              const trackLanes = Object.values(allLanes).filter((lane) =>
+                trackPatterns.some((p) => p.id === lane.patternId),
+              )
+
+              return (
+                <div key={track.id} className="border-b border-[#3a3a3a]">
+                  {/* Track label */}
+                  <div className="flex items-center gap-2 px-2 py-1 bg-[#1a1a1a] border-b border-[#2a2a2a]">
+                    <span className="text-[9px] font-mono text-[#5b8def] uppercase tracking-wider">
+                      {track.name} — Automation
+                    </span>
+                  </div>
+                  {trackLanes.length === 0 ? (
+                    <div className="px-4 py-2 text-[10px] font-mono text-[#444]">
+                      No automation lanes. Open a pattern and record or draw automation.
+                    </div>
+                  ) : (
+                    trackLanes.map((lane) => {
+                      const pattern = trackPatterns.find((p) => p.id === lane.patternId)
+                      const totalTicks = (pattern?.lengthBars ?? 4) * beatsPerBar * 480
+                      return (
+                        <AutomationRow
+                          key={`${lane.patternId}::${lane.parameterId}`}
+                          lane={lane}
+                          totalTicks={totalTicks}
+                          width={canvasSize.width}
+                          scrollLeft={viewport.scrollLeft}
+                          pixelsPerBar={viewport.pixelsPerBar}
+                          beatsPerBar={beatsPerBar}
+                        />
+                      )
+                    })
+                  )}
+                </div>
+              )
+            })}
+        </div>
+      )}
 
       {/* Zoom control */}
       <div className="flex items-center gap-2 px-3 py-1 bg-[#1a1a1a] border-t border-[#3a3a3a] flex-shrink-0">
