@@ -149,6 +149,10 @@ Flattening iterates the comp regions, copies the appropriate audio samples (or M
 - [ ] Take lane state persists in the project file
 - [ ] All tests pass
 
+## Postmortem
+
+See [Sprint 44 Postmortem](./sprint-44_postmortem.md)
+
 ## Notes
 
 Created: 2026-02-23
