@@ -1492,3 +1492,74 @@ export async function ipcExportMidiArrangement(
     timeSigDenominator,
   });
 }
+
+// ── Sprint 44: Take Lanes ─────────────────────────────────────────────────────
+
+/** A single recorded loop pass. */
+export interface Take {
+  id: string;
+  patternId: string;
+  takeNumber: number;
+  trackId: string;
+  loopStartBeats: number;
+  loopEndBeats: number;
+  isActive: boolean;
+}
+
+/** A comp region — selects a time sub-range from a specific take. */
+export interface CompRegion {
+  id: string;
+  startBeats: number;
+  endBeats: number;
+  takeId: string;
+}
+
+/** All takes for one track. */
+export interface TakeLane {
+  trackId: string;
+  takes: Take[];
+  compRegions: CompRegion[];
+  expanded: boolean;
+}
+
+/** Payload of the `take-created` Tauri event. */
+export interface TakeCreatedEvent {
+  take: Take;
+  trackId: string;
+}
+
+/** Payload of the `take-recording-started` Tauri event. */
+export interface TakeRecordingStartedEvent {
+  trackId: string;
+  patternId: string;
+  takeNumber: number;
+}
+
+/** Returns the take lane for a track (empty lane if none). */
+export async function ipcGetTakeLanes(trackId: string): Promise<TakeLane> {
+  return invoke<TakeLane>('get_take_lanes', { trackId });
+}
+
+/** Sets the active playback take for a track. */
+export async function ipcSetActiveTake(trackId: string, takeId: string): Promise<void> {
+  return invoke<void>('set_active_take', { trackId, takeId });
+}
+
+/** Deletes a take from a track's lane. */
+export async function ipcDeleteTake(trackId: string, takeId: string): Promise<void> {
+  return invoke<void>('delete_take', { trackId, takeId });
+}
+
+/**
+ * Arms a track for loop recording. Pass null to disarm.
+ * Loop recording activates automatically when the transport loop is enabled
+ * and the transport is recording.
+ */
+export async function ipcArmLoopRecording(trackId: string | null): Promise<void> {
+  return invoke<void>('arm_loop_recording', { trackId });
+}
+
+/** Toggles the expanded/collapsed state of a track's take lane panel. */
+export async function ipcToggleTakeLaneExpanded(trackId: string): Promise<boolean> {
+  return invoke<boolean>('toggle_take_lane_expanded', { trackId });
+}

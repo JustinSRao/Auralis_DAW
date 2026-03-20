@@ -8,6 +8,7 @@ import { useHistoryStore } from '@/stores/historyStore';
 import { usePianoRollStore } from '@/stores/pianoRollStore';
 import { usePatternStore } from '@/stores/patternStore';
 import { useTransportStore } from '@/stores/transportStore';
+import { useTakeLaneStore } from '@/stores/takeLaneStore';
 import { RenameTrackCommand } from '@/lib/commands/RenameTrackCommand';
 import { DeleteTrackCommand } from '@/lib/commands/DeleteTrackCommand';
 
@@ -161,6 +162,13 @@ export function TrackHeader({ track, index = 0 }: TrackHeaderProps) {
   }
 
   // ---------------------------------------------------------------------------
+  // Take lane state (Sprint 44)
+  // ---------------------------------------------------------------------------
+
+  const takeLane = useTakeLaneStore((s) => s.lanes[track.id]);
+  const takeCount = takeLane?.takes.length ?? 0;
+
+  // ---------------------------------------------------------------------------
   // Track type icon
   // ---------------------------------------------------------------------------
 
@@ -299,6 +307,31 @@ export function TrackHeader({ track, index = 0 }: TrackHeaderProps) {
         >
           R
         </button>
+
+        {/* Take count badge — shown when loop takes exist */}
+        {takeCount > 0 && (
+          <span
+            title={`${takeCount} take${takeCount !== 1 ? 's' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              void useTakeLaneStore.getState().toggleExpanded(track.id);
+            }}
+            style={{
+              fontSize: 9,
+              padding: '1px 4px',
+              background: '#3a3a5a',
+              border: '1px solid #6c63ff',
+              borderRadius: 3,
+              color: '#aaa',
+              cursor: 'pointer',
+              userSelect: 'none',
+              flexShrink: 0,
+            }}
+            data-testid="take-count-badge"
+          >
+            T{takeCount}
+          </span>
+        )}
       </div>
 
       {/* Right-click context menu overlay */}

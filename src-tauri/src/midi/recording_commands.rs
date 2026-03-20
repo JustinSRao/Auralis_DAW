@@ -130,7 +130,7 @@ pub fn start_midi_recording(
 /// Receives MIDI events with a 20ms timeout. Processes NoteOn/NoteOff pairs
 /// into completed notes, emitting `"midi-recorded-note"` for each. Exits when
 /// the recorder state becomes `None` (set by `stop_midi_recording`).
-fn drain_loop(
+pub fn drain_loop(
     rx: crossbeam_channel::Receiver<crate::midi::types::TimestampedMidiEvent>,
     recorder_arc: Arc<std::sync::Mutex<Option<RecorderHandle>>>,
     atomics: TransportAtomics,

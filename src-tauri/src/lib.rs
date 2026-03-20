@@ -46,6 +46,9 @@ use midi::recording_commands::{start_midi_recording, stop_midi_recording, set_re
 use midi::export_commands::{export_midi_pattern, export_midi_arrangement};
 use audio::punch::PunchControllerState;
 use audio::punch_commands::{set_punch_in, set_punch_out, toggle_punch_mode, get_punch_markers};
+use audio::loop_recorder::{LoopRecordController, LoopRecordControllerState};
+use audio::take_lane::{TakeLaneStore, TakeLaneStoreState};
+use audio::take_commands::{TakeCreatedEvent, TakeRecordingStartedEvent};
 
 #[tauri::command]
 fn get_version() -> String {
@@ -107,12 +110,16 @@ pub fn run() {
             // (spawned later) can read transport position atomics.
             let transport_atomics_state: TransportAtomicsState = transport_atomics;
             let punch_watcher_atomics = transport_atomics_state.clone();
+            // Also clone for the loop record watcher task (Sprint 44).
+            let loop_watcher_atomics = transport_atomics_state.clone();
             app.manage(transport_atomics_state);
 
             // Clone the transport snapshot Arc BEFORE moving engine into managed state.
             // The 60 fps poller needs it without holding the engine mutex.
+            // Also clone for the loop record watcher task (Sprint 44).
             let transport_snapshot: Arc<Mutex<TransportSnapshot>> =
                 audio_engine.transport_snapshot.clone();
+            let loop_watcher_snapshot = transport_snapshot.clone();
 
             // --- Sprint 41: Tempo map channel ---
             // Create the bounded-1 channel for main→audio tempo map updates.
@@ -148,11 +155,15 @@ pub fn run() {
                     log::warn!("Failed to start MIDI hot-plug scanner: {}", e);
                 }
             }
+            // Clone before managing so the loop record watcher task can access it.
+            let loop_watcher_midi_manager = midi_state.clone();
             app.manage(midi_state);
             log::info!("MIDI manager initialized");
 
             // --- Sprint 36: MIDI Recorder managed state ---
             let midi_recorder: MidiRecorderState = Arc::new(Mutex::new(None));
+            // Clone before managing so the loop record watcher task can access it.
+            let loop_watcher_recorder = Arc::clone(&midi_recorder);
             app.manage(midi_recorder);
 
             // --- Sprint 9: Audio Recorder managed state ---
@@ -222,6 +233,177 @@ pub fn run() {
                             log::info!("Punch watcher: MIDI punch-out deferred to future sprint");
                         }
                         audio::punch::PunchAction::Nothing => {}
+                    }
+                }
+            });
+
+            // --- Sprint 44: Take lane managed state ---
+            let take_lane_store: TakeLaneStoreState = Arc::new(Mutex::new(TakeLaneStore::default()));
+            app.manage(take_lane_store.clone());
+
+            let loop_record_ctrl: LoopRecordControllerState =
+                Arc::new(Mutex::new(LoopRecordController::new()));
+            app.manage(loop_record_ctrl.clone());
+
+            // Spawn loop record watcher task (~50 Hz)
+            let loop_watcher_ctrl = loop_record_ctrl.clone();
+            let loop_watcher_take_store = take_lane_store.clone();
+            let loop_app_handle = app.handle().clone();
+            tokio::spawn(async move {
+                use std::sync::atomic::Ordering;
+                let mut interval = tokio::time::interval(std::time::Duration::from_millis(20));
+                let mut last_spb_bits: u64 = 0;
+                let mut take_counter: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+                loop {
+                    interval.tick().await;
+
+                    let playhead = loop_watcher_atomics.playhead_samples.load(Ordering::Relaxed);
+                    let is_playing = loop_watcher_atomics.is_playing.load(Ordering::Relaxed);
+                    let spb_bits = loop_watcher_atomics.samples_per_beat_bits.load(Ordering::Relaxed);
+
+                    // Read loop region from transport snapshot
+                    let (loop_start_samples, loop_end_samples, loop_start_beats, loop_end_beats, loop_enabled) = {
+                        if let Ok(snap) = loop_watcher_snapshot.try_lock() {
+                            let spb = f64::from_bits(spb_bits);
+                            let start_beats = if spb > 0.0 { snap.loop_start_samples as f64 / spb } else { 0.0 };
+                            let end_beats = if spb > 0.0 { snap.loop_end_samples as f64 / spb } else { 0.0 };
+                            (snap.loop_start_samples, snap.loop_end_samples, start_beats, end_beats, snap.loop_enabled)
+                        } else {
+                            continue;
+                        }
+                    };
+
+                    let action = {
+                        if let Ok(mut ctrl) = loop_watcher_ctrl.lock() {
+                            if spb_bits != last_spb_bits {
+                                let new_spb = f64::from_bits(spb_bits);
+                                ctrl.recalculate_samples(new_spb);
+                                last_spb_bits = spb_bits;
+                            }
+                            ctrl.update_loop_region(
+                                loop_start_samples, loop_end_samples,
+                                loop_start_beats, loop_end_beats, loop_enabled,
+                            );
+                            ctrl.tick(playhead, is_playing)
+                        } else {
+                            audio::loop_recorder::LoopRecordAction::Nothing
+                        }
+                    };
+
+                    if let audio::loop_recorder::LoopRecordAction::LoopWrapped = action {
+                        let track_id = {
+                            if let Ok(ctrl) = loop_watcher_ctrl.lock() {
+                                ctrl.track_id.clone()
+                            } else {
+                                None
+                            }
+                        };
+                        let Some(track_id) = track_id else { continue };
+
+                        // --- Finalize current take ---
+                        let spb = f64::from_bits(spb_bits);
+                        let stop_beat = if spb > 0.0 {
+                            loop_end_samples as f64 / spb
+                        } else {
+                            loop_end_beats
+                        };
+                        let completed_pattern_id = {
+                            let mut guard = match loop_watcher_recorder.lock() {
+                                Ok(g) => g,
+                                Err(_) => continue,
+                            };
+                            if let Some(handle) = guard.take() {
+                                // Flush pending notes
+                                for (_, pending) in &handle.session.pending {
+                                    midi::recording::emit_note(
+                                        &loop_app_handle,
+                                        &handle.session.pattern_id,
+                                        pending,
+                                        stop_beat,
+                                    );
+                                }
+                                // Emit recording-stopped for old pattern
+                                let _ = loop_app_handle.emit(
+                                    "recording-stopped",
+                                    &midi::recording::RecordingStoppedEvent {
+                                        pattern_id: handle.session.pattern_id.clone(),
+                                    },
+                                );
+                                Some(handle.session.pattern_id)
+                            } else {
+                                None
+                            }
+                        };
+
+                        let Some(old_pattern_id) = completed_pattern_id else { continue };
+
+                        // --- Create Take record ---
+                        let take_num = {
+                            let counter = take_counter.entry(track_id.clone()).or_insert(0);
+                            *counter += 1;
+                            *counter
+                        };
+                        let take = audio::take_lane::Take {
+                            id: uuid::Uuid::new_v4().to_string(),
+                            pattern_id: old_pattern_id,
+                            take_number: take_num,
+                            track_id: track_id.clone(),
+                            loop_start_beats,
+                            loop_end_beats,
+                            is_active: true,
+                        };
+                        {
+                            if let Ok(mut store) = loop_watcher_take_store.lock() {
+                                store.add_take(&track_id, take.clone());
+                            }
+                        }
+                        let _ = loop_app_handle.emit("take-created", &TakeCreatedEvent {
+                            take,
+                            track_id: track_id.clone(),
+                        });
+
+                        // --- Start new take ---
+                        let new_pattern_id = uuid::Uuid::new_v4().to_string();
+                        let next_take_num = take_counter.get(&track_id).copied().unwrap_or(0) + 1;
+                        let _ = loop_app_handle.emit("take-recording-started", &TakeRecordingStartedEvent {
+                            track_id: track_id.clone(),
+                            pattern_id: new_pattern_id.clone(),
+                            take_number: next_take_num,
+                        });
+
+                        // Create fresh MIDI drain channel and start new recording session
+                        let (tx, rx) = crossbeam_channel::bounded::<midi::types::TimestampedMidiEvent>(512);
+                        {
+                            let mut mgr = match loop_watcher_midi_manager.lock() {
+                                Ok(g) => g,
+                                Err(_) => continue,
+                            };
+                            mgr.cleanup_dead_senders();
+                            mgr.add_instrument_sender(tx);
+                        }
+                        let new_handle = midi::recording::RecorderHandle {
+                            session: midi::recording::RecordSession {
+                                pattern_id: new_pattern_id,
+                                track_id: track_id.clone(),
+                                quantize: midi::recording::RecordQuantize::Off,
+                                mode: midi::recording::RecordMode::Overdub,
+                                session_start_beats: loop_start_beats,
+                                pending: std::collections::HashMap::new(),
+                            },
+                        };
+                        {
+                            let mut guard = match loop_watcher_recorder.lock() {
+                                Ok(g) => g,
+                                Err(_) => continue,
+                            };
+                            *guard = Some(new_handle);
+                        }
+                        let recorder_arc2 = Arc::clone(&loop_watcher_recorder);
+                        let atomics_clone2 = loop_watcher_atomics.clone();
+                        let app_drain = loop_app_handle.clone();
+                        std::thread::spawn(move || {
+                            midi::recording_commands::drain_loop(rx, recorder_arc2, atomics_clone2, app_drain);
+                        });
                     }
                 }
             });
@@ -508,6 +690,11 @@ pub fn run() {
             audio::tempo_commands::get_tempo_map,
             export_midi_pattern,
             export_midi_arrangement,
+            audio::take_commands::get_take_lanes,
+            audio::take_commands::set_active_take,
+            audio::take_commands::delete_take,
+            audio::take_commands::arm_loop_recording,
+            audio::take_commands::toggle_take_lane_expanded,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

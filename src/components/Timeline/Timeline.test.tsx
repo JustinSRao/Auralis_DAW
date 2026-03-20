@@ -111,6 +111,7 @@ vi.mock('../../stores/patternStore', () => {
       selectedPatternId: null,
       isLoading: false,
       error: null,
+      getPatternsForTrack: (_trackId: string) => [],
     }
   }
 
@@ -121,6 +122,26 @@ vi.mock('../../stores/patternStore', () => {
   )
 
   return { usePatternStore }
+})
+
+vi.mock('../../stores/takeLaneStore', () => {
+  function buildTakeLaneState() {
+    return {
+      lanes: {} as Record<string, unknown>,
+      loopRecordArmed: false,
+      activeLoopTrackId: null,
+      onTakeCreated: vi.fn(),
+      onTakeRecordingStarted: vi.fn(),
+    }
+  }
+
+  const useTakeLaneStore = Object.assign(
+    (selector: (s: ReturnType<typeof buildTakeLaneState>) => unknown) =>
+      selector(buildTakeLaneState()),
+    { getState: () => buildTakeLaneState() },
+  )
+
+  return { useTakeLaneStore }
 })
 
 // ---------------------------------------------------------------------------

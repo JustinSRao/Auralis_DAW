@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { listen } from '@tauri-apps/api/event'
-import type { TransportSnapshot } from '../../lib/ipc'
+import type { TransportSnapshot, TakeCreatedEvent, TakeRecordingStartedEvent } from '../../lib/ipc'
 import { useArrangementStore } from '../../stores/arrangementStore'
 import type { ArrangementClip } from '../../stores/arrangementStore'
 import { useTrackStore } from '../../stores/trackStore'
 import { usePatternStore } from '../../stores/patternStore'
 import { useAutomationStore } from '../../stores/automationStore'
 import { usePunchStore } from '../../stores/punchStore'
+import { useTakeLaneStore } from '../../stores/takeLaneStore'
 import { AutomationRow } from '../automation/AutomationRow'
 import { TempoTrack } from '../daw/TempoTrack'
 import { TimeRuler, RULER_HEIGHT } from './TimeRuler'
 import { PlayheadOverlay } from './PlayheadOverlay'
+import { TakeLaneView, TAKE_ROW_HEIGHT } from './TakeLaneView'
 import {
   barToX,
   xToBar,
@@ -118,6 +120,9 @@ export function Timeline() {
   const { toggleTrackExpanded } = useAutomationStore.getState()
   const allLanes = useAutomationStore((s) => s.lanes)
 
+  // Take lane state (Sprint 44)
+  const takeLanes = useTakeLaneStore((s) => s.lanes)
+
   // Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
 
@@ -175,6 +180,36 @@ export function Timeline() {
     return () => {
       cancelled = true
       unlistenFn?.()
+    }
+  }, [])
+
+  // ---------------------------------------------------------------------------
+  // Take lane event subscriptions (Sprint 44)
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    let cancelled = false
+    const unlisteners: Array<() => void> = []
+
+    void listen<TakeCreatedEvent>('take-created', (ev) => {
+      if (cancelled) return
+      useTakeLaneStore.getState().onTakeCreated(ev.payload)
+    }).then((fn) => {
+      unlisteners.push(fn)
+      if (cancelled) fn()
+    })
+
+    void listen<TakeRecordingStartedEvent>('take-recording-started', (_ev) => {
+      if (cancelled) return
+      // Handled by patternStore via recording events; no take lane action needed.
+    }).then((fn) => {
+      unlisteners.push(fn)
+      if (cancelled) fn()
+    })
+
+    return () => {
+      cancelled = true
+      unlisteners.forEach((fn) => fn())
     }
   }, [])
 
@@ -645,6 +680,33 @@ export function Timeline() {
                 </div>
               )
             })}
+        </div>
+      )}
+
+      {/* Take lane panel — shows take rows for tracks that have takes */}
+      {Object.keys(takeLanes).some((tid) => (takeLanes[tid]?.takes.length ?? 0) > 0) && (
+        <div
+          className="flex-shrink-0 border-t border-[#3a3a3a] overflow-y-auto"
+          style={{ maxHeight: 200 }}
+        >
+          {tracks
+            .filter((t) => (takeLanes[t.id]?.takes.length ?? 0) > 0)
+            .map((track) => (
+              <div key={track.id} className="border-b border-[#3a3a3a]">
+                {/* Track label */}
+                <div className="flex items-center gap-2 px-2 py-1 bg-[#1a1a1a] border-b border-[#2a2a2a]">
+                  <span className="text-[9px] font-mono text-[#6c63ff] uppercase tracking-wider">
+                    {track.name} — Takes ({takeLanes[track.id]?.takes.length ?? 0})
+                  </span>
+                </div>
+                <TakeLaneView
+                  trackId={track.id}
+                  barToX={(bar) => barToX(bar, viewport)}
+                  width={canvasSize.width}
+                  beatsPerBar={beatsPerBar}
+                />
+              </div>
+            ))}
         </div>
       )}
 
