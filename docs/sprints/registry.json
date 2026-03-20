@@ -426,13 +426,13 @@
     },
     "44": {
       "title": "Loop Recording and Take Lanes",
-      "status": "planning",
+      "status": "done",
       "epic": 4,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-20",
+      "hours": 7.6
     },
     "45": {
       "title": "Audio Clip Fades",
@@ -490,7 +490,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 12,
-      "completedSprints": 11
+      "completedSprints": 12
     },
     "5": {
       "title": "Audio Editing",

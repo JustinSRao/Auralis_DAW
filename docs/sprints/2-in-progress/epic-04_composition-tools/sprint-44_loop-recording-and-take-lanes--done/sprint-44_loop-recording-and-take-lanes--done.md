@@ -3,12 +3,13 @@ sprint: 44
 title: "Loop Recording and Take Lanes"
 type: fullstack
 epic: 4
-status: in-progress
+status: done
 created: 2026-02-23T17:06:06Z
 started: 2026-03-19T23:41:03Z
-completed: null
+completed: 2026-03-20
 hours: null
 workflow_version: "3.1.0"
+
 
 ---
 
