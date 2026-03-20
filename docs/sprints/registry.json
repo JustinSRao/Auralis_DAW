@@ -146,13 +146,13 @@
     },
     "15": {
       "title": "Waveform Editor (Cut, Trim, Reverse, Splice)",
-      "status": "planning",
+      "status": "done",
       "epic": 5,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-20",
+      "hours": 7.6
     },
     "16": {
       "title": "Time Stretch & Pitch Shift",
@@ -499,7 +499,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 2,
-      "completedSprints": 0
+      "completedSprints": 1
     },
     "6": {
       "title": "Mixer & Effects",
