@@ -3,15 +3,17 @@ sprint: 41
 title: "Tempo Automation"
 type: fullstack
 epic: 4
-status: planning
+status: in-progress
 created: 2026-02-23T17:05:57Z
-started: null
+started: 2026-03-19T14:47:01Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
 coverage_threshold: 70
 # Justification: TempoMap evaluation and tick/sample conversion are pure functions — fully unit testable.
 # Audio thread integration tested via smoke tests. TransportClock hot path exempt from unit coverage.
+
+
 ---
 
 # Sprint 41: Tempo Automation
@@ -298,6 +300,42 @@ BBT conversion is updated similarly: `bar` and `beat` are derived from `current_
 - [ ] No audio glitches, buffer underruns, or log errors during a 60-second playback test with a 10-point tempo map
 - [ ] Tempo map is persisted in the project file and fully restored on reload with identical playback behavior
 - [ ] All unit tests pass; overall Rust test coverage for `tempo_map.rs` >= 90%
+
+## Team Strategy
+
+### Clarifications (2026-03-19)
+
+- **Q1 — Interpolation**: Implement both Step AND Linear fully. Linear uses trapezoid integral for accurate sample count.
+- **Q2 — BPM input**: Read-only when >1 tempo point exists; shows current playhead BPM from transport snapshot.
+- **Q3 — Clip repositioning**: Trigger `set_arrangement_clips` recompute on pointer-up only (not during drag).
+- **Q4 — Delay stub**: Create `effects/delay.rs` stub with the tempo-map BPM hook wired in, even though full delay DSP is Sprint 19 scope.
+
+### Implementation Order
+
+**Sequential first:**
+1. `audio/tempo_map.rs` — pure logic core (all else depends on this)
+2. `audio/tempo_commands.rs` — Tauri command surface + managed state types
+3. `audio/engine.rs` — add `tempo_map_rx`, wire into callback
+4. `audio/transport.rs` — replace `bpm: AtomicF32`, update `advance()`, `samples_to_bbt()`, loop/punch
+
+**Parallel after transport.rs is done:**
+- **Backend**: `audio/mod.rs`, `lib.rs` registration, `project/format.rs` schema, `project/version.rs` migration, `project/commands.rs` load/save
+- **Frontend**: `tempoMapStore.ts`, `ipc.ts` wrappers, `TempoTrack.tsx`, `Timeline.tsx` integration, `transportStore.ts` BPM input, `fileStore.ts` save/load
+
+### Interface Contract
+
+**Tauri commands:**
+- `set_tempo_map(points: Vec<{tick, bpm, interp}>) -> Result<(), String>`
+- `get_tempo_map() -> Result<Vec<{tick, bpm, interp}>, String>`
+
+**TypeScript types:**
+```typescript
+interface TempoPoint { tick: number; bpm: number; interp: 'Step' | 'Linear'; }
+```
+
+**Project schema**: `project.transport.tempo_map: TempoPoint[]` — bumped to v1.2.0, migration injects default from legacy `bpm` scalar.
+
+**`TransportSnapshot`**: no new fields; `bpm` field now reflects instantaneous BPM at playhead position from tempo map.
 
 ## Notes
 

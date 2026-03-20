@@ -231,6 +231,8 @@ export interface TransportSettings {
   punch_in_beats: number;
   punch_out_beats: number;
   pre_roll_bars: number;
+  /** Tempo automation points.  Optional — absent in project files before v1.2.0. */
+  tempo_map?: TempoPoint[];
 }
 
 export interface MidiNoteData {
@@ -1382,4 +1384,26 @@ export async function togglePunchMode(enabled: boolean): Promise<void> {
 /** Returns the current punch-in/out marker positions. */
 export async function getPunchMarkers(): Promise<PunchMarkers> {
   return invoke<PunchMarkers>("get_punch_markers");
+}
+
+// ── Tempo Map (Sprint 41) ─────────────────────────────────────────────
+
+/** A single tempo automation point. */
+export interface TempoPoint {
+  /** Musical position in ticks (960 PPQ). */
+  tick: number;
+  /** Tempo at this point in beats per minute. */
+  bpm: number;
+  /** Interpolation mode to the next point. */
+  interp: 'Step' | 'Linear';
+}
+
+/** Replaces the project tempo map with the given list of points. */
+export async function setTempoMap(points: TempoPoint[]): Promise<void> {
+  return invoke<void>('set_tempo_map', { points });
+}
+
+/** Returns the current list of tempo points from the backend snapshot. */
+export async function getTempoMap(): Promise<TempoPoint[]> {
+  return invoke<TempoPoint[]>('get_tempo_map');
 }

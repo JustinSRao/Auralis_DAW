@@ -6,7 +6,6 @@ import {
   transportPlay,
   transportStop,
   transportPause,
-  setBpm,
   setTimeSignature,
   setLoopRegion,
   toggleLoop,
@@ -16,6 +15,7 @@ import {
   setRecordArmed,
   ipcSetRecordQuantize,
 } from "../lib/ipc";
+import { useTempoMapStore } from "./tempoMapStore";
 
 // ---------------------------------------------------------------------------
 // Store state and actions
@@ -170,7 +170,11 @@ export const useTransportStore = create<TransportStoreState>()(
 
     setBpm: async (bpm) => {
       try {
-        await setBpm(bpm);
+        // Always update the tick-0 anchor point, preserving any other points.
+        // When only one point exists this replaces the entire map (single BPM).
+        // When multiple points exist this edits the global base tempo at tick 0
+        // while leaving all other points intact.
+        await useTempoMapStore.getState().setPoint(0, bpm, 'Step');
         set((s) => {
           s.error = null;
         });

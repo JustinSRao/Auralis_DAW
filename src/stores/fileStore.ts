@@ -12,8 +12,10 @@ import {
   markProjectDirty,
   newProject,
   saveProject,
+  setTempoMap,
 } from "../lib/ipc";
 import { usePunchStore } from "./punchStore";
+import { useTempoMapStore } from "./tempoMapStore";
 
 interface FileStoreState {
   filePath: string | null;
@@ -60,6 +62,8 @@ export const useFileStore = create<FileStoreState>()(
         useArrangementStore.getState().loadFromProject([]);
         // Clear automation lanes.
         useAutomationStore.getState().clear();
+        // Reset tempo map to single 120 BPM point
+        useTempoMapStore.getState().loadFromProject([]);
         // Clear undo/redo history — prior commands belong to the previous project.
         useHistoryStore.getState().clear();
       } catch (e) {
@@ -87,11 +91,18 @@ export const useFileStore = create<FileStoreState>()(
         return { ...p, automation };
       });
 
+      // Inject current tempo map before saving
+      const tempoMapPoints = useTempoMapStore.getState().points;
+
       const projectToSave: ProjectFileData = {
         ...currentProject,
         patterns: patternsWithAutomation,
         arrangement: {
           clips: Object.values(useArrangementStore.getState().clips),
+        },
+        transport: {
+          ...currentProject.transport,
+          tempo_map: tempoMapPoints,
         },
       };
 
@@ -136,6 +147,10 @@ export const useFileStore = create<FileStoreState>()(
         void punch.setPunchIn(t.punch_in_beats ?? 0);
         void punch.setPunchOut(t.punch_out_beats ?? 8);
         void punch.togglePunchMode(t.punch_enabled ?? false);
+        // Load tempo map from the project and sync to backend
+        const tempoMapPoints = t.tempo_map ?? [{ tick: 0, bpm: t.bpm ?? 120, interp: 'Step' as const }];
+        useTempoMapStore.getState().loadFromProject(tempoMapPoints);
+        void setTempoMap(tempoMapPoints);
         // Clear undo/redo history — prior commands belong to the previous project.
         useHistoryStore.getState().clear();
       } catch (e) {

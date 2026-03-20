@@ -19,3 +19,10 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 beforeAll(() => {
   HTMLCanvasElement.prototype.getContext = () => null as unknown as CanvasRenderingContext2D;
 });
+
+// ResizeObserver is not implemented in jsdom
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};

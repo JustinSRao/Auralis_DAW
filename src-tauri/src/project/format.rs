@@ -105,11 +105,39 @@ pub struct TransportSettings {
     /// Number of pre-roll bars before punch-in.
     #[serde(default = "default_pre_roll")]
     pub pre_roll_bars: u32,
+    /// Tempo automation points.  Absent in files before v1.2.0 — defaults to
+    /// a single 120 BPM Step point at tick 0.
+    #[serde(default = "default_tempo_map")]
+    pub tempo_map: Vec<TempoPointData>,
 }
 
 /// Returns the default punch-out point in beats (8.0).
 fn default_punch_out() -> f64 {
     8.0
+}
+
+/// Returns the default tempo map (single 120 BPM Step point at tick 0).
+fn default_tempo_map() -> Vec<TempoPointData> {
+    vec![TempoPointData {
+        tick: 0,
+        bpm: 120.0,
+        interp: "Step".to_string(),
+    }]
+}
+
+/// A serializable tempo automation point stored in the project file.
+///
+/// Uses a plain `String` for `interp` so the format stays human-readable
+/// without pulling in the audio-thread [`CumulativeTempoMap`] types.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TempoPointData {
+    /// Musical position of the point (960 PPQ ticks).
+    pub tick: u64,
+    /// Tempo at this point in BPM.
+    pub bpm: f64,
+    /// Interpolation mode: `"Step"` or `"Linear"`.
+    pub interp: String,
 }
 
 impl Default for TransportSettings {
@@ -126,6 +154,7 @@ impl Default for TransportSettings {
             punch_in_beats: 0.0,
             punch_out_beats: 8.0,
             pre_roll_bars: 2,
+            tempo_map: default_tempo_map(),
         }
     }
 }

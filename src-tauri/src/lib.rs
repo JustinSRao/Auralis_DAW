@@ -113,6 +113,24 @@ pub fn run() {
             let transport_snapshot: Arc<Mutex<TransportSnapshot>> =
                 audio_engine.transport_snapshot.clone();
 
+            // --- Sprint 41: Tempo map channel ---
+            // Create the bounded-1 channel for main→audio tempo map updates.
+            // The receiver is moved into the audio callback closure; the sender
+            // lives in managed state so `set_tempo_map` can reach it.
+            // Unbounded so rapid UI edits are never dropped; audio thread drains
+            // all pending maps each callback and applies only the latest.
+            let (tempo_map_tx, tempo_map_rx) =
+                crossbeam_channel::unbounded::<Box<audio::tempo_map::CumulativeTempoMap>>();
+            audio_engine.set_tempo_map_receiver(tempo_map_rx);
+
+            let tempo_map_tx_state: audio::tempo_commands::TempoMapTxState =
+                Arc::new(Mutex::new(Some(tempo_map_tx)));
+            let tempo_map_snapshot_state: audio::tempo_commands::TempoMapSnapshotState =
+                Arc::new(Mutex::new(audio::tempo_commands::default_points()));
+
+            app.manage(tempo_map_tx_state);
+            app.manage(tempo_map_snapshot_state);
+
             let audio_engine: audio::commands::AudioEngineState =
                 Arc::new(Mutex::new(audio_engine));
             app.manage(audio_engine);
@@ -485,6 +503,8 @@ pub fn run() {
             set_punch_out,
             toggle_punch_mode,
             get_punch_markers,
+            audio::tempo_commands::set_tempo_map,
+            audio::tempo_commands::get_tempo_map,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

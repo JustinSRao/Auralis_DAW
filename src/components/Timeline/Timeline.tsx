@@ -8,6 +8,7 @@ import { usePatternStore } from '../../stores/patternStore'
 import { useAutomationStore } from '../../stores/automationStore'
 import { usePunchStore } from '../../stores/punchStore'
 import { AutomationRow } from '../automation/AutomationRow'
+import { TempoTrack } from '../daw/TempoTrack'
 import { TimeRuler, RULER_HEIGHT } from './TimeRuler'
 import { PlayheadOverlay } from './PlayheadOverlay'
 import {
@@ -527,6 +528,30 @@ export function Timeline() {
         bpm={currentBpm}
         beatsPerBar={beatsPerBar}
       />
+
+      {/* Tempo track lane — sits directly below the ruler */}
+      <div className="flex-shrink-0 border-b border-[#3a3a3a]">
+        <div className="flex">
+          {/* Track header stub: "Tempo" label, 160px wide */}
+          <div
+            className="flex items-center px-2 bg-[#1a1a1a] border-r border-[#3a3a3a] flex-shrink-0"
+            style={{ width: 160, height: 80 }}
+          >
+            <span className="text-[9px] font-mono text-[#6c63ff] uppercase tracking-wider">
+              Tempo
+            </span>
+          </div>
+          {/* Tempo canvas */}
+          <TempoTrack
+            width={canvasSize.width - 160}
+            height={80}
+            scrollLeft={viewport.scrollLeft}
+            pixelsPerBar={viewport.pixelsPerBar}
+            beatsPerBar={beatsPerBar}
+            totalBars={128}
+          />
+        </div>
+      </div>
 
       {/* Clips canvas area */}
       <div className="relative flex-1 overflow-hidden">

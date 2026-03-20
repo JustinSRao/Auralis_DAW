@@ -140,10 +140,12 @@ describe("transportStore", () => {
   // setBpm
   // -------------------------------------------------------------------------
 
-  it("setBpm calls set_bpm command with bpm value", async () => {
+  it("setBpm calls set_tempo_map command with single-point map", async () => {
     mockInvoke.mockResolvedValueOnce(undefined);
     await useTransportStore.getState().setBpm(140.0);
-    expect(mockInvoke).toHaveBeenCalledWith("set_bpm", { bpm: 140.0 });
+    expect(mockInvoke).toHaveBeenCalledWith("set_tempo_map", {
+      points: [{ tick: 0, bpm: 140.0, interp: "Step" }],
+    });
   });
 
   it("setBpm clears error on success", async () => {

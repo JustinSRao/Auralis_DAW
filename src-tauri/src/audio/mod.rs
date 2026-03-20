@@ -10,5 +10,7 @@ pub mod punch_commands;
 pub mod recorder;
 pub mod scheduler;
 pub mod scheduler_commands;
+pub mod tempo_commands;
+pub mod tempo_map;
 pub mod transport;
 pub mod types;

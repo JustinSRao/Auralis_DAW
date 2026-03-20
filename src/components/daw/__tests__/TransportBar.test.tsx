@@ -212,7 +212,9 @@ describe("TransportBar", () => {
     await userEvent.clear(bpmInput);
     await userEvent.type(bpmInput, "140");
     fireEvent.keyDown(bpmInput, { key: "Enter" });
-    expect(mockInvoke).toHaveBeenCalledWith("set_bpm", { bpm: 140 });
+    expect(mockInvoke).toHaveBeenCalledWith("set_tempo_map", {
+      points: [{ tick: 0, bpm: 140, interp: "Step" }],
+    });
   });
 
   it("BPM out of range reverts to current BPM on blur", async () => {

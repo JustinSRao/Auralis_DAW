@@ -42,7 +42,7 @@ impl std::fmt::Display for SchemaVersion {
 /// Bump `patch` for clarifications that require no data changes.
 pub const CURRENT_SCHEMA: SchemaVersion = SchemaVersion {
     major: 1,
-    minor: 1,
+    minor: 2,
     patch: 0,
 };
 
@@ -78,6 +78,27 @@ fn migrate_1_0_0_to_1_1_0(data: &mut Value) -> Result<()> {
     Ok(())
 }
 
+/// Migrates a project file from schema v1.1.0 to v1.2.0.
+///
+/// Injects a default `"tempo_map"` array into `transport` if absent.
+/// The default contains a single 120 BPM Step point at tick 0, or uses the
+/// existing constant `bpm` field if available.
+fn migrate_1_1_0_to_1_2_0(data: &mut Value) -> Result<()> {
+    if let Some(transport) = data.get_mut("transport").and_then(|t| t.as_object_mut()) {
+        if !transport.contains_key("tempo_map") {
+            let bpm = transport
+                .get("bpm")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(120.0);
+            transport.insert(
+                "tempo_map".to_string(),
+                serde_json::json!([{ "tick": 0, "bpm": bpm, "interp": "Step" }]),
+            );
+        }
+    }
+    Ok(())
+}
+
 /// All registered migrations, in ascending `from` order.
 ///
 /// Add entries here whenever the schema version is bumped.
@@ -87,6 +108,12 @@ static MIGRATIONS: &[Migration] = &[
         from: SchemaVersion { major: 1, minor: 0, patch: 0 },
         to: SchemaVersion { major: 1, minor: 1, patch: 0 },
         apply: migrate_1_0_0_to_1_1_0,
+    },
+    // v1.1.0 → v1.2.0: add `transport.tempo_map` array (Sprint 41 Tempo Automation).
+    Migration {
+        from: SchemaVersion { major: 1, minor: 1, patch: 0 },
+        to: SchemaVersion { major: 1, minor: 2, patch: 0 },
+        apply: migrate_1_1_0_to_1_2_0,
     },
 ];
 
@@ -168,8 +195,8 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn current_schema_is_v1_1() {
-        assert_eq!(CURRENT_SCHEMA, SchemaVersion::new(1, 1, 0));
+    fn current_schema_is_v1_2() {
+        assert_eq!(CURRENT_SCHEMA, SchemaVersion::new(1, 2, 0));
     }
 
     #[test]
@@ -185,7 +212,7 @@ mod tests {
     #[test]
     fn no_migration_needed_for_current_version() {
         let mut data = json!({
-            "schema_version": { "major": 1, "minor": 1, "patch": 0 },
+            "schema_version": { "major": 1, "minor": 2, "patch": 0 },
             "patterns": []
         });
         assert!(apply_migrations(&mut data).is_ok());
@@ -196,10 +223,11 @@ mod tests {
     }
 
     #[test]
-    fn migration_1_0_0_to_1_1_0_injects_patterns_field() {
+    fn migration_1_0_0_injects_patterns_and_tempo_map() {
         let mut data = json!({
             "schema_version": { "major": 1, "minor": 0, "patch": 0 },
-            "name": "Old Project"
+            "name": "Old Project",
+            "transport": { "bpm": 140.0 }
         });
         assert!(apply_migrations(&mut data).is_ok());
         // Should have been bumped to current.
@@ -208,6 +236,11 @@ mod tests {
         assert_eq!(sv, CURRENT_SCHEMA);
         // patterns field must be present and empty.
         assert_eq!(data["patterns"], json!([]));
+        // tempo_map must be injected using the existing bpm
+        let tm = &data["transport"]["tempo_map"];
+        assert_eq!(tm[0]["bpm"], json!(140.0));
+        assert_eq!(tm[0]["tick"], json!(0));
+        assert_eq!(tm[0]["interp"], json!("Step"));
     }
 
     #[test]
@@ -216,10 +249,25 @@ mod tests {
                                "lengthBars": 4, "content": {"type": "Midi", "notes": []}}]);
         let mut data = json!({
             "schema_version": { "major": 1, "minor": 0, "patch": 0 },
-            "patterns": existing.clone()
+            "patterns": existing.clone(),
+            "transport": { "bpm": 120.0 }
         });
         assert!(apply_migrations(&mut data).is_ok());
         assert_eq!(data["patterns"], existing);
+    }
+
+    #[test]
+    fn migration_1_1_0_to_1_2_0_injects_tempo_map() {
+        let mut data = json!({
+            "schema_version": { "major": 1, "minor": 1, "patch": 0 },
+            "transport": { "bpm": 90.0 }
+        });
+        assert!(apply_migrations(&mut data).is_ok());
+        let sv: SchemaVersion =
+            serde_json::from_value(data["schema_version"].clone()).unwrap();
+        assert_eq!(sv, CURRENT_SCHEMA);
+        let tm = &data["transport"]["tempo_map"];
+        assert_eq!(tm[0]["bpm"], json!(90.0));
     }
 
     #[test]

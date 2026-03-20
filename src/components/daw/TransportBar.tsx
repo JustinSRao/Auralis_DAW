@@ -4,6 +4,7 @@ import type { TransportSnapshot, RecordQuantize, RecordingStartedEvent, Recordin
 import { useTransportStore } from "@/stores/transportStore";
 import { usePatternStore } from "@/stores/patternStore";
 import { usePunchStore } from "@/stores/punchStore";
+import { useTempoMapStore } from "@/stores/tempoMapStore";
 
 // ---------------------------------------------------------------------------
 // Time signature denominator options
@@ -43,6 +44,9 @@ export function TransportBar() {
   const { snapshot } = store;
   const addRecordedNote = usePatternStore((s) => s.addRecordedNote);
   const [isRecording, setIsRecording] = useState(false);
+
+  // BPM input is read-only when there are multiple tempo points
+  const hasMultipleTempoPoints = useTempoMapStore((s) => s.points.length > 1);
 
   // Punch store
   const punchEnabled = usePunchStore((s) => s.punchEnabled);
@@ -271,24 +275,31 @@ export function TransportBar() {
           id="bpm-input"
           type="text"
           inputMode="decimal"
-          value={bpmInput}
-          onChange={(e) => setBpmInput(e.target.value)}
-          onKeyDown={handleBpmKeyDown}
+          value={hasMultipleTempoPoints ? snapshot.bpm.toFixed(1) : bpmInput}
+          readOnly={hasMultipleTempoPoints}
+          onChange={(e) => { if (!hasMultipleTempoPoints) setBpmInput(e.target.value); }}
+          onKeyDown={(e) => { if (!hasMultipleTempoPoints) handleBpmKeyDown(e); }}
           onFocus={() => {
-            bpmFocused.current = true;
-            bpmEscaped.current = false;
+            if (!hasMultipleTempoPoints) {
+              bpmFocused.current = true;
+              bpmEscaped.current = false;
+            }
           }}
           onBlur={() => {
-            bpmFocused.current = false;
-            if (!bpmEscaped.current) {
-              commitBpm();
+            if (!hasMultipleTempoPoints) {
+              bpmFocused.current = false;
+              if (!bpmEscaped.current) {
+                commitBpm();
+              }
+              bpmEscaped.current = false;
             }
-            bpmEscaped.current = false;
           }}
           aria-label="BPM"
-          className="w-16 text-center text-sm font-mono bg-[#1a1a1a] text-[#e0e0e0]
+          title={hasMultipleTempoPoints ? "BPM is controlled by the tempo track (multiple points)" : undefined}
+          className={`w-16 text-center text-sm font-mono bg-[#1a1a1a] text-[#e0e0e0]
                      border border-[#3a3a3a] rounded px-1 py-0.5
-                     focus:outline-none focus:border-[#6c63ff]"
+                     focus:outline-none focus:border-[#6c63ff]
+                     ${hasMultipleTempoPoints ? 'opacity-60 cursor-not-allowed' : ''}`}
         />
       </div>
 

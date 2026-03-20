@@ -18,6 +18,8 @@ use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 
+use super::tempo_map::CumulativeTempoMap;
+
 /// Number of ticks per beat (Pulses Per Quarter Note).
 ///
 /// 480 PPQN is a standard DAW resolution, giving fine sub-beat precision.
@@ -411,6 +413,38 @@ impl TransportClock {
         self.punch_in_samples = (self.punch_in_beats * new_spb) as u64;
         self.punch_out_samples = (self.punch_out_beats * new_spb) as u64;
 
+        self.atomics
+            .samples_per_beat_bits
+            .store(new_spb.to_bits(), Ordering::Release);
+        self.atomics
+            .playhead_samples
+            .store(self.position_samples, Ordering::Release);
+
+        self.try_write_snapshot();
+    }
+
+    /// Applies a new variable-tempo map, updating `bpm` and all derived
+    /// sample positions from their beat-authoritative values.
+    ///
+    /// Called from the audio callback when a new [`CumulativeTempoMap`] arrives
+    /// via the bounded channel.  This method is allocation-free; all fields are
+    /// plain values on the stack.
+    pub fn apply_new_tempo_map(&mut self, map: CumulativeTempoMap) {
+        // Read new instantaneous BPM and SPB at the current sample position
+        let new_bpm = map.current_bpm_at_sample(self.position_samples);
+        let new_spb = map.current_spb_at_sample(self.position_samples);
+
+        self.bpm = new_bpm;
+        self.samples_per_beat = new_spb;
+
+        // Recompute all beat→sample derived positions using the new map
+        self.loop_start_samples = (self.loop_start_beats * new_spb) as u64;
+        self.loop_end_samples = (self.loop_end_beats * new_spb) as u64;
+        self.punch_in_samples = (self.punch_in_beats * new_spb) as u64;
+        self.punch_out_samples = (self.punch_out_beats * new_spb) as u64;
+
+        // Update shared atomics so MetronomeNode, LFO, step sequencer etc. see
+        // the new tempo immediately within this same buffer.
         self.atomics
             .samples_per_beat_bits
             .store(new_spb.to_bits(), Ordering::Release);

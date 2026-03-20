@@ -11,6 +11,7 @@ use super::devices;
 use super::graph::{AudioGraph, AudioNode, SineTestNode, TripleBuffer};
 use super::metronome::MetronomeNode;
 use super::scheduler::{ArrangementScheduler, SchedulerCommand};
+use super::tempo_map::CumulativeTempoMap;
 use super::transport::{TransportAtomics, TransportClock, TransportSnapshot, TransportState};
 use super::types::*;
 use crate::midi::types::TimestampedMidiEvent;
@@ -92,6 +93,11 @@ pub struct AudioEngine {
     midi_event_rx: Option<Receiver<TimestampedMidiEvent>>,
     /// Receiver for scheduler commands from the main thread (set before starting engine).
     scheduler_cmd_rx: Option<Receiver<SchedulerCommand>>,
+    /// Receiver for new [`CumulativeTempoMap`] instances from the main thread.
+    ///
+    /// Bounded channel (size 1).  The audio callback drains it at the top of
+    /// each buffer so tempo changes apply within one buffer period.
+    tempo_map_rx: Option<crossbeam_channel::Receiver<Box<CumulativeTempoMap>>>,
     /// Shared snapshot of transport state. Updated by the audio thread via
     /// `try_lock`; read by the 60 fps poller and `get_transport_state` IPC.
     pub transport_snapshot: Arc<Mutex<TransportSnapshot>>,
@@ -116,6 +122,7 @@ impl AudioEngine {
             test_tone_amplitude: Arc::new(AtomicF32::new(0.0)),
             midi_event_rx: None,
             scheduler_cmd_rx: None,
+            tempo_map_rx: None,
             transport_snapshot: Arc::new(Mutex::new(TransportSnapshot::default())),
             external_transport_atomics: None,
         }
@@ -302,6 +309,26 @@ impl AudioEngine {
         self.scheduler_cmd_rx = Some(rx);
     }
 
+    /// Sets the tempo-map receiver.  Must be called before starting the engine.
+    ///
+    /// The receiver is moved into the audio callback closure where it is drained
+    /// at the top of each buffer (non-blocking) to apply tempo-map updates from
+    /// the main thread within a single buffer period.
+    pub fn set_tempo_map_receiver(
+        &mut self,
+        rx: crossbeam_channel::Receiver<Box<CumulativeTempoMap>>,
+    ) {
+        self.tempo_map_rx = Some(rx);
+    }
+
+    /// Returns the configured sample rate (Hz).
+    ///
+    /// Used by [`crate::audio::tempo_commands::set_tempo_map`] to build a
+    /// correctly-scaled [`CumulativeTempoMap`] before the engine has started.
+    pub fn get_sample_rate(&self) -> u32 {
+        self.config.sample_rate
+    }
+
     /// Toggles the 440 Hz test tone on or off.
     ///
     /// Lock-free — writes to a shared `AtomicF32` read by the audio thread.
@@ -412,6 +439,12 @@ impl AudioEngine {
         });
         let mut scheduler = ArrangementScheduler::new(scheduler_rx);
 
+        // Tempo map receiver: falls back to a disconnected channel if not set.
+        let tempo_map_rx = self.tempo_map_rx.take().unwrap_or_else(|| {
+            let (_, rx) = crossbeam_channel::bounded(1);
+            rx
+        });
+
         // Monitoring state: owned by the audio thread inside the closure
         let mut monitoring_cons: Option<ringbuf::HeapConsumer<f32>> = None;
         let mut monitoring_enabled_flag = false;
@@ -425,6 +458,7 @@ impl AudioEngine {
                         &mut triple_buf,
                         &mut clock,
                         &command_rx,
+                        &tempo_map_rx,
                         midi_rx.as_ref(),
                         sr,
                         ch,
@@ -477,6 +511,7 @@ fn audio_callback(
     triple_buf: &mut TripleBuffer,
     clock: &mut TransportClock,
     command_rx: &Receiver<AudioCommand>,
+    tempo_map_rx: &crossbeam_channel::Receiver<Box<CumulativeTempoMap>>,
     midi_rx: Option<&Receiver<TimestampedMidiEvent>>,
     sample_rate: u32,
     channels: u16,
@@ -485,6 +520,17 @@ fn audio_callback(
     monitoring_enabled: &mut bool,
     scheduler: &mut ArrangementScheduler,
 ) {
+    // Drain all pending tempo maps; apply only the latest (latest-wins semantics).
+    // No allocation: only the last Box is kept; earlier ones are dropped here
+    // (on the audio thread, but only when there are pending maps — not every callback).
+    let mut latest_map: Option<Box<CumulativeTempoMap>> = None;
+    while let Ok(m) = tempo_map_rx.try_recv() {
+        latest_map = Some(m);
+    }
+    if let Some(new_map) = latest_map {
+        clock.apply_new_tempo_map(*new_map);
+    }
+
     // Drain commands (non-blocking)
     while let Ok(cmd) = command_rx.try_recv() {
         match cmd {

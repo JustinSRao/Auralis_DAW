@@ -18,6 +18,7 @@ const mockProject: ProjectFileData = {
     loop_enabled: false,
     loop_start_beats: 0,
     loop_end_beats: 16,
+    tempo_map: [{ tick: 0, bpm: 120, interp: "Step" }],
   },
   tracks: [],
   master: { volume: 0.8, pan: 0, effects: [] },
