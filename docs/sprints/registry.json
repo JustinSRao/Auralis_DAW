@@ -396,13 +396,13 @@
     },
     "41": {
       "title": "Tempo Automation",
-      "status": "planning",
+      "status": "done",
       "epic": 4,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-19",
+      "hours": 15.2
     },
     "42": {
       "title": "Sub-Group Bus Routing",
@@ -490,7 +490,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 12,
-      "completedSprints": 9
+      "completedSprints": 10
     },
     "5": {
       "title": "Audio Editing",
