@@ -1,10 +1,10 @@
 ---
 epic: 05
 title: "Audio Editing"
-status: planning
+status: done
 created: 2026-02-22
-started: null
-completed: null
+started: 2026-03-20
+completed: 2026-03-20
 ---
 
 # Epic 05: Audio Editing
@@ -25,8 +25,8 @@ Provides non-destructive audio clip editing tools for working with recorded or i
 
 | Sprint | Title | Status |
 |--------|-------|--------|
-| 15 | Waveform Editor (Cut, Trim, Reverse, Splice) | planned |
-| 16 | Time Stretch & Pitch Shift | planned |
+| 15 | Waveform Editor (Cut, Trim, Reverse, Splice) | done |
+| 16 | Time Stretch & Pitch Shift | done |
 
 ## Backlog
 

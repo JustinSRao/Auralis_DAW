@@ -3,12 +3,13 @@ sprint: 16
 title: "Time Stretch & Pitch Shift"
 type: fullstack
 epic: 5
-status: planning
+status: done
 created: 2026-02-22T22:10:12Z
-started: null
-completed: null
-hours: null
+started: 2026-03-20T01:01:49Z
+completed: 2026-03-20T08:00:00Z
+hours: 7.0
 workflow_version: "3.1.0"
+
 ---
 
 # Sprint 16: Time Stretch & Pitch Shift
@@ -21,10 +22,10 @@ workflow_version: "3.1.0"
 | Title | Time Stretch & Pitch Shift |
 | Type | fullstack |
 | Epic | 5 |
-| Status | Planning |
+| Status | Done |
 | Created | 2026-02-22 |
-| Started | - |
-| Completed | - |
+| Started | 2026-03-20 |
+| Completed | 2026-03-20 |
 
 ## Goal
 
@@ -116,6 +117,10 @@ Time stretching uses `rubato::FftFixedIn` resampler as a general-purpose sample 
 - [ ] Bake creates a new WAV file at the stretched length
 - [ ] BPM match button correctly computes the stretch ratio from original and project BPM
 - [ ] Stretch and pitch values persist in the project file and restore on load
+
+## Postmortem
+
+See [Sprint 16 Postmortem](./sprint-16_postmortem.md)
 
 ## Notes
 

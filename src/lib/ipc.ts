@@ -261,6 +261,10 @@ export interface ClipData {
   start_beats: number;
   duration_beats: number;
   content: ClipContent;
+  /** Time-stretch ratio (0.5–2.0). Absent/null = 1.0 (no stretch). Added in v1.3.0. */
+  stretch_ratio?: number | null;
+  /** Pitch shift in semitones (-24..=+24). Absent/null = 0. Added in v1.3.0. */
+  pitch_shift_semitones?: number | null;
 }
 
 export type InstrumentData =
@@ -1700,4 +1704,116 @@ export async function ipcReverseClipRegion(
 /** Evicts all cache entries for `filePath`. Call after destructive edits. */
 export async function ipcInvalidateClipCache(filePath: string): Promise<void> {
   return invoke<void>('invalidate_clip_cache', { filePath });
+}
+
+// ── Sprint 16: Time Stretch & Pitch Shift ────────────────────────────────────
+
+/**
+ * Returned by `set_clip_time_stretch`.
+ * Reports the frame count of the processed buffer so the frontend can update
+ * its total-frames display.
+ */
+export interface SetStretchResult {
+  /** Echo of the clip ID. */
+  clipId: string;
+  /** Frame count of the time-stretched buffer. */
+  processedFrameCount: number;
+}
+
+/**
+ * Returned by `bake_clip_stretch`.
+ * Contains all metadata needed to swap the original clip for the baked version.
+ */
+export interface BakeResult {
+  /** Updated clip metadata pointing to the baked WAV file. */
+  newClipData: ClipEditData;
+  /** Sample reference record for the baked WAV file. */
+  newSampleReference: SampleReferenceData;
+  /** Absolute path to the written `.wav` file. */
+  bakedFilePath: string;
+}
+
+/**
+ * Applies time-stretch to a clip's audio.
+ *
+ * Checks the processed cache first; on a miss, decodes the source file and
+ * runs the FFT resampler. Returns the frame count of the processed buffer.
+ *
+ * @param clipId       - Unique clip identifier (used as cache key prefix).
+ * @param filePath     - Absolute path to the source audio file.
+ * @param stretchRatio - Time-stretch factor. 0.5–2.0 inclusive.
+ *                       1.0 = no change, 2.0 = twice as long (half speed).
+ */
+export async function ipcSetClipTimeStretch(
+  clipId: string,
+  filePath: string,
+  stretchRatio: number,
+): Promise<SetStretchResult> {
+  return invoke<SetStretchResult>('set_clip_time_stretch', { clipId, filePath, stretchRatio });
+}
+
+/**
+ * Applies pitch-shift to a clip's audio while preserving duration.
+ *
+ * Uses a double-pass rubato approach (time-stretch + resample back).
+ *
+ * @param clipId              - Unique clip identifier.
+ * @param filePath            - Absolute path to the source audio file.
+ * @param pitchShiftSemitones - Pitch offset in semitones. -24..=+24.
+ */
+export async function ipcSetClipPitchShift(
+  clipId: string,
+  filePath: string,
+  pitchShiftSemitones: number,
+): Promise<void> {
+  return invoke<void>('set_clip_pitch_shift', { clipId, filePath, pitchShiftSemitones });
+}
+
+/**
+ * Bakes the current time-stretch and pitch-shift settings to a permanent WAV file.
+ *
+ * Applies stretch → pitch shift → writes WAV → invalidates caches.
+ * Returns updated clip metadata and a new sample reference for undo/redo support.
+ *
+ * @param clipId              - Unique clip identifier.
+ * @param clipData            - Current clip edit metadata.
+ * @param filePath            - Absolute path to the source audio file.
+ * @param stretchRatio        - Time-stretch factor (0.5–2.0). Use 1.0 for identity.
+ * @param pitchShiftSemitones - Pitch offset in semitones (-24..=+24). Use 0 for identity.
+ * @param outputDir           - Directory where the baked WAV will be written.
+ */
+export async function ipcBakeClipStretch(
+  clipId: string,
+  clipData: ClipEditData,
+  filePath: string,
+  stretchRatio: number,
+  pitchShiftSemitones: number,
+  outputDir: string,
+): Promise<BakeResult> {
+  return invoke<BakeResult>('bake_clip_stretch', {
+    clipId,
+    clipData,
+    filePath,
+    stretchRatio,
+    pitchShiftSemitones,
+    outputDir,
+  });
+}
+
+/**
+ * Computes the time-stretch ratio needed to match an audio clip's internal
+ * tempo to the project BPM.
+ *
+ * `stretchRatio = originalBpm / projectBpm`
+ *
+ * @param originalBpm - The BPM the audio was recorded or produced at.
+ * @param projectBpm  - The current project BPM.
+ * @returns The stretch ratio to apply, in the range [0.5, 2.0].
+ * @throws If either BPM is ≤ 0, or if the resulting ratio is outside [0.5, 2.0].
+ */
+export async function ipcComputeBpmStretchRatio(
+  originalBpm: number,
+  projectBpm: number,
+): Promise<number> {
+  return invoke<number>('compute_bpm_stretch_ratio', { originalBpm, projectBpm });
 }

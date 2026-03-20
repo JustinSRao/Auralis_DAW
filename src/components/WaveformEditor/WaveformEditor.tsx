@@ -17,6 +17,7 @@ import {
 import { useWaveformEditorStore } from '../../stores/waveformEditorStore'
 import { useHistoryStore } from '../../stores/historyStore'
 import { WaveformToolbar } from './WaveformToolbar'
+import { StretchPanel } from './StretchPanel'
 
 // ---------------------------------------------------------------------------
 // Drawing constants
@@ -345,6 +346,9 @@ export function WaveformEditor() {
 
       {/* Toolbar */}
       <WaveformToolbar />
+
+      {/* Sprint 16: Time Stretch & Pitch Shift panel */}
+      <StretchPanel />
 
       {/* Canvas area */}
       <div

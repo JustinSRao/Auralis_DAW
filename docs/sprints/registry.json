@@ -156,13 +156,13 @@
     },
     "16": {
       "title": "Time Stretch & Pitch Shift",
-      "status": "planning",
+      "status": "done",
       "epic": 5,
       "type": "fullstack",
       "created": "2026-02-22",
-      "started": null,
-      "completed": null,
-      "hours": null
+      "started": "2026-03-20",
+      "completed": "2026-03-20",
+      "hours": 7.0
     },
     "17": {
       "title": "Full Mixer (Tracks, Routing, Sends, Buses)",

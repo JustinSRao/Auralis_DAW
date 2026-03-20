@@ -51,6 +51,7 @@ use audio::loop_recorder::{LoopRecordController, LoopRecordControllerState};
 use audio::take_lane::{TakeLaneStore, TakeLaneStoreState};
 use audio::take_commands::{TakeCreatedEvent, TakeRecordingStartedEvent};
 use audio_editing::peak_cache::{ClipBufferCache, ClipBufferCacheState, PeakCache, PeakCacheState};
+use audio_editing::processed_cache::{ProcessedBufferCache, ProcessedBufferCacheState};
 
 #[tauri::command]
 fn get_version() -> String {
@@ -498,6 +499,11 @@ pub fn run() {
                 Arc::new(Mutex::new(PeakCache::default()));
             app.manage(peak_cache);
 
+            // --- Sprint 16: Processed buffer cache (time-stretch / pitch-shift) ---
+            let processed_cache: ProcessedBufferCacheState =
+                Arc::new(Mutex::new(ProcessedBufferCache::new()));
+            app.manage(processed_cache);
+
             // Initialize project manager
             let pm_state: ProjectManagerState =
                 Arc::new(Mutex::new(ProjectManager::new()));
@@ -713,6 +719,10 @@ pub fn run() {
             audio_editing::commands::compute_trim_end_clip,
             audio_editing::commands::reverse_clip_region,
             audio_editing::commands::invalidate_clip_cache,
+            audio_editing::stretch_commands::set_clip_time_stretch,
+            audio_editing::stretch_commands::set_clip_pitch_shift,
+            audio_editing::stretch_commands::bake_clip_stretch,
+            audio_editing::stretch_commands::compute_bpm_stretch_ratio,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

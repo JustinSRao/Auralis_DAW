@@ -42,7 +42,7 @@ impl std::fmt::Display for SchemaVersion {
 /// Bump `patch` for clarifications that require no data changes.
 pub const CURRENT_SCHEMA: SchemaVersion = SchemaVersion {
     major: 1,
-    minor: 2,
+    minor: 3,
     patch: 0,
 };
 
@@ -99,6 +99,28 @@ fn migrate_1_1_0_to_1_2_0(data: &mut Value) -> Result<()> {
     Ok(())
 }
 
+/// Migrates a project file from schema v1.2.0 to v1.3.0.
+///
+/// Adds `stretch_ratio: null` and `pitch_shift_semitones: null` to all clips
+/// in all tracks that are missing those fields. Because both fields have
+/// `#[serde(default)]` in Rust this migration is a no-op for runtime
+/// deserialization, but it keeps the stored JSON tidy.
+fn migrate_1_2_0_to_1_3_0(data: &mut Value) -> Result<()> {
+    if let Some(tracks) = data.get_mut("tracks").and_then(|t| t.as_array_mut()) {
+        for track in tracks.iter_mut() {
+            if let Some(clips) = track.get_mut("clips").and_then(|c| c.as_array_mut()) {
+                for clip in clips.iter_mut() {
+                    if let Some(obj) = clip.as_object_mut() {
+                        obj.entry("stretch_ratio").or_insert(Value::Null);
+                        obj.entry("pitch_shift_semitones").or_insert(Value::Null);
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 /// All registered migrations, in ascending `from` order.
 ///
 /// Add entries here whenever the schema version is bumped.
@@ -114,6 +136,12 @@ static MIGRATIONS: &[Migration] = &[
         from: SchemaVersion { major: 1, minor: 1, patch: 0 },
         to: SchemaVersion { major: 1, minor: 2, patch: 0 },
         apply: migrate_1_1_0_to_1_2_0,
+    },
+    // v1.2.0 → v1.3.0: add `stretch_ratio` and `pitch_shift_semitones` to clips (Sprint 16).
+    Migration {
+        from: SchemaVersion { major: 1, minor: 2, patch: 0 },
+        to: SchemaVersion { major: 1, minor: 3, patch: 0 },
+        apply: migrate_1_2_0_to_1_3_0,
     },
 ];
 
@@ -195,8 +223,8 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn current_schema_is_v1_2() {
-        assert_eq!(CURRENT_SCHEMA, SchemaVersion::new(1, 2, 0));
+    fn current_schema_is_v1_3() {
+        assert_eq!(CURRENT_SCHEMA, SchemaVersion::new(1, 3, 0));
     }
 
     #[test]
@@ -212,7 +240,7 @@ mod tests {
     #[test]
     fn no_migration_needed_for_current_version() {
         let mut data = json!({
-            "schema_version": { "major": 1, "minor": 2, "patch": 0 },
+            "schema_version": { "major": 1, "minor": 3, "patch": 0 },
             "patterns": []
         });
         assert!(apply_migrations(&mut data).is_ok());
@@ -227,10 +255,11 @@ mod tests {
         let mut data = json!({
             "schema_version": { "major": 1, "minor": 0, "patch": 0 },
             "name": "Old Project",
-            "transport": { "bpm": 140.0 }
+            "transport": { "bpm": 140.0 },
+            "tracks": []
         });
         assert!(apply_migrations(&mut data).is_ok());
-        // Should have been bumped to current.
+        // Should have been bumped to current (v1.3.0).
         let sv: SchemaVersion =
             serde_json::from_value(data["schema_version"].clone()).unwrap();
         assert_eq!(sv, CURRENT_SCHEMA);
@@ -260,7 +289,8 @@ mod tests {
     fn migration_1_1_0_to_1_2_0_injects_tempo_map() {
         let mut data = json!({
             "schema_version": { "major": 1, "minor": 1, "patch": 0 },
-            "transport": { "bpm": 90.0 }
+            "transport": { "bpm": 90.0 },
+            "tracks": []
         });
         assert!(apply_migrations(&mut data).is_ok());
         let sv: SchemaVersion =
@@ -268,6 +298,27 @@ mod tests {
         assert_eq!(sv, CURRENT_SCHEMA);
         let tm = &data["transport"]["tempo_map"];
         assert_eq!(tm[0]["bpm"], json!(90.0));
+    }
+
+    #[test]
+    fn migration_1_2_0_to_1_3_0_injects_stretch_fields() {
+        let mut data = json!({
+            "schema_version": { "major": 1, "minor": 2, "patch": 0 },
+            "tracks": [
+                {
+                    "clips": [
+                        { "id": "c1", "name": "kick", "start_beats": 0.0 }
+                    ]
+                }
+            ]
+        });
+        assert!(apply_migrations(&mut data).is_ok());
+        let sv: SchemaVersion =
+            serde_json::from_value(data["schema_version"].clone()).unwrap();
+        assert_eq!(sv, CURRENT_SCHEMA);
+        // stretch fields must be injected as null
+        assert_eq!(data["tracks"][0]["clips"][0]["stretch_ratio"], json!(null));
+        assert_eq!(data["tracks"][0]["clips"][0]["pitch_shift_semitones"], json!(null));
     }
 
     #[test]

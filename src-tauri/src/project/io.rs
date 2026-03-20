@@ -274,6 +274,8 @@ mod tests {
                     }],
                     cc_events: vec![],
                 },
+                stretch_ratio: None,
+                pitch_shift_semitones: None,
             }],
             automation: vec![],
         });

@@ -224,6 +224,16 @@ pub struct ClipData {
     pub duration_beats: f64,
     /// The actual content held by the clip.
     pub content: ClipContent,
+    /// Time-stretch ratio applied to this clip.
+    /// `1.0` = no stretch, `2.0` = twice as long (half speed), `0.5` = half as long.
+    /// Valid range: 0.5–2.0. Absent in files before v1.3.0 — defaults to `None`.
+    #[serde(default)]
+    pub stretch_ratio: Option<f32>,
+    /// Pitch shift in semitones applied to this clip.
+    /// `0` = no shift, positive = higher pitch, negative = lower pitch.
+    /// Valid range: -24..=+24. Absent in files before v1.3.0 — defaults to `None`.
+    #[serde(default)]
+    pub pitch_shift_semitones: Option<i8>,
 }
 
 /// The payload stored inside a [`ClipData`].
@@ -540,6 +550,8 @@ mod tests {
                         channel: 0,
                     }],
                 },
+                stretch_ratio: None,
+                pitch_shift_semitones: None,
             }],
             automation: vec![AutomationLane {
                 target: "track.volume".to_string(),
@@ -568,6 +580,8 @@ mod tests {
                 start_offset_samples: 1024,
                 gain: 0.9,
             },
+            stretch_ratio: None,
+            pitch_shift_semitones: None,
         };
         let json = serde_json::to_string(&clip).expect("serialize");
         let decoded: ClipData = serde_json::from_str(&json).expect("deserialize");

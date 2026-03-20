@@ -8,7 +8,19 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 import type { PeakData } from '../lib/ipc'
-import { ipcGetPeakData } from '../lib/ipc'
+import {
+  ipcGetPeakData,
+  ipcSetClipTimeStretch,
+  ipcSetClipPitchShift,
+  ipcBakeClipStretch,
+} from '../lib/ipc'
+import { useHistoryStore } from './historyStore'
+import {
+  SetStretchRatioCommand,
+  SetPitchShiftCommand,
+  BakeStretchCommand,
+} from '../lib/commands/StretchPitchCommands'
+import type { ClipEditData, SampleReferenceData } from '../lib/ipc'
 
 // ---------------------------------------------------------------------------
 // Sub-types
@@ -48,12 +60,20 @@ interface WaveformEditorState {
   selection: SelectionRange | null
   tool: WaveformTool
   error: string | null
+  // Sprint 16: Time Stretch & Pitch Shift
+  /** Current time-stretch ratio (0.5–2.0). 1.0 = no stretch. */
+  stretchRatio: number
+  /** Current pitch shift in semitones (-24..=+24). 0 = no shift. */
+  pitchSemitones: number
+  /** True while a time-stretch or pitch-shift operation is in progress. */
+  isProcessing: boolean
 }
 
 interface WaveformEditorActions {
   /**
    * Opens the waveform editor for a specific audio clip.
    * Automatically triggers peak data loading at the current viewport zoom.
+   * Reads `stretch_ratio` and `pitch_shift_semitones` from the clip data.
    */
   openForClip(
     clipId: string,
@@ -61,6 +81,8 @@ interface WaveformEditorActions {
     filePath: string,
     totalFrames: number,
     sampleRate: number,
+    stretchRatio?: number | null,
+    pitchSemitones?: number | null,
   ): void
 
   /** Closes the editor and resets all state. */
@@ -83,6 +105,28 @@ interface WaveformEditorActions {
 
   /** Clears the last error message. */
   clearError(): void
+
+  // Sprint 16: Time Stretch & Pitch Shift
+
+  /**
+   * Applies time-stretch to the current clip.
+   * Calls the backend, updates `totalFrames` from the processed frame count,
+   * and pushes a `SetStretchRatioCommand` to the history store.
+   */
+  applyStretch(ratio: number): Promise<void>
+
+  /**
+   * Applies pitch-shift to the current clip.
+   * Calls the backend and pushes a `SetPitchShiftCommand` to the history store.
+   */
+  applyPitch(semitones: number): Promise<void>
+
+  /**
+   * Bakes the current stretch + pitch settings to a permanent WAV file.
+   * Calls the backend, swaps the clip in the project, and pushes a
+   * `BakeStretchCommand` to the history store.
+   */
+  bakeToFile(outputDir: string): Promise<void>
 }
 
 export type WaveformEditorStore = WaveformEditorState & WaveformEditorActions
@@ -115,6 +159,9 @@ const INITIAL_STATE: WaveformEditorState = {
   selection: null,
   tool: 'select',
   error: null,
+  stretchRatio: 1.0,
+  pitchSemitones: 0,
+  isProcessing: false,
 }
 
 // ---------------------------------------------------------------------------
@@ -125,7 +172,7 @@ export const useWaveformEditorStore = create<WaveformEditorStore>()(
   immer((set, get) => ({
     ...INITIAL_STATE,
 
-    openForClip: (clipId, trackId, filePath, totalFrames, sampleRate) => {
+    openForClip: (clipId, trackId, filePath, totalFrames, sampleRate, stretchRatio, pitchSemitones) => {
       set((s) => {
         s.isOpen = true
         s.activeClipId = clipId
@@ -139,6 +186,9 @@ export const useWaveformEditorStore = create<WaveformEditorStore>()(
         s.selection = null
         s.tool = 'select'
         s.error = null
+        s.stretchRatio = stretchRatio ?? 1.0
+        s.pitchSemitones = pitchSemitones ?? 0
+        s.isProcessing = false
         // Keep viewport.canvasWidth but reset zoom/scroll
         s.viewport.framesPerPixel = DEFAULT_VIEWPORT.framesPerPixel
         s.viewport.scrollFrames = 0
@@ -206,6 +256,117 @@ export const useWaveformEditorStore = create<WaveformEditorStore>()(
       set((s) => {
         s.error = null
       })
+    },
+
+    // -------------------------------------------------------------------------
+    // Sprint 16: Time Stretch & Pitch Shift
+    // -------------------------------------------------------------------------
+
+    applyStretch: async (ratio: number) => {
+      const { activeClipId, activeTrackId, filePath, stretchRatio } = get()
+      if (!activeClipId || !activeTrackId || !filePath) return
+
+      set((s) => { s.isProcessing = true; s.error = null })
+      try {
+        const result = await ipcSetClipTimeStretch(activeClipId, filePath, ratio)
+        set((s) => {
+          s.stretchRatio = ratio
+          s.totalFrames = result.processedFrameCount
+          s.isProcessing = false
+        })
+        const cmd = new SetStretchRatioCommand(
+          activeTrackId,
+          activeClipId,
+          stretchRatio === 1.0 ? null : stretchRatio,
+          ratio === 1.0 ? null : ratio,
+        )
+        useHistoryStore.getState().push(cmd)
+      } catch (e) {
+        set((s) => { s.error = String(e); s.isProcessing = false })
+      }
+    },
+
+    applyPitch: async (semitones: number) => {
+      const { activeClipId, activeTrackId, filePath, pitchSemitones } = get()
+      if (!activeClipId || !activeTrackId || !filePath) return
+
+      set((s) => { s.isProcessing = true; s.error = null })
+      try {
+        await ipcSetClipPitchShift(activeClipId, filePath, semitones)
+        set((s) => {
+          s.pitchSemitones = semitones
+          s.isProcessing = false
+        })
+        const cmd = new SetPitchShiftCommand(
+          activeTrackId,
+          activeClipId,
+          pitchSemitones === 0 ? null : pitchSemitones,
+          semitones === 0 ? null : semitones,
+        )
+        useHistoryStore.getState().push(cmd)
+      } catch (e) {
+        set((s) => { s.error = String(e); s.isProcessing = false })
+      }
+    },
+
+    bakeToFile: async (outputDir: string) => {
+      const { activeClipId, activeTrackId, filePath, stretchRatio, pitchSemitones } = get()
+      if (!activeClipId || !activeTrackId || !filePath) return
+
+      // Build ClipEditData from the current project state
+      const { useFileStore } = await import('./fileStore')
+      const project = useFileStore.getState().currentProject
+      if (!project) return
+
+      const track = project.tracks.find((t) => t.id === activeTrackId)
+      if (!track) return
+
+      const clip = track.clips.find((c) => c.id === activeClipId)
+      if (!clip || clip.content.type !== 'Audio') return
+
+      const clipData: ClipEditData = {
+        id: clip.id,
+        name: clip.name,
+        startBeats: clip.start_beats,
+        durationBeats: clip.duration_beats,
+        sampleId: clip.content.sample_id,
+        startOffsetSamples: clip.content.start_offset_samples,
+        gain: clip.content.gain,
+      }
+
+      set((s) => { s.isProcessing = true; s.error = null })
+      try {
+        const result = await ipcBakeClipStretch(
+          activeClipId,
+          clipData,
+          filePath,
+          stretchRatio,
+          pitchSemitones,
+          outputDir,
+        )
+
+        const newSampleRef: SampleReferenceData = result.newSampleReference
+        const cmd = new BakeStretchCommand(
+          activeTrackId,
+          activeClipId,
+          clipData,
+          result.newClipData,
+          newSampleRef,
+          result.bakedFilePath,
+        )
+        useHistoryStore.getState().push(cmd)
+
+        // Reset stretch/pitch state — the baked clip is identity
+        set((s) => {
+          s.activeClipId = result.newClipData.id
+          s.filePath = result.bakedFilePath
+          s.stretchRatio = 1.0
+          s.pitchSemitones = 0
+          s.isProcessing = false
+        })
+      } catch (e) {
+        set((s) => { s.error = String(e); s.isProcessing = false })
+      }
     },
   })),
 )

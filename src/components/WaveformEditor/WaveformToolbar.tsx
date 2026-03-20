@@ -361,6 +361,30 @@ export function WaveformToolbar() {
 
       <div className="w-px h-4 bg-[#3a3a3a] mx-1" />
 
+      {/* Sprint 16: Stretch / Pitch compact indicators (read-only) */}
+      <span
+        className="text-[#56cc88] text-[10px] font-mono"
+        title="Current time-stretch ratio"
+        data-testid="stretch-indicator"
+      >
+        {store.stretchRatio !== 1.0
+          ? `×${store.stretchRatio.toFixed(2)}`
+          : '×1.00'}
+      </span>
+      <span
+        className="text-[#cc7755] text-[10px] font-mono"
+        title="Current pitch shift in semitones"
+        data-testid="pitch-indicator"
+      >
+        {store.pitchSemitones > 0
+          ? `+${store.pitchSemitones}st`
+          : store.pitchSemitones < 0
+            ? `${store.pitchSemitones}st`
+            : '+0st'}
+      </span>
+
+      <div className="w-px h-4 bg-[#3a3a3a] mx-1" />
+
       {/* Undo / Redo */}
       <button
         title="Undo (Ctrl+Z)"
