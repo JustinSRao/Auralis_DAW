@@ -43,6 +43,9 @@ vi.mock('../../../stores/waveformEditorStore', () => {
       selection: null,
       tool: 'select' as const,
       error: null,
+      stretchRatio: 1.0,
+      pitchSemitones: 0,
+      isProcessing: false,
       close: closeSpy,
       openForClip: vi.fn(),
       loadPeakData: loadPeakDataSpy,
@@ -51,6 +54,9 @@ vi.mock('../../../stores/waveformEditorStore', () => {
       setSelection: setSelectionSpy,
       setTool: setToolSpy,
       clearError: vi.fn(),
+      applyStretch: vi.fn().mockResolvedValue(undefined),
+      applyPitch: vi.fn().mockResolvedValue(undefined),
+      bakeToFile: vi.fn().mockResolvedValue(undefined),
     }
   }
 

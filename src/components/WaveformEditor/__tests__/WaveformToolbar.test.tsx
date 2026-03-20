@@ -28,6 +28,9 @@ function buildState(overrides: Record<string, unknown> = {}) {
     selection: null,
     tool: 'select' as const,
     error: null,
+    stretchRatio: 1.0,
+    pitchSemitones: 0,
+    isProcessing: false,
     close: vi.fn(),
     openForClip: vi.fn(),
     loadPeakData: mockLoadPeakData,
@@ -36,6 +39,9 @@ function buildState(overrides: Record<string, unknown> = {}) {
     setSelection: vi.fn(),
     setTool: mockSetTool,
     clearError: vi.fn(),
+    applyStretch: vi.fn().mockResolvedValue(undefined),
+    applyPitch: vi.fn().mockResolvedValue(undefined),
+    bakeToFile: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   }
 }
