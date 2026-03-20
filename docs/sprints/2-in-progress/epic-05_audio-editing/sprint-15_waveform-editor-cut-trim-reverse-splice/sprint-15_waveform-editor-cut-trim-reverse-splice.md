@@ -3,12 +3,13 @@ sprint: 15
 title: "Waveform Editor (Cut, Trim, Reverse, Splice)"
 type: fullstack
 epic: 5
-status: planning
+status: in-progress
 created: 2026-02-22T22:10:12Z
-started: null
+started: 2026-03-20T00:24:40Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
+
 ---
 
 # Sprint 15: Waveform Editor (Cut, Trim, Reverse, Splice)

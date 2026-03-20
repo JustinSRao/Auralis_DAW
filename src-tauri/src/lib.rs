@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod audio_editing;
 pub mod auth;
 pub mod automation;
 pub mod effects;
@@ -49,6 +50,7 @@ use audio::punch_commands::{set_punch_in, set_punch_out, toggle_punch_mode, get_
 use audio::loop_recorder::{LoopRecordController, LoopRecordControllerState};
 use audio::take_lane::{TakeLaneStore, TakeLaneStoreState};
 use audio::take_commands::{TakeCreatedEvent, TakeRecordingStartedEvent};
+use audio_editing::peak_cache::{ClipBufferCache, ClipBufferCacheState, PeakCache, PeakCacheState};
 
 #[tauri::command]
 fn get_version() -> String {
@@ -487,6 +489,15 @@ pub fn run() {
                 Arc::new(Mutex::new(None));
             app.manage(auto_cmd_tx_state);
 
+            // --- Sprint 15: Waveform editor caches ---
+            let clip_buffer_cache: ClipBufferCacheState =
+                Arc::new(Mutex::new(ClipBufferCache::default()));
+            app.manage(clip_buffer_cache);
+
+            let peak_cache: PeakCacheState =
+                Arc::new(Mutex::new(PeakCache::default()));
+            app.manage(peak_cache);
+
             // Initialize project manager
             let pm_state: ProjectManagerState =
                 Arc::new(Mutex::new(ProjectManager::new()));
@@ -695,6 +706,13 @@ pub fn run() {
             audio::take_commands::delete_take,
             audio::take_commands::arm_loop_recording,
             audio::take_commands::toggle_take_lane_expanded,
+            audio_editing::commands::get_peak_data,
+            audio_editing::commands::find_zero_crossing_cmd,
+            audio_editing::commands::compute_cut_clip,
+            audio_editing::commands::compute_trim_start_clip,
+            audio_editing::commands::compute_trim_end_clip,
+            audio_editing::commands::reverse_clip_region,
+            audio_editing::commands::invalidate_clip_cache,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

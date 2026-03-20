@@ -1563,3 +1563,141 @@ export async function ipcArmLoopRecording(trackId: string | null): Promise<void>
 export async function ipcToggleTakeLaneExpanded(trackId: string): Promise<boolean> {
   return invoke<boolean>('toggle_take_lane_expanded', { trackId });
 }
+
+// ── Sprint 15: Waveform Editor ────────────────────────────────────────────────
+
+/** Min/max amplitude for a single display pixel column. */
+export interface PeakFrame {
+  min: number;
+  max: number;
+}
+
+/** Full peak data for one audio file at a specific zoom level. */
+export interface PeakData {
+  framesPerPixel: number;
+  left: PeakFrame[];
+  right: PeakFrame[];
+  totalFrames: number;
+  sampleRate: number;
+}
+
+/** Mutable clip data sent from the frontend for edit operations. */
+export interface ClipEditData {
+  id: string;
+  name: string;
+  startBeats: number;
+  durationBeats: number;
+  sampleId: string;
+  startOffsetSamples: number;
+  gain: number;
+}
+
+/** Timing snapshot for a single clip edge — used for undo/redo of trims. */
+export interface TrimSnapshot {
+  startBeats: number;
+  durationBeats: number;
+  startOffsetSamples: number;
+}
+
+/** Result of a trim operation with before/after snapshots. */
+export interface TrimResult {
+  clipId: string;
+  before: TrimSnapshot;
+  after: TrimSnapshot;
+}
+
+/** Minimal sample reference returned when a new reversed WAV is created. */
+export interface SampleReferenceData {
+  id: string;
+  originalFilename: string;
+  archivePath: string;
+  sampleRate: number;
+  channels: number;
+  durationSecs: number;
+}
+
+/** Result of a cut operation — two replacement clips. */
+export interface CutResult {
+  removedClipId: string;
+  clipA: ClipEditData;
+  clipB: ClipEditData;
+}
+
+/** Result of a reverse operation — old clip replaced by new reversed-region clip. */
+export interface ReverseResult {
+  removedClipId: string;
+  newClip: ClipEditData;
+  newSampleReference: SampleReferenceData;
+  reversedFilePath: string;
+}
+
+/** Returns min/max peak data for waveform display. Cached on the backend. */
+export async function ipcGetPeakData(
+  filePath: string,
+  framesPerPixel: number,
+): Promise<PeakData> {
+  return invoke<PeakData>('get_peak_data', { filePath, framesPerPixel });
+}
+
+/** Searches for the nearest zero crossing to `nearFrame` within `searchRadius` frames. */
+export async function ipcFindZeroCrossing(
+  filePath: string,
+  nearFrame: number,
+  searchRadius: number,
+): Promise<number> {
+  return invoke<number>('find_zero_crossing_cmd', { filePath, nearFrame, searchRadius });
+}
+
+/** Pure computation: returns the two sub-clips resulting from cutting at `cutFrame`. */
+export async function ipcComputeCutClip(
+  clipData: ClipEditData,
+  cutFrame: number,
+  samplesPerBeat: number,
+): Promise<CutResult> {
+  return invoke<CutResult>('compute_cut_clip', { clipData, cutFrame, samplesPerBeat });
+}
+
+/** Pure computation: returns before/after timing for a start-edge trim. */
+export async function ipcComputeTrimStartClip(
+  clipData: ClipEditData,
+  newStartFrame: number,
+  samplesPerBeat: number,
+): Promise<TrimResult> {
+  return invoke<TrimResult>('compute_trim_start_clip', { clipData, newStartFrame, samplesPerBeat });
+}
+
+/** Pure computation: returns before/after timing for an end-edge trim. */
+export async function ipcComputeTrimEndClip(
+  clipData: ClipEditData,
+  newEndFrame: number,
+  samplesPerBeat: number,
+): Promise<TrimResult> {
+  return invoke<TrimResult>('compute_trim_end_clip', { clipData, newEndFrame, samplesPerBeat });
+}
+
+/**
+ * Writes a new WAV file with the `startFrame..endFrame` region reversed,
+ * then returns updated clip metadata and a new sample reference.
+ */
+export async function ipcReverseClipRegion(
+  filePath: string,
+  clipData: ClipEditData,
+  startFrame: number,
+  endFrame: number,
+  outputDir: string,
+  samplesPerBeat: number,
+): Promise<ReverseResult> {
+  return invoke<ReverseResult>('reverse_clip_region', {
+    filePath,
+    clipData,
+    startFrame,
+    endFrame,
+    outputDir,
+    samplesPerBeat,
+  });
+}
+
+/** Evicts all cache entries for `filePath`. Call after destructive edits. */
+export async function ipcInvalidateClipCache(filePath: string): Promise<void> {
+  return invoke<void>('invalidate_clip_cache', { filePath });
+}

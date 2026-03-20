@@ -8,6 +8,8 @@ import { usePatternStore } from '../../stores/patternStore'
 import { useAutomationStore } from '../../stores/automationStore'
 import { usePunchStore } from '../../stores/punchStore'
 import { useTakeLaneStore } from '../../stores/takeLaneStore'
+import { useFileStore } from '../../stores/fileStore'
+import { useWaveformEditorStore } from '../../stores/waveformEditorStore'
 import { AutomationRow } from '../automation/AutomationRow'
 import { TempoTrack } from '../daw/TempoTrack'
 import { TimeRuler, RULER_HEIGHT } from './TimeRuler'
@@ -444,6 +446,73 @@ export function Timeline() {
   }
 
   // ---------------------------------------------------------------------------
+  // Double-click on clips canvas — open Waveform Editor for audio clips (Sprint 15)
+  // ---------------------------------------------------------------------------
+
+  function handleClipsDoubleClick(e: React.MouseEvent<HTMLCanvasElement>) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+
+    for (const clip of Object.values(clips)) {
+      const trackIdx = tracks.findIndex((t) => t.id === clip.trackId)
+      if (trackIdx === -1) continue
+      const result = clipHitTest(clip, trackIdx, x, y, viewport)
+      if (!result) continue
+
+      // Check if the referenced pattern has Audio content
+      const pattern = usePatternStore.getState().patterns[clip.patternId]
+      if (pattern?.content.type === 'Audio') {
+        const filePath = pattern.content.filePath
+        // Look up the sample reference for totalFrames / sampleRate
+        const project = useFileStore.getState().currentProject
+        const sampleRef = project?.samples.find(
+          (s) => s.original_filename === filePath.split('/').pop() ||
+                 s.archive_path.endsWith(filePath.split('/').pop() ?? filePath),
+        )
+        const totalFrames = sampleRef
+          ? Math.round(sampleRef.duration_secs * sampleRef.sample_rate)
+          : 0
+        const sampleRate = sampleRef?.sample_rate ?? 44100
+
+        useWaveformEditorStore.getState().openForClip(
+          clip.id,
+          clip.trackId,
+          filePath,
+          totalFrames,
+          sampleRate,
+        )
+        return
+      }
+
+      // Also check track's direct audio clips (from project file)
+      const project = useFileStore.getState().currentProject
+      const track = project?.tracks.find((t) => t.id === clip.trackId)
+      if (track) {
+        // Find an audio clip on the track that overlaps this arrangement clip's time range
+        const audioClip = track.clips.find(
+          (c) => c.content.type === 'Audio',
+        )
+        if (audioClip && audioClip.content.type === 'Audio') {
+          const sampleRef = project?.samples.find((s) => s.id === audioClip.content.sample_id)
+          if (sampleRef) {
+            const totalFrames = Math.round(sampleRef.duration_secs * sampleRef.sample_rate)
+            useWaveformEditorStore.getState().openForClip(
+              audioClip.id,
+              clip.trackId,
+              sampleRef.archive_path,
+              totalFrames,
+              sampleRef.sample_rate,
+            )
+            return
+          }
+        }
+      }
+      break
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Ruler pointer events
   // ---------------------------------------------------------------------------
 
@@ -599,6 +668,7 @@ export function Timeline() {
           onPointerMove={handleClipsPointerMove}
           onPointerUp={handleClipsPointerUp}
           onContextMenu={handleClipsContextMenu}
+          onDoubleClick={handleClipsDoubleClick}
           data-testid="timeline-clips-canvas"
         />
 

@@ -12,11 +12,13 @@ import { RecordPanel } from '@/components/instruments/RecordPanel';
 import { SamplerPanel } from '@/components/instruments/SamplerPanel';
 import { SynthPanel } from '@/components/instruments/SynthPanel';
 import { PianoRoll } from '@/components/PianoRoll/PianoRoll';
+import { WaveformEditor } from '@/components/WaveformEditor/WaveformEditor';
 import { Timeline } from '@/components/Timeline/Timeline';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useGlobalKeyboard } from '@/hooks/useGlobalKeyboard';
 import { useKeyboardStore } from '@/stores/keyboardStore';
 import { usePianoRollStore } from '@/stores/pianoRollStore';
+import { useWaveformEditorStore } from '@/stores/waveformEditorStore';
 
 /**
  * Root layout component for the DAW shell.
@@ -47,6 +49,7 @@ export function DAWLayout() {
   const { browserOpen, mixerOpen } = useKeyboardStore();
   const [activeInstrument, setActiveInstrument] = useState<'synth' | 'sampler' | 'drums' | 'sequencer'>('synth');
   const pianoRollIsOpen = usePianoRollStore((s) => s.isOpen);
+  const waveformEditorIsOpen = useWaveformEditorStore((s) => s.isOpen);
 
   return (
     <div className="h-screen flex flex-col bg-[#1a1a1a] overflow-hidden">
@@ -138,6 +141,9 @@ export function DAWLayout() {
 
       {/* Piano Roll full-screen overlay (Sprint 11) */}
       {pianoRollIsOpen && <PianoRoll />}
+
+      {/* Waveform Editor full-screen overlay (Sprint 15) */}
+      {waveformEditorIsOpen && <WaveformEditor />}
     </div>
   );
 }
