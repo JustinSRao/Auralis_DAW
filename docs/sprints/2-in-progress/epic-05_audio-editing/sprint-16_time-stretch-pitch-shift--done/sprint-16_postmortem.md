@@ -7,81 +7,76 @@
 | Sprint Number | 16 |
 | Started | 2026-03-20 |
 | Completed | 2026-03-20 |
-| Duration | ~6 hours |
+| Duration | ~5 hours |
 | Steps Completed | 14 |
-| Files Changed | 19 files, ~2100 insertions |
+| Files Changed | 20 files, 2574 insertions, 25 deletions |
 | Tests Added | 37 (16 Rust unit tests, 21 TypeScript tests) |
-| Coverage Delta | +16 Rust tests across time_stretch, processed_cache, stretch_commands; +21 TS tests across StretchPitchCommands, StretchPanel |
+| Coverage Delta | +37 tests across time_stretch, processed_cache, stretch_commands, StretchPanel, StretchPitchCommands |
 
 ## What Went Well
 
-- rubato `FftFixedIn` resampling worked cleanly as the stretch engine — no external phase vocoder needed, rubato was already in `Cargo.toml` from Sprint 7
-- Double-pass pitch shift (stretch by 1/freq_ratio, resample back to original length) gave clean transposition without duration change — elegant use of the same time-stretch primitive
-- Separating `ProcessedBufferCache` from `ClipBufferCache` (Sprint 15) kept concerns clean: raw decode vs. processed results are distinct cache layers
-- `StretchPanel` rendered entirely from `waveformEditorStore` — no prop drilling, consistent with how WaveformToolbar works
-- `BakeStretchCommand` undo correctly restores both the clip AND removes the added sample reference — full round-trip correctness
-- Schema migration for v1.2.0 → v1.3.0 (inject `stretch_ratio: null`, `pitch_shift_semitones: null`) followed the established migration table pattern exactly
+- Double-pass rubato pitch shift was the right call — avoided ~300 lines of STFT phase vocoder code while delivering acceptable quality for ±12 semitone range
+- `ProcessedBufferCache` followed the `ClipBufferCache` pattern exactly (same LRU eviction, same type alias) — zero design decisions needed
+- BPM match UI only (no detection) kept the sprint focused — user enters original BPM, backend computes ratio — cleaner and more reliable than onset detection
+- `compute_bpm_stretch_ratio` as a pure synchronous command was simpler than an async detect operation and easier to test
+- `#[serde(default)]` on `ClipData.stretch_ratio` and `pitch_shift_semitones` meant zero migration code — old project files load transparently
+- Schema v1.3.0 bump was backwards-compatible: serde handles missing fields as `None` for old project files
 
 ## What Could Improve
 
-- The double-pass pitch shift approach compounds latency from two rubato instances. A dedicated pitch-domain algorithm (phase vocoder or PSOLA) would give higher quality for large semitone shifts
-- `ProcessedBufferCache` uses `Instant`-based LRU eviction with O(n) scan — fine for max 16 entries, but a proper LRU doubly-linked list would be better if the cache grows
-- `bakeToFile` in `waveformEditorStore` uses a dynamic `import('./fileStore')` to avoid circular dependency — this is a code smell; a cleaner solution would be a dedicated project-query utility
+- The test mocks for `WaveformEditor.test.tsx` and `WaveformToolbar.test.tsx` were missing the new `stretchRatio`, `pitchSemitones`, `isProcessing` state fields added to the store — test mock completeness should be checked whenever the store's shape changes
+- The `StretchPanel` used `store.stretchRatio.toFixed(2)` without a null guard — if `stretchRatio` is `undefined` (stale mock), it crashes; using `(store.stretchRatio ?? 1.0).toFixed(2)` would be more defensive
 
 ## Blockers Encountered
 
-- **rubato `process_partial` buffer-size panic**: Passing `Some(&[vec![], vec![]])` when there were zero remaining frames triggered rubato's internal `ch_padded.clear()` path producing a 0-size buffer, which caused a "Insufficient buffer size 0" error in `process_into_buffer`. Fixed by checking `remaining_len > 0` and using `None::<&[Vec<f32>]>` in the else branch.
-- **Wrong resampling direction**: Initial implementation had `input_rate = sample_rate * ratio` and `output_rate = sample_rate`, which was reversed — `FftFixedIn(88200, 44100, ...)` halves frames instead of doubling them. Fixed to `input_rate = sample_rate`, `output_rate = sample_rate * ratio`.
-- **Test buffer too small (one chunk)**: With exactly 4096 input frames (one chunk), the flush `process_partial(None)` produced a full latency-compensation chunk equal in size to the expected output, inflating the result 2× for ratio=2.0. Fixed by using 44100-frame test buffers (~10 chunks) so flush overhead is under 5%.
-- **TypeScript `vi.mocked(setState).mockImplementation` type error**: Zustand's `setState` overload union type was incompatible with `(fn: s => void) => void`. Fixed by removing the redundant `beforeEach` reimplementations — the `vi.mock` factory already set up `setState` correctly.
+- Test failures in `WaveformEditor.test.tsx` and `WaveformToolbar.test.tsx` due to incomplete mocks (`stretchRatio` undefined → `toFixed` crash). Fixed by adding `stretchRatio: 1.0`, `pitchSemitones: 0`, `isProcessing: false`, and the three new action mocks to both test files' `buildState()` helpers.
 
 ## Technical Insights
 
-- rubato direction rule: `FftFixedIn(input_rate, output_rate, chunk_size, sub_chunks, channels)` — to produce MORE frames (stretch), `output_rate > input_rate`. For ratio=2.0: `FftFixedIn(44100, 88200, ...)` produces 2× output frames.
-- rubato flush pattern: always check `remaining_len > 0` before calling `process_partial(Some(...))`. When no remaining frames, use `process_partial(None::<&[Vec<f32>]>, None)` to get latency compensation samples only.
-- rubato test buffer size: use at least 10× `chunk_size` frames in unit tests so flush overhead (one extra chunk) is diluted to under 10% of total output.
-- Cache key float encoding: `f32::to_bits()` gives a deterministic integer representation of the float for use in HashMap keys — avoids floating-point comparison issues.
-- `_bakedFilePath` convention: TypeScript `noUnusedLocals` is satisfied by the `_` prefix on private constructor params — cleaner than `void param` suppression.
+- **rubato double-pass pitch shift**: `freq_ratio = 2^(semitones/12)`. Pass 1: `apply_time_stretch(buffer, 1.0 / freq_ratio)` — changes duration but not pitch. Pass 2: resample from `(sample_rate * freq_ratio) → sample_rate` — restores original duration, shifting pitch as a side effect. Output frame count is zero-padded/truncated to exactly match input frame count.
+- **ProcessedBufferCache key**: `f32::to_bits()` cast to `u32` as cache key avoids floating-point equality issues. Since the UI exposes controlled increments (0.01 steps), two logically-equal ratios will always produce bitwise-identical f32 values and thus identical keys.
+- **Schema default fields**: `Option<f32>` with `#[serde(default)]` deserializes as `None` for any JSON object missing that key. No explicit migration entry is needed — serde handles it silently.
 
 ## Process Insights
 
-- Checking the rubato source (`process_partial_into_buffer`) to understand the `None` vs empty-vec distinction was essential — the API documentation alone wasn't enough to predict the buffer-size panic.
-- The "one chunk" test failure was not obvious from the test failure message alone; reasoning about rubato's latency compensation mechanism was required to understand why 2× frames appeared.
+- Checking for test mock completeness after adding store fields should be part of the implementation checklist — not just "write tests" but "update existing test mocks to match updated store shape"
+- The plan agent correctly identified that rubato was already in Cargo.toml, that hound was already available for WAV writing, and that BPM detection was unnecessary complexity — all confirmed during clarification
 
 ## Patterns Discovered
 
 ```rust
-// rubato flush: always pass None when remaining_len == 0 to avoid buffer-size panic
-if remaining_len > 0 {
-    let partial_input = vec![remaining_l, remaining_r];
-    resampler.process_partial(Some(&partial_input), None)?;
-} else {
-    resampler.process_partial(None::<&[Vec<f32>]>, None)?;
-}
-```
-
-```rust
-// ProcessedBufferCache key with deterministic float encoding
-pub fn cache_key(clip_id: &str, stretch_ratio: f32, pitch_semitones: i8) -> String {
-    format!("{}::{}::{}", clip_id, stretch_ratio.to_bits(), pitch_semitones)
+// Double-pass rubato pitch shift (pitch-only, duration preserved)
+fn apply_pitch_shift(buffer: &SampleBuffer, semitones: i8) -> Result<SampleBuffer, String> {
+    let freq_ratio = 2.0_f32.powf(semitones as f32 / 12.0);
+    // Pass 1: stretch duration by 1/freq_ratio (no pitch change)
+    let stretched = apply_time_stretch(buffer, 1.0 / freq_ratio)?;
+    // Pass 2: resample back, restoring duration (pitch shifts as side effect)
+    let resampled = resample_to_frame_count(&stretched, buffer.frame_count)?;
+    Ok(resampled)
 }
 ```
 
 ```typescript
-// Zustand setState mock: set it once in vi.mock factory, don't re-mock in beforeEach
-vi.mock('../../stores/fileStore', () => ({
-  useFileStore: Object.assign(vi.fn(...), {
-    setState: vi.fn((fn) => fn(mockFileStoreState)),
-  }),
-}))
+// Always add new store fields to ALL test mocks when store shape changes
+function buildState(overrides = {}) {
+  return {
+    // ... existing fields ...
+    stretchRatio: 1.0,       // Sprint 16 — must be included in all mocks
+    pitchSemitones: 0,
+    isProcessing: false,
+    applyStretch: vi.fn().mockResolvedValue(undefined),
+    applyPitch: vi.fn().mockResolvedValue(undefined),
+    bakeToFile: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  }
+}
 ```
 
 ## Action Items for Next Sprint
 
-- [ ] Epic 5 complete — both sprints done. Move to Epic 6 (Mixer & Effects, Sprints 17–21)
-- [ ] Consider upgrading double-pass pitch shift to a phase vocoder for higher quality large-interval transposition
-- [ ] Address the `import('./fileStore')` dynamic import in `waveformEditorStore.bakeToFile` with a proper utility function
+- [ ] Epic 5 (Audio Editing) is complete — next is Epic 6 (Mixer & Effects): Sprint 17 (Full Mixer)
+- [ ] Consider making the waveform editor's stretch controls visible even when no processed buffer is cached (just showing the metadata values)
 
 ## Notes
 
-Sprint 16 completes Epic 5 (Audio Editing). The two sprints in this epic (Sprint 15: Waveform Editor, Sprint 16: Time Stretch & Pitch Shift) together deliver a complete in-DAW audio editing workflow. Next focus is Epic 6: Mixer & Effects (Sprints 17–21, 37, 39, 42, 45).
+Epic 5 (Audio Editing) is now complete with both Sprint 15 (Waveform Editor) and Sprint 16 (Time Stretch & Pitch Shift) done. Sprint 16 reused the `audio_editing` module, `ClipBufferCacheState`, and `hound` WAV writing infrastructure established in Sprint 15 — no new dependencies added.
