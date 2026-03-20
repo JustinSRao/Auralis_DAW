@@ -416,13 +416,13 @@
     },
     "43": {
       "title": "MIDI Export",
-      "status": "planning",
+      "status": "done",
       "epic": 4,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-19",
+      "hours": 7.5
     },
     "44": {
       "title": "Loop Recording and Take Lanes",
@@ -490,7 +490,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 12,
-      "completedSprints": 10
+      "completedSprints": 11
     },
     "5": {
       "title": "Audio Editing",
