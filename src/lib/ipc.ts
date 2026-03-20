@@ -1407,3 +1407,88 @@ export async function setTempoMap(points: TempoPoint[]): Promise<void> {
 export async function getTempoMap(): Promise<TempoPoint[]> {
   return invoke<TempoPoint[]>('get_tempo_map');
 }
+
+// ── MIDI Export (Sprint 43) ───────────────────────────────────────────────────
+
+/** A single note payload for MIDI export. Beat positions are pre-computed by the caller. */
+export interface ExportNote {
+  pitch: number;
+  velocity: number;
+  channel: number;
+  /** Start in beats from the beginning of the exported region. */
+  startBeats: number;
+  /** Duration in beats. Minimum 1 tick after backend conversion. */
+  durationBeats: number;
+}
+
+/** A single DAW track payload for arrangement export. */
+export interface ExportTrack {
+  name: string;
+  /** Notes with absolute beat positions (clip offset already applied). */
+  notes: ExportNote[];
+}
+
+/** Export configuration. */
+export interface ExportOptions {
+  /** PPQ for the output file. Default 480 matches internal representation. */
+  exportPpq: number;
+}
+
+/**
+ * Exports a single pattern as a Type 0 MIDI file.
+ *
+ * @param notes            - Notes from the pattern (beat positions from pattern start).
+ * @param path             - Absolute file path from the Tauri save dialog.
+ * @param options          - Export options (PPQ).
+ * @param tempoPoints      - Full tempo map from tempoMapStore.
+ * @param timeSigNumerator - Time signature numerator from transport state.
+ * @param timeSigDenominator - Time signature denominator from transport state.
+ */
+export async function ipcExportMidiPattern(
+  notes: ExportNote[],
+  path: string,
+  options: ExportOptions,
+  tempoPoints: TempoPoint[],
+  timeSigNumerator: number,
+  timeSigDenominator: number,
+): Promise<void> {
+  return invoke<void>('export_midi_pattern', {
+    notes,
+    path,
+    options,
+    tempoPoints,
+    timeSigNumerator,
+    timeSigDenominator,
+  });
+}
+
+/**
+ * Exports the full arrangement as a Type 1 MIDI file.
+ *
+ * The caller must compute absolute beat positions for each track's notes by
+ * adding `clip.startBar * beatsPerBar` to each note's `startBeats`.
+ *
+ * @param tracks           - One entry per DAW track, with flattened absolute-beat notes.
+ * @param path             - Absolute file path from the Tauri save dialog.
+ * @param options          - Export options (PPQ).
+ * @param tempoPoints      - Full tempo map from tempoMapStore.
+ * @param timeSigNumerator - Time signature numerator.
+ * @param timeSigDenominator - Time signature denominator.
+ */
+export async function ipcExportMidiArrangement(
+  tracks: ExportTrack[],
+  path: string,
+  options: ExportOptions,
+  tempoPoints: TempoPoint[],
+  timeSigNumerator: number,
+  timeSigDenominator: number,
+): Promise<void> {
+  return invoke<void>('export_midi_arrangement', {
+    tracks,
+    path,
+    options,
+    tempoPoints,
+    timeSigNumerator,
+    timeSigDenominator,
+  });
+}

@@ -1,5 +1,9 @@
 /// Tauri IPC command handlers for MIDI device management.
 pub mod commands;
+/// MIDI file export: serialize patterns/arrangements to Standard MIDI Files.
+pub mod export;
+/// Tauri IPC commands for MIDI file export.
+pub mod export_commands;
 /// MIDI file import: parse .mid files into ImportedTrack / ImportedNote structs.
 pub mod import;
 /// Tauri IPC commands for MIDI file import.

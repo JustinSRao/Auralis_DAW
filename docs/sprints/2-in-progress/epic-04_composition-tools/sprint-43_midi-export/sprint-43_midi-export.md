@@ -3,13 +3,14 @@ sprint: 43
 title: "MIDI Export"
 type: fullstack
 epic: 4
-status: planning
+status: in-progress
 created: 2026-02-23T17:06:03Z
-started: null
+started: 2026-03-19T23:00:31Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
 coverage_threshold: 80
+
 ---
 
 # Sprint 43: MIDI Export

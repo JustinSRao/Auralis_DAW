@@ -43,6 +43,7 @@ use project::arrangement_commands::{
 use midi::import_commands::{import_midi_file, create_patterns_from_import};
 use midi::recording::MidiRecorderState;
 use midi::recording_commands::{start_midi_recording, stop_midi_recording, set_record_quantize};
+use midi::export_commands::{export_midi_pattern, export_midi_arrangement};
 use audio::punch::PunchControllerState;
 use audio::punch_commands::{set_punch_in, set_punch_out, toggle_punch_mode, get_punch_markers};
 
@@ -505,6 +506,8 @@ pub fn run() {
             get_punch_markers,
             audio::tempo_commands::set_tempo_map,
             audio::tempo_commands::get_tempo_map,
+            export_midi_pattern,
+            export_midi_arrangement,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

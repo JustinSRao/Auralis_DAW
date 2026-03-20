@@ -4,6 +4,7 @@ import { useFileStore } from '@/stores/fileStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { useKeyboardStore } from '@/stores/keyboardStore';
 import { useAuthStore } from '@/stores/authStore';
+import { ExportMidiDialog } from './ExportMidiDialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -55,6 +56,7 @@ export function MenuBar() {
   const { currentUser, logout } = useAuthStore();
 
   const [openMenu, setOpenMenu] = useState<MenuId>(null);
+  const [exportMidiOpen, setExportMidiOpen] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click
@@ -105,6 +107,11 @@ export function MenuBar() {
     void open(path);
   }
 
+  function handleExportMidi() {
+    closeMenu();
+    setExportMidiOpen(true);
+  }
+
   // ---------------------------------------------------------------------------
   // Edit actions
   // ---------------------------------------------------------------------------
@@ -124,6 +131,7 @@ export function MenuBar() {
   // ---------------------------------------------------------------------------
 
   return (
+    <>
     <div
       ref={barRef}
       className="h-8 bg-[#1a1a1a] border-b border-[#333333] flex items-center px-1 flex-shrink-0 z-30"
@@ -178,6 +186,11 @@ export function MenuBar() {
             >
               Save As...
               <Shortcut keys="Ctrl+Shift+S" />
+            </button>
+
+            <div className={separatorCls} role="separator" />
+            <button role="menuitem" className={itemCls} onClick={handleExportMidi}>
+              Export MIDI...
             </button>
 
             {recentProjects.length > 0 && (
@@ -326,5 +339,7 @@ export function MenuBar() {
         )}
       </div>
     </div>
+    {exportMidiOpen && <ExportMidiDialog onClose={() => setExportMidiOpen(false)} />}
+    </>
   );
 }
