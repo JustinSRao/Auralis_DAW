@@ -176,13 +176,13 @@
     },
     "18": {
       "title": "EQ & Filter Effects",
-      "status": "planning",
+      "status": "done",
       "epic": 6,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-21",
+      "hours": 18.9
     },
     "19": {
       "title": "Reverb & Delay Effects",
@@ -508,7 +508,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 9,
-      "completedSprints": 1
+      "completedSprints": 2
     },
     "7": {
       "title": "Export & Finalization",
