@@ -3,11 +3,11 @@ sprint: 18
 title: "EQ & Filter Effects"
 type: fullstack
 epic: 6
-status: In Progress
+status: done
 created: 2026-02-22T22:10:12Z
 started: 2026-03-21T04:39:35Z
-completed: null
-hours: null
+completed: 2026-03-21T23:30:00Z
+hours: 1.0
 workflow_version: "3.1.0"
 
 ---
@@ -121,6 +121,22 @@ EQ is the most essential mixing tool — it lets engineers shape the tonal chara
 - [x] Frequency response canvas accurately shows the combined effect of all active bands
 - [x] Individual bands can be disabled without changing the other bands
 - [ ] EQ parameters persist in the project file (deferred to Sprint 21 effect chain integration)
+
+## Acceptance Criteria Receipts
+
+| Criterion | Status | Evidence |
+|-----------|--------|----------|
+| All 8 EQ bands apply boost/cut at configured frequency | VERIFIED | `src-tauri/src/effects/eq/mod.rs:414` — `peaking_band_boosts_at_target_frequency` test; `biquad.rs:272` — `peaking_plus6db_at_1khz` test |
+| Q factor controls bandwidth of peaking bands | VERIFIED | `src-tauri/src/effects/eq/biquad.rs:287` — `peaking_high_q_narrow_bandwidth` test |
+| Low/high shelf apply shelf at configured frequency | VERIFIED | `src-tauri/src/effects/eq/biquad.rs:296-318` — `low_shelf_boosts_lows`, `high_shelf_boosts_highs` tests |
+| LP/HP attenuate outside cutoff at 12 dB/octave | VERIFIED | `src-tauri/src/effects/eq/biquad.rs:328-347` — `low_pass_attenuates_above_cutoff`, `high_pass_attenuates_below_cutoff` tests (>30 dB at 4+ octaves) |
+| Frequency response canvas shows combined effect of all active bands | VERIFIED | `src/components/effects/EqPanel.tsx:86` — `buildCurvePoints()` sums magnitudes across all enabled bands; `src/components/effects/__tests__/eqCanvas.test.ts` — coordinate round-trip tests |
+| Individual bands can be disabled | VERIFIED | `src-tauri/src/effects/eq/mod.rs:388` — `enable_band_disables_band` test; `src/components/effects/__tests__/EqPanel.test.tsx:90` — `calls enableBand when toggle clicked` |
+| EQ parameters persist in project file | DEFERRED | D-005 — depends on Sprint 21 effect chain serialisation |
+
+## Postmortem
+
+See [Sprint 18 Postmortem](./sprint-18_postmortem.md)
 
 ## Notes
 
