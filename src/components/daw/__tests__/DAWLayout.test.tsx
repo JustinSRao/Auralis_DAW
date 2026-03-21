@@ -34,12 +34,26 @@ let mockTrackState = {
 };
 
 vi.mock("@/stores/trackStore", () => ({
-  useTrackStore: (selector?: (s: typeof mockTrackState) => unknown) => {
-    if (typeof selector === "function") {
-      return selector(mockTrackState);
+  useTrackStore: Object.assign(
+    (selector?: (s: typeof mockTrackState) => unknown) => {
+      if (typeof selector === "function") {
+        return selector(mockTrackState);
+      }
+      return mockTrackState;
+    },
+    {
+      getState: () => mockTrackState,
     }
-    return mockTrackState;
-  },
+  ),
+}));
+
+// ---------------------------------------------------------------------------
+// MixerView mock — prevents mixerStore / ipc / tauri-event dependencies from
+// loading inside a DAWLayout integration test.
+// ---------------------------------------------------------------------------
+
+vi.mock("@/components/mixer/MixerView", () => ({
+  default: () => <div data-testid="mixer-view">Mixer</div>,
 }));
 
 // ---------------------------------------------------------------------------

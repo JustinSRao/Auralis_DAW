@@ -26,8 +26,12 @@ pub struct Mixer {
     mix_buf: Vec<f32>,
     /// Pre-allocated send buffers, one per bus.
     send_bufs: Vec<Vec<f32>>,
+    /// Pre-allocated silence source buffer passed to each channel's process_into.
+    silence_buf: Vec<f32>,
     /// Sender for per-channel level events to the 30 Hz poller.
     channel_level_tx: Sender<ChannelLevelEvent>,
+    /// Scratch buffer for channel level events — reused each callback to avoid allocation.
+    channel_level_scratch: Vec<ChannelLevelEvent>,
     buffer_size: usize,
 }
 
@@ -50,19 +54,29 @@ impl Mixer {
             master: MasterBus::new(master_level_tx),
             mix_buf: vec![0.0; buffer_size * 2],
             send_bufs: vec![vec![0.0; buffer_size * 2]; 4],
+            silence_buf: vec![0.0; buffer_size * 2],
             channel_level_tx,
+            channel_level_scratch: Vec::new(),
             buffer_size,
         }
     }
 
     /// Add a channel strip for a track.
     pub fn add_channel(&mut self, id: impl Into<String>, name: impl Into<String>) {
-        self.channels.push(MixerChannel::new(id, name));
+        let id_str: String = id.into();
+        // Pre-allocate the level-event slot so process() never allocates a new String.
+        self.channel_level_scratch.push(ChannelLevelEvent {
+            channel_id: id_str.clone(),
+            peak_l: 0.0,
+            peak_r: 0.0,
+        });
+        self.channels.push(MixerChannel::new(id_str, name));
     }
 
     /// Remove a channel strip by ID.
     pub fn remove_channel(&mut self, id: &str) {
         self.channels.retain(|c| c.id != id);
+        self.channel_level_scratch.retain(|e| e.channel_id != id);
     }
 
     /// Find a channel by ID.
@@ -86,17 +100,15 @@ impl Mixer {
         // Determine solo state
         let solo_any = self.channels.iter().any(|c| c.solo.load(Ordering::Relaxed));
 
-        // Process each channel into the mix buffer
-        let silence = vec![0.0f32; self.buffer_size * 2];
-        for channel in &self.channels {
-            channel.process_into(&silence, &mut self.mix_buf, &mut self.send_bufs, solo_any);
+        // Process each channel into the mix buffer.
+        // silence_buf and channel_level_scratch are pre-allocated — no heap allocation here.
+        for (channel, evt) in self.channels.iter().zip(self.channel_level_scratch.iter_mut()) {
+            channel.process_into(&self.silence_buf, &mut self.mix_buf, &mut self.send_bufs, solo_any);
 
-            // Send per-channel levels to poller
-            let _ = self.channel_level_tx.try_send(ChannelLevelEvent {
-                channel_id: channel.id.clone(),
-                peak_l: channel.peak_l.load(Ordering::Relaxed),
-                peak_r: channel.peak_r.load(Ordering::Relaxed),
-            });
+            // Update the pre-allocated event in-place, then send a clone.
+            evt.peak_l = channel.peak_l.load(Ordering::Relaxed);
+            evt.peak_r = channel.peak_r.load(Ordering::Relaxed);
+            let _ = self.channel_level_tx.try_send(evt.clone());
         }
 
         // Flush each bus's accumulated send signal back into the mix buffer
