@@ -517,6 +517,12 @@ pub fn run() {
             app.manage(mixer_state);
             log::info!("Mixer initialized");
 
+            // --- Sprint 18: EQ store ---
+            let eq_store: effects::eq::EqStore =
+                Arc::new(Mutex::new(std::collections::HashMap::new()));
+            app.manage(eq_store);
+            log::info!("EQ store initialized");
+
             // Initialize project manager
             let pm_state: ProjectManagerState =
                 Arc::new(Mutex::new(ProjectManager::new()));
@@ -792,6 +798,10 @@ pub fn run() {
             audio::mixer::commands::set_master_fader,
             audio::mixer::commands::add_mixer_channel,
             audio::mixer::commands::remove_mixer_channel,
+            effects::eq::set_eq_band,
+            effects::eq::enable_eq_band,
+            effects::eq::get_eq_state,
+            effects::eq::get_eq_frequency_response,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

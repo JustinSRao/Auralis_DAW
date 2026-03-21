@@ -1880,3 +1880,62 @@ export const ipcAddMixerChannel = (trackId: string, trackName: string): Promise<
 /** Removes a mixer channel strip for a track. */
 export const ipcRemoveMixerChannel = (trackId: string): Promise<void> =>
   invoke<void>('remove_mixer_channel', { trackId });
+
+// ─── Sprint 18: EQ & Filter Effects ──────────────────────────────────────────
+
+/** Filter topology — mirrors Rust `FilterType` enum (snake_case). */
+export type FilterType =
+  | 'bypass'
+  | 'low_pass'
+  | 'high_pass'
+  | 'low_shelf'
+  | 'high_shelf'
+  | 'peaking';
+
+/** User-facing parameters for a single EQ band. */
+export interface EqBandParams {
+  filter_type: FilterType;
+  /** Characteristic frequency in Hz (20–20 000). */
+  frequency: number;
+  /** Gain in dB (−18 to +18). Peaking / shelf only. */
+  gain_db: number;
+  /** Quality factor (0.1–10). Peaking only. */
+  q: number;
+  enabled: boolean;
+}
+
+/** One frequency/magnitude point for the response curve canvas. */
+export interface FreqPoint {
+  freq: number;
+  db: number;
+}
+
+/** Full EQ state snapshot returned by `get_eq_state`. */
+export interface EqStateSnapshot {
+  channel_id: string;
+  bands: EqBandParams[];
+}
+
+/** Sets (or replaces) a single EQ band for the given channel. */
+export const ipcSetEqBand = (
+  channelId: string,
+  bandIndex: number,
+  params: EqBandParams,
+): Promise<void> =>
+  invoke<void>('set_eq_band', { channelId, bandIndex, params });
+
+/** Enables or disables a single EQ band for the given channel. */
+export const ipcEnableEqBand = (
+  channelId: string,
+  bandIndex: number,
+  enabled: boolean,
+): Promise<void> =>
+  invoke<void>('enable_eq_band', { channelId, bandIndex, enabled });
+
+/** Returns the full EQ state snapshot for the given channel. */
+export const ipcGetEqState = (channelId: string): Promise<EqStateSnapshot> =>
+  invoke<EqStateSnapshot>('get_eq_state', { channelId });
+
+/** Returns 200 log-spaced frequency-response points for canvas rendering. */
+export const ipcGetEqFrequencyResponse = (channelId: string): Promise<FreqPoint[]> =>
+  invoke<FreqPoint[]>('get_eq_frequency_response', { channelId });
