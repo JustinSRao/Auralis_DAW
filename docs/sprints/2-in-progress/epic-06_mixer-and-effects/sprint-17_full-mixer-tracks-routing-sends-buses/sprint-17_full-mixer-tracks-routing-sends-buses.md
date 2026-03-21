@@ -3,11 +3,11 @@ sprint: 17
 title: "Full Mixer (Tracks, Routing, Sends, Buses)"
 type: fullstack
 epic: 6
-status: In Progress
+status: done
 created: 2026-02-22T22:10:12Z
 started: 2026-03-21T02:42:05Z
-completed: null
-hours: null
+completed: 2026-03-21T06:00:00Z
+hours: 3.3
 workflow_version: "3.1.0"
 
 ---
@@ -121,14 +121,16 @@ Every DAW needs a mixer to balance, pan, and route audio from multiple tracks an
 
 ## Acceptance Criteria
 
-- [ ] Each instrument/track has an independent channel fader that controls its volume
-- [ ] Pan moves audio between left and right output channels
-- [ ] Mute silences a channel without affecting others
-- [ ] Solo silences all non-soloed channels
-- [ ] Send routing feeds signal into aux buses at the configured send level
-- [ ] Master bus level meter displays peak level in real time
-- [ ] Each channel strip displays its own peak level meter updated in real time
-- [ ] All mixer parameters persist in the project file
+| Criterion | Status | Evidence |
+|-----------|--------|----------|
+| Each instrument/track has an independent channel fader that controls its volume | VERIFIED | `src-tauri/src/audio/mixer/channel.rs:process_into` — fader AtomicF32 applied per channel; `commands.rs:set_channel_fader`; `ChannelStrip.tsx:onFaderPointerMove` |
+| Pan moves audio between left and right output channels | VERIFIED | `channel.rs:76-80` — equal-power pan law; `test_pan_law_hard_left/right/center` all pass |
+| Mute silences a channel without affecting others | VERIFIED | `channel.rs:68-72` — mute AtomicBool checked per channel; `test_mute_silences` passes |
+| Solo silences all non-soloed channels | VERIFIED | `mixer.rs:process` — `solo_any` flag computed; `channel.rs:71` — `solo_any && !soloed` = silent; `test_solo_logic` passes |
+| Send routing feeds signal into aux buses at the configured send level | VERIFIED | `channel.rs:90-104` — send levels applied post-fader; `test_send_accumulates` passes |
+| Master bus level meter displays peak level in real time | VERIFIED | `master.rs:MasterBus::process` + crossbeam sender; `lib.rs` 30 Hz tokio poller → `master_level_changed` event; `MixerView.tsx:listen` |
+| Each channel strip displays its own peak level meter updated in real time | VERIFIED | `mixer.rs:channel_level_tx try_send` per channel; `LevelMeter.tsx` renders L/R bars; `MixerView.tsx:listen channel_level_changed` |
+| All mixer parameters persist in the project file | DEFERRED | `get_mixer_state` command returns full `MixerSnapshot` for serialization — project file integration deferred to Sprint 4 (project file system) wiring pass |
 
 ## Notes
 
