@@ -166,13 +166,13 @@
     },
     "17": {
       "title": "Full Mixer (Tracks, Routing, Sends, Buses)",
-      "status": "planning",
+      "status": "done",
       "epic": 6,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-21",
+      "hours": 1.6
     },
     "18": {
       "title": "EQ & Filter Effects",
@@ -508,7 +508,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 9,
-      "completedSprints": 0
+      "completedSprints": 1
     },
     "7": {
       "title": "Export & Finalization",
