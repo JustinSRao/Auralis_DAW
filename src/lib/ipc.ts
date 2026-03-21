@@ -1817,3 +1817,66 @@ export async function ipcComputeBpmStretchRatio(
 ): Promise<number> {
   return invoke<number>('compute_bpm_stretch_ratio', { originalBpm, projectBpm });
 }
+
+// ── Sprint 17: Mixer ──────────────────────────────────────────────────────────
+
+/** A single mixer channel strip snapshot. */
+export interface ChannelSnapshot {
+  id: string;
+  name: string;
+  fader: number;
+  pan: number;
+  mute: boolean;
+  solo: boolean;
+  sends: [number, number, number, number];
+}
+
+/** An aux send bus snapshot. */
+export interface BusSnapshot {
+  id: string;
+  name: string;
+  fader: number;
+}
+
+/** Full mixer state snapshot returned by `get_mixer_state`. */
+export interface MixerSnapshot {
+  channels: ChannelSnapshot[];
+  buses: BusSnapshot[];
+  master_fader: number;
+}
+
+/** Returns the full mixer state snapshot. */
+export const ipcGetMixerState = (): Promise<MixerSnapshot> =>
+  invoke<MixerSnapshot>('get_mixer_state');
+
+/** Sets the volume fader for a channel (range 0.0–2.0). */
+export const ipcSetChannelFader = (channelId: string, value: number): Promise<void> =>
+  invoke<void>('set_channel_fader', { channelId, value });
+
+/** Sets the stereo pan for a channel (range -1.0–1.0). */
+export const ipcSetChannelPan = (channelId: string, value: number): Promise<void> =>
+  invoke<void>('set_channel_pan', { channelId, value });
+
+/** Sets the mute state for a channel. */
+export const ipcSetChannelMute = (channelId: string, muted: boolean): Promise<void> =>
+  invoke<void>('set_channel_mute', { channelId, muted });
+
+/** Sets the solo state for a channel. */
+export const ipcSetChannelSolo = (channelId: string, solo: boolean): Promise<void> =>
+  invoke<void>('set_channel_solo', { channelId, solo });
+
+/** Sets the send level for a channel to an aux bus (busIndex 0–3, value 0.0–1.0). */
+export const ipcSetChannelSend = (channelId: string, busIndex: number, value: number): Promise<void> =>
+  invoke<void>('set_channel_send', { channelId, busIndex, value });
+
+/** Sets the master fader level (range 0.0–2.0). */
+export const ipcSetMasterFader = (value: number): Promise<void> =>
+  invoke<void>('set_master_fader', { value });
+
+/** Adds a mixer channel strip for a track. */
+export const ipcAddMixerChannel = (trackId: string, trackName: string): Promise<void> =>
+  invoke<void>('add_mixer_channel', { trackId, trackName });
+
+/** Removes a mixer channel strip for a track. */
+export const ipcRemoveMixerChannel = (trackId: string): Promise<void> =>
+  invoke<void>('remove_mixer_channel', { trackId });

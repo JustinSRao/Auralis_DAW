@@ -14,6 +14,7 @@ import { SynthPanel } from '@/components/instruments/SynthPanel';
 import { PianoRoll } from '@/components/PianoRoll/PianoRoll';
 import { WaveformEditor } from '@/components/WaveformEditor/WaveformEditor';
 import { Timeline } from '@/components/Timeline/Timeline';
+import MixerView from '@/components/mixer/MixerView';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useGlobalKeyboard } from '@/hooks/useGlobalKeyboard';
 import { useKeyboardStore } from '@/stores/keyboardStore';
@@ -92,11 +93,7 @@ export function DAWLayout() {
             style={{ height: mixerOpen ? 192 : 0 }}
             aria-hidden={!mixerOpen}
           >
-            <div className="flex items-center justify-center h-full">
-              <span className="text-[#555555] text-xs">
-                Mixer (Sprint 17)
-              </span>
-            </div>
+            {mixerOpen && <MixerView />}
           </div>
 
           {/* Instrument strip — Sprint 6/7: tabbed synth / sampler panel */}

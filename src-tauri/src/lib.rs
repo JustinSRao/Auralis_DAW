@@ -52,6 +52,9 @@ use audio::take_lane::{TakeLaneStore, TakeLaneStoreState};
 use audio::take_commands::{TakeCreatedEvent, TakeRecordingStartedEvent};
 use audio_editing::peak_cache::{ClipBufferCache, ClipBufferCacheState, PeakCache, PeakCacheState};
 use audio_editing::processed_cache::{ProcessedBufferCache, ProcessedBufferCacheState};
+use audio::mixer::{Mixer, commands::MixerState};
+use audio::mixer::master::MasterLevelEvent;
+use audio::mixer::mixer::ChannelLevelEvent;
 
 #[tauri::command]
 fn get_version() -> String {
@@ -504,6 +507,16 @@ pub fn run() {
                 Arc::new(Mutex::new(ProcessedBufferCache::new()));
             app.manage(processed_cache);
 
+            // --- Sprint 17: Mixer ---
+            let (master_level_tx, master_level_rx) =
+                crossbeam_channel::bounded::<MasterLevelEvent>(64);
+            let (channel_level_tx, channel_level_rx) =
+                crossbeam_channel::bounded::<ChannelLevelEvent>(64);
+            let mixer = Mixer::new(256, master_level_tx, channel_level_tx);
+            let mixer_state: MixerState = Arc::new(Mutex::new(mixer));
+            app.manage(mixer_state);
+            log::info!("Mixer initialized");
+
             // Initialize project manager
             let pm_state: ProjectManagerState =
                 Arc::new(Mutex::new(ProjectManager::new()));
@@ -554,6 +567,53 @@ pub fn run() {
                                 log::warn!("Failed to emit input-level-changed: {}", e);
                             }
                             last_rms = rms;
+                        }
+                    }
+                }
+            });
+
+            // Spawn mixer master level poller (~30 Hz) — emits "master_level_changed" Tauri event
+            let app_handle_master_level = app.handle().clone();
+            tokio::spawn(async move {
+                let mut interval =
+                    tokio::time::interval(std::time::Duration::from_millis(33));
+                loop {
+                    interval.tick().await;
+                    let mut latest: Option<MasterLevelEvent> = None;
+                    while let Ok(evt) = master_level_rx.try_recv() {
+                        latest = Some(evt);
+                    }
+                    if let Some(evt) = latest {
+                        if let Err(e) = app_handle_master_level.emit("master_level_changed", serde_json::json!({
+                            "peak_l": evt.peak_l,
+                            "peak_r": evt.peak_r,
+                        })) {
+                            log::warn!("Failed to emit master_level_changed: {}", e);
+                        }
+                    }
+                }
+            });
+
+            // Spawn mixer channel level poller (~30 Hz) — emits "channel_level_changed" Tauri event
+            let app_handle_channel_level = app.handle().clone();
+            tokio::spawn(async move {
+                let mut interval =
+                    tokio::time::interval(std::time::Duration::from_millis(33));
+                loop {
+                    interval.tick().await;
+                    // Drain all pending channel level events, keeping latest per channel
+                    let mut latest: std::collections::HashMap<String, ChannelLevelEvent> =
+                        std::collections::HashMap::new();
+                    while let Ok(evt) = channel_level_rx.try_recv() {
+                        latest.insert(evt.channel_id.clone(), evt);
+                    }
+                    for evt in latest.values() {
+                        if let Err(e) = app_handle_channel_level.emit("channel_level_changed", serde_json::json!({
+                            "channel_id": evt.channel_id,
+                            "peak_l": evt.peak_l,
+                            "peak_r": evt.peak_r,
+                        })) {
+                            log::warn!("Failed to emit channel_level_changed: {}", e);
                         }
                     }
                 }
@@ -723,6 +783,15 @@ pub fn run() {
             audio_editing::stretch_commands::set_clip_pitch_shift,
             audio_editing::stretch_commands::bake_clip_stretch,
             audio_editing::stretch_commands::compute_bpm_stretch_ratio,
+            audio::mixer::commands::get_mixer_state,
+            audio::mixer::commands::set_channel_fader,
+            audio::mixer::commands::set_channel_pan,
+            audio::mixer::commands::set_channel_mute,
+            audio::mixer::commands::set_channel_solo,
+            audio::mixer::commands::set_channel_send,
+            audio::mixer::commands::set_master_fader,
+            audio::mixer::commands::add_mixer_channel,
+            audio::mixer::commands::remove_mixer_channel,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
