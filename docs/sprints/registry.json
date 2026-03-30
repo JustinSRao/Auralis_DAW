@@ -196,13 +196,13 @@
     },
     "20": {
       "title": "Compression & Dynamics",
-      "status": "planning",
+      "status": "done",
       "epic": 6,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-30",
+      "hours": 7.2
     },
     "21": {
       "title": "Effect Chain & Modular Routing",
@@ -508,7 +508,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 9,
-      "completedSprints": 3
+      "completedSprints": 4
     },
     "7": {
       "title": "Export & Finalization",

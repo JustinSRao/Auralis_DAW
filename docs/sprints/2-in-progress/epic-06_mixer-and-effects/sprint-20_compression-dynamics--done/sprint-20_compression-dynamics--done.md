@@ -3,12 +3,13 @@ sprint: 20
 title: "Compression & Dynamics"
 type: fullstack
 epic: 6
-status: in-progress
+status: done
 created: 2026-02-22T22:10:13Z
 started: 2026-03-30T15:39:17Z
-completed: null
+completed: 2026-03-30
 hours: null
 workflow_version: "3.1.0"
+
 
 ---
 
