@@ -27,6 +27,8 @@ use tauri::State;
 
 use biquad::{compute_coeffs, magnitude_db, BiquadCoeffs, BiquadFilter, FilterType};
 
+use crate::effects::AudioEffect;
+
 // ─── Public constants ─────────────────────────────────────────────────────────
 
 /// Total number of biquad bands in the parametric EQ.
@@ -81,19 +83,6 @@ pub struct FreqPoint {
 pub struct EqStateSnapshot {
     pub channel_id: String,
     pub bands: Vec<EqBandParams>,
-}
-
-// ─── AudioEffect trait ────────────────────────────────────────────────────────
-
-/// Common interface for all insertable audio effects.
-///
-/// Sprint 21 (Effect Chain) will iterate over a `Vec<Box<dyn AudioEffect>>` per
-/// channel and call `process_stereo` in the audio callback.
-pub trait AudioEffect: Send + Sync {
-    /// Processes one buffer of stereo audio in-place.
-    fn process_stereo(&mut self, left: &mut [f32], right: &mut [f32]);
-    /// Resets all internal state (call only when silence is guaranteed).
-    fn reset(&mut self);
 }
 
 // ─── ParametricEq ─────────────────────────────────────────────────────────────

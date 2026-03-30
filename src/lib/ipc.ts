@@ -1939,3 +1939,72 @@ export const ipcGetEqState = (channelId: string): Promise<EqStateSnapshot> =>
 /** Returns 200 log-spaced frequency-response points for canvas rendering. */
 export const ipcGetEqFrequencyResponse = (channelId: string): Promise<FreqPoint[]> =>
   invoke<FreqPoint[]>('get_eq_frequency_response', { channelId });
+
+// ─── Sprint 19: Reverb ────────────────────────────────────────────────────────
+
+/** Full reverb state snapshot returned by `get_reverb_state`. */
+export interface ReverbStateSnapshot {
+  channel_id: string;
+  room_size: number;    // 0.0–1.0
+  decay: number;        // 0.1–10.0 s
+  pre_delay_ms: number; // 0.0–100.0 ms
+  wet: number;          // 0.0–1.0
+  damping: number;      // 0.0–1.0
+  width: number;        // 0.0–1.0
+}
+
+/** Sets a single reverb parameter for the given channel. */
+export const ipcSetReverbParam = (
+  channelId: string,
+  paramName: string,
+  value: number,
+): Promise<void> =>
+  invoke<void>('set_reverb_param', { channelId, paramName, value });
+
+/** Returns the current reverb state snapshot for the given channel. */
+export const ipcGetReverbState = (channelId: string): Promise<ReverbStateSnapshot> =>
+  invoke<ReverbStateSnapshot>('get_reverb_state', { channelId });
+
+// ─── Sprint 19: Delay ─────────────────────────────────────────────────────────
+
+export type NoteDivision =
+  | 'whole'
+  | 'half'
+  | 'quarter'
+  | 'eighth'
+  | 'sixteenth'
+  | 'thirty_second';
+
+export type DelayTimeMode =
+  | { mode: 'ms'; ms: number }
+  | { mode: 'sync'; div: NoteDivision };
+
+/** Full delay state snapshot returned by `get_delay_state`. */
+export interface DelayStateSnapshot {
+  channel_id: string;
+  delay_mode: DelayTimeMode;
+  feedback: number;   // 0.0–0.99
+  wet: number;        // 0.0–1.0
+  ping_pong: boolean;
+  hicut_hz: number;   // 500–20000 Hz
+}
+
+/** Sets a single delay parameter for the given channel. */
+export const ipcSetDelayParam = (
+  channelId: string,
+  paramName: string,
+  value: number,
+): Promise<void> =>
+  invoke<void>('set_delay_param', { channelId, paramName, value });
+
+/** Sets tempo-sync delay mode for the given channel. */
+export const ipcSetDelaySync = (
+  channelId: string,
+  noteDiv: NoteDivision,
+  bpm: number,
+): Promise<void> =>
+  invoke<void>('set_delay_sync', { channelId, noteDiv, bpm });
+
+/** Returns the current delay state snapshot for the given channel. */
+export const ipcGetDelayState = (channelId: string): Promise<DelayStateSnapshot> =>
+  invoke<DelayStateSnapshot>('get_delay_state', { channelId });

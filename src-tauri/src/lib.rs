@@ -523,6 +523,18 @@ pub fn run() {
             app.manage(eq_store);
             log::info!("EQ store initialized");
 
+            // --- Sprint 19: Reverb store ---
+            let reverb_store: effects::reverb::ReverbStore =
+                Arc::new(Mutex::new(std::collections::HashMap::new()));
+            app.manage(reverb_store);
+            log::info!("Reverb store initialized");
+
+            // --- Sprint 19: Delay store ---
+            let delay_store: effects::delay::DelayStore =
+                Arc::new(Mutex::new(std::collections::HashMap::new()));
+            app.manage(delay_store);
+            log::info!("Delay store initialized");
+
             // Initialize project manager
             let pm_state: ProjectManagerState =
                 Arc::new(Mutex::new(ProjectManager::new()));
@@ -802,6 +814,11 @@ pub fn run() {
             effects::eq::enable_eq_band,
             effects::eq::get_eq_state,
             effects::eq::get_eq_frequency_response,
+            effects::reverb::set_reverb_param,
+            effects::reverb::get_reverb_state,
+            effects::delay::set_delay_param,
+            effects::delay::set_delay_sync,
+            effects::delay::get_delay_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
