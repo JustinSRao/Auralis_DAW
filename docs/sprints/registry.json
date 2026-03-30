@@ -206,13 +206,13 @@
     },
     "21": {
       "title": "Effect Chain & Modular Routing",
-      "status": "planning",
+      "status": "done",
       "epic": 6,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-30",
+      "hours": 7.2
     },
     "22": {
       "title": "Audio Export (Stereo Mix & Stems)",
@@ -508,7 +508,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 9,
-      "completedSprints": 4
+      "completedSprints": 5
     },
     "7": {
       "title": "Export & Finalization",
