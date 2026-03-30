@@ -186,13 +186,13 @@
     },
     "19": {
       "title": "Reverb & Delay Effects",
-      "status": "planning",
+      "status": "done",
       "epic": 6,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-30",
+      "hours": 7.4
     },
     "20": {
       "title": "Compression & Dynamics",
@@ -508,7 +508,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 9,
-      "completedSprints": 2
+      "completedSprints": 3
     },
     "7": {
       "title": "Export & Finalization",
