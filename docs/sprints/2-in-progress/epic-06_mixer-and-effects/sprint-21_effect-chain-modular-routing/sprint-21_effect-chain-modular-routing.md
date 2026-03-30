@@ -3,12 +3,13 @@ sprint: 21
 title: "Effect Chain & Modular Routing"
 type: fullstack
 epic: 6
-status: planning
+status: in-progress
 created: 2026-02-22T22:10:13Z
-started: null
+started: 2026-03-30T15:50:26Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
+
 ---
 
 # Sprint 21: Effect Chain & Modular Routing

@@ -239,6 +239,39 @@ impl AudioEffect for Compressor {
         self.envelope.reset();
         self.atomics.gain_reduction_db.store(0.0, Ordering::Relaxed);
     }
+
+    fn get_params(&self) -> serde_json::Value {
+        let a = &self.atomics;
+        serde_json::json!({
+            "threshold_db": a.threshold_db.load(Ordering::Relaxed),
+            "ratio": a.ratio.load(Ordering::Relaxed),
+            "attack_ms": a.attack_ms.load(Ordering::Relaxed),
+            "release_ms": a.release_ms.load(Ordering::Relaxed),
+            "knee_db": a.knee_db.load(Ordering::Relaxed),
+            "makeup_db": a.makeup_db.load(Ordering::Relaxed),
+            "enabled": a.enabled.load(Ordering::Relaxed) >= 0.5,
+        })
+    }
+
+    fn set_params(&mut self, params: &serde_json::Value) {
+        let a = &self.atomics;
+        macro_rules! set_f32 {
+            ($key:expr, $atomic:expr, $lo:expr, $hi:expr) => {
+                if let Some(v) = params[$key].as_f64() {
+                    $atomic.store((v as f32).clamp($lo, $hi), Ordering::Relaxed);
+                }
+            };
+        }
+        set_f32!("threshold_db", a.threshold_db, -60.0, 0.0);
+        set_f32!("ratio",        a.ratio,         1.0, 100.0);
+        set_f32!("attack_ms",    a.attack_ms,     0.1, 300.0);
+        set_f32!("release_ms",   a.release_ms,    10.0, 3000.0);
+        set_f32!("knee_db",      a.knee_db,       0.0, 12.0);
+        set_f32!("makeup_db",    a.makeup_db,    -12.0, 24.0);
+        if let Some(v) = params["enabled"].as_bool() {
+            a.enabled.store(if v { 1.0 } else { 0.0 }, Ordering::Relaxed);
+        }
+    }
 }
 
 // ─── BrickwallLimiter ─────────────────────────────────────────────────────────
@@ -344,6 +377,28 @@ impl AudioEffect for BrickwallLimiter {
     fn reset(&mut self) {
         self.gain = 1.0;
         self.atomics.gain_reduction_db.store(0.0, Ordering::Relaxed);
+    }
+
+    fn get_params(&self) -> serde_json::Value {
+        let a = &self.atomics;
+        serde_json::json!({
+            "ceiling_db": a.ceiling_db.load(Ordering::Relaxed),
+            "release_ms": a.release_ms.load(Ordering::Relaxed),
+            "enabled": a.enabled.load(Ordering::Relaxed) >= 0.5,
+        })
+    }
+
+    fn set_params(&mut self, params: &serde_json::Value) {
+        let a = &self.atomics;
+        if let Some(v) = params["ceiling_db"].as_f64() {
+            a.ceiling_db.store((v as f32).clamp(-12.0, 0.0), Ordering::Relaxed);
+        }
+        if let Some(v) = params["release_ms"].as_f64() {
+            a.release_ms.store((v as f32).clamp(1.0, 1000.0), Ordering::Relaxed);
+        }
+        if let Some(v) = params["enabled"].as_bool() {
+            a.enabled.store(if v { 1.0 } else { 0.0 }, Ordering::Relaxed);
+        }
     }
 }
 
@@ -519,6 +574,37 @@ impl AudioEffect for NoiseGate {
         self.gate_gain = 1.0;
         self.hold_counter = 0;
         self.atomics.gain_reduction_db.store(0.0, Ordering::Relaxed);
+    }
+
+    fn get_params(&self) -> serde_json::Value {
+        let a = &self.atomics;
+        serde_json::json!({
+            "threshold_db": a.threshold_db.load(Ordering::Relaxed),
+            "attack_ms":    a.attack_ms.load(Ordering::Relaxed),
+            "hold_ms":      a.hold_ms.load(Ordering::Relaxed),
+            "release_ms":   a.release_ms.load(Ordering::Relaxed),
+            "range_db":     a.range_db.load(Ordering::Relaxed),
+            "enabled":      a.enabled.load(Ordering::Relaxed) >= 0.5,
+        })
+    }
+
+    fn set_params(&mut self, params: &serde_json::Value) {
+        let a = &self.atomics;
+        macro_rules! set_f32 {
+            ($key:expr, $atomic:expr, $lo:expr, $hi:expr) => {
+                if let Some(v) = params[$key].as_f64() {
+                    $atomic.store((v as f32).clamp($lo, $hi), Ordering::Relaxed);
+                }
+            };
+        }
+        set_f32!("threshold_db", a.threshold_db, -80.0,   0.0);
+        set_f32!("attack_ms",    a.attack_ms,     0.1,  100.0);
+        set_f32!("hold_ms",      a.hold_ms,       0.0, 2000.0);
+        set_f32!("release_ms",   a.release_ms,   10.0, 4000.0);
+        set_f32!("range_db",     a.range_db,    -90.0,    0.0);
+        if let Some(v) = params["enabled"].as_bool() {
+            a.enabled.store(if v { 1.0 } else { 0.0 }, Ordering::Relaxed);
+        }
     }
 }
 

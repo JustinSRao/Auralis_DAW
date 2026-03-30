@@ -307,6 +307,35 @@ impl AudioEffect for AlgorithmicReverb {
         self.pre_delay_l.reset();
         self.pre_delay_r.reset();
     }
+
+    fn get_params(&self) -> serde_json::Value {
+        let a = &self.atomics;
+        serde_json::json!({
+            "room_size": a.room_size.load(Ordering::Relaxed),
+            "decay": a.decay.load(Ordering::Relaxed),
+            "pre_delay_ms": a.pre_delay_ms.load(Ordering::Relaxed),
+            "wet": a.wet.load(Ordering::Relaxed),
+            "damping": a.damping.load(Ordering::Relaxed),
+            "width": a.width.load(Ordering::Relaxed),
+        })
+    }
+
+    fn set_params(&mut self, params: &serde_json::Value) {
+        let a = &self.atomics;
+        macro_rules! load_f32 {
+            ($key:expr, $atomic:expr, $lo:expr, $hi:expr) => {
+                if let Some(v) = params[$key].as_f64() {
+                    $atomic.store((v as f32).clamp($lo, $hi), Ordering::Relaxed);
+                }
+            };
+        }
+        load_f32!("room_size",    a.room_size,    0.0, 1.0);
+        load_f32!("decay",        a.decay,        0.1, 10.0);
+        load_f32!("pre_delay_ms", a.pre_delay_ms, 0.0, 100.0);
+        load_f32!("wet",          a.wet,          0.0, 1.0);
+        load_f32!("damping",      a.damping,      0.0, 1.0);
+        load_f32!("width",        a.width,        0.0, 1.0);
+    }
 }
 
 // ─── Tauri state ──────────────────────────────────────────────────────────────

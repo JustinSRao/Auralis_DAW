@@ -2059,3 +2059,77 @@ export const ipcSetDelaySync = (
 /** Returns the current delay state snapshot for the given channel. */
 export const ipcGetDelayState = (channelId: string): Promise<DelayStateSnapshot> =>
   invoke<DelayStateSnapshot>('get_delay_state', { channelId });
+
+// ─── Sprint 21: Effect Chain ──────────────────────────────────────────────────
+
+export type EffectType =
+  | 'eq_8_band'
+  | 'reverb'
+  | 'delay'
+  | 'compressor'
+  | 'limiter'
+  | 'gate';
+
+export interface SlotStateSnapshot {
+  slot_id: string;
+  effect_type: EffectType;
+  bypass: boolean;
+  wet_dry: number;
+}
+
+export interface ChainStateSnapshot {
+  channel_id: string;
+  slots: SlotStateSnapshot[];
+}
+
+export const ipcAddEffectToChain = (
+  channelId: string,
+  effectType: EffectType,
+  position?: number,
+): Promise<string> =>
+  invoke<string>('add_effect_to_chain', { channelId, effectType, position: position ?? null });
+
+export const ipcRemoveEffectFromChain = (
+  channelId: string,
+  slotId: string,
+): Promise<void> =>
+  invoke<void>('remove_effect_from_chain', { channelId, slotId });
+
+export const ipcMoveEffectInChain = (
+  channelId: string,
+  fromIndex: number,
+  toIndex: number,
+): Promise<void> =>
+  invoke<void>('move_effect_in_chain', { channelId, fromIndex, toIndex });
+
+export const ipcBypassEffect = (
+  channelId: string,
+  slotId: string,
+  bypass: boolean,
+): Promise<void> =>
+  invoke<void>('bypass_effect', { channelId, slotId, bypass });
+
+export const ipcSetEffectWetDry = (
+  channelId: string,
+  slotId: string,
+  wetDry: number,
+): Promise<void> =>
+  invoke<void>('set_effect_wet_dry', { channelId, slotId, wetDry });
+
+export const ipcGetChainState = (channelId: string): Promise<ChainStateSnapshot> =>
+  invoke<ChainStateSnapshot>('get_chain_state', { channelId });
+
+export const ipcSaveChainPreset = (
+  channelId: string,
+  presetName: string,
+): Promise<void> =>
+  invoke<void>('save_chain_preset', { channelId, presetName });
+
+export const ipcLoadChainPreset = (
+  channelId: string,
+  presetName: string,
+): Promise<void> =>
+  invoke<void>('load_chain_preset', { channelId, presetName });
+
+export const ipcListChainPresets = (): Promise<string[]> =>
+  invoke<string[]>('list_chain_presets');

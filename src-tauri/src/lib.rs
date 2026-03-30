@@ -547,6 +547,15 @@ pub fn run() {
             app.manage(delay_store);
             log::info!("Delay store initialized");
 
+            // --- Sprint 21: Effect chain store ---
+            let chain_store: audio::effect_chain::ChainStore =
+                Arc::new(Mutex::new(std::collections::HashMap::new()));
+            app.manage(chain_store);
+            let preset_store: audio::effect_chain::PresetStore =
+                Arc::new(Mutex::new(std::collections::HashMap::new()));
+            app.manage(preset_store);
+            log::info!("Effect chain stores initialized");
+
             // Initialize project manager
             let pm_state: ProjectManagerState =
                 Arc::new(Mutex::new(ProjectManager::new()));
@@ -837,6 +846,15 @@ pub fn run() {
             effects::delay::set_delay_param,
             effects::delay::set_delay_sync,
             effects::delay::get_delay_state,
+            audio::effect_chain::add_effect_to_chain,
+            audio::effect_chain::remove_effect_from_chain,
+            audio::effect_chain::move_effect_in_chain,
+            audio::effect_chain::bypass_effect,
+            audio::effect_chain::set_effect_wet_dry,
+            audio::effect_chain::get_chain_state,
+            audio::effect_chain::save_chain_preset,
+            audio::effect_chain::load_chain_preset,
+            audio::effect_chain::list_chain_presets,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

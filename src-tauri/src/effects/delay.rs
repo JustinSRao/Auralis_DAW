@@ -292,6 +292,35 @@ impl AudioEffect for StereoDelay {
         self.hicut_state_l = 0.0;
         self.hicut_state_r = 0.0;
     }
+
+    fn get_params(&self) -> serde_json::Value {
+        let a = &self.atomics;
+        serde_json::json!({
+            "delay_mode": serde_json::to_value(&self.delay_mode).unwrap_or(serde_json::Value::Null),
+            "feedback": a.feedback.load(Ordering::Relaxed),
+            "wet": a.wet.load(Ordering::Relaxed),
+            "ping_pong": a.ping_pong.load(Ordering::Relaxed),
+            "hicut_hz": self.hicut_hz,
+        })
+    }
+
+    fn set_params(&mut self, params: &serde_json::Value) {
+        if let Some(v) = params["feedback"].as_f64() {
+            self.atomics.feedback.store((v as f32).clamp(0.0, 0.99), Ordering::Relaxed);
+        }
+        if let Some(v) = params["wet"].as_f64() {
+            self.atomics.wet.store((v as f32).clamp(0.0, 1.0), Ordering::Relaxed);
+        }
+        if let Some(v) = params["ping_pong"].as_bool() {
+            self.atomics.ping_pong.store(v, Ordering::Relaxed);
+        }
+        if let Some(v) = params["hicut_hz"].as_f64() {
+            self.set_hicut_hz(v as f32);
+        }
+        if let Ok(mode) = serde_json::from_value::<DelayTimeMode>(params["delay_mode"].clone()) {
+            self.set_delay_mode(mode, 120.0);
+        }
+    }
 }
 
 // ─── Tauri state ──────────────────────────────────────────────────────────────

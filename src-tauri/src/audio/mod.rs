@@ -2,6 +2,7 @@
 // Handles: ASIO/WASAPI device management, real-time audio thread, audio graph
 pub mod commands;
 pub mod devices;
+pub mod effect_chain;
 pub mod mixer;
 pub mod engine;
 pub mod graph;

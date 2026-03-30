@@ -228,6 +228,20 @@ impl AudioEffect for ParametricEq {
             fr.reset();
         }
     }
+
+    fn get_params(&self) -> serde_json::Value {
+        serde_json::to_value(&self.bands[..]).unwrap_or(serde_json::Value::Null)
+    }
+
+    fn set_params(&mut self, params: &serde_json::Value) {
+        if let Some(arr) = params.as_array() {
+            for (i, v) in arr.iter().enumerate().take(NUM_BANDS) {
+                if let Ok(band) = serde_json::from_value::<EqBandParams>(v.clone()) {
+                    self.set_band(i, band);
+                }
+            }
+        }
+    }
 }
 
 // ─── Tauri state ──────────────────────────────────────────────────────────────
