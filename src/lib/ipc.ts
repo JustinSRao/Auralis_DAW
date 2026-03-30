@@ -1940,6 +1940,57 @@ export const ipcGetEqState = (channelId: string): Promise<EqStateSnapshot> =>
 export const ipcGetEqFrequencyResponse = (channelId: string): Promise<FreqPoint[]> =>
   invoke<FreqPoint[]>('get_eq_frequency_response', { channelId });
 
+// ─── Sprint 20: Dynamics ─────────────────────────────────────────────────────
+
+export interface CompressorStateSnapshot {
+  channel_id: string;
+  threshold_db: number;  // -60 – 0
+  ratio: number;         // 1 – 100
+  attack_ms: number;     // 0.1 – 300
+  release_ms: number;    // 10 – 3000
+  knee_db: number;       // 0 – 12
+  makeup_db: number;     // -12 – +24
+  enabled: boolean;
+  gain_reduction_db: number;
+}
+
+export interface LimiterStateSnapshot {
+  channel_id: string;
+  ceiling_db: number;    // -12 – 0
+  release_ms: number;    // 1 – 1000
+  enabled: boolean;
+  gain_reduction_db: number;
+}
+
+export interface GateStateSnapshot {
+  channel_id: string;
+  threshold_db: number;  // -80 – 0
+  attack_ms: number;     // 0.1 – 100
+  hold_ms: number;       // 0 – 2000
+  release_ms: number;    // 10 – 4000
+  range_db: number;      // -90 – 0
+  enabled: boolean;
+  gain_reduction_db: number;
+}
+
+export const ipcSetCompressorParam = (channelId: string, paramName: string, value: number): Promise<void> =>
+  invoke<void>('set_compressor_param', { channelId, paramName, value });
+
+export const ipcGetCompressorState = (channelId: string): Promise<CompressorStateSnapshot> =>
+  invoke<CompressorStateSnapshot>('get_compressor_state', { channelId });
+
+export const ipcSetLimiterParam = (channelId: string, paramName: string, value: number): Promise<void> =>
+  invoke<void>('set_limiter_param', { channelId, paramName, value });
+
+export const ipcGetLimiterState = (channelId: string): Promise<LimiterStateSnapshot> =>
+  invoke<LimiterStateSnapshot>('get_limiter_state', { channelId });
+
+export const ipcSetGateParam = (channelId: string, paramName: string, value: number): Promise<void> =>
+  invoke<void>('set_gate_param', { channelId, paramName, value });
+
+export const ipcGetGateState = (channelId: string): Promise<GateStateSnapshot> =>
+  invoke<GateStateSnapshot>('get_gate_state', { channelId });
+
 // ─── Sprint 19: Reverb ────────────────────────────────────────────────────────
 
 /** Full reverb state snapshot returned by `get_reverb_state`. */

@@ -523,6 +523,18 @@ pub fn run() {
             app.manage(eq_store);
             log::info!("EQ store initialized");
 
+            // --- Sprint 20: Dynamics stores ---
+            let compressor_store: effects::dynamics::CompressorStore =
+                Arc::new(Mutex::new(std::collections::HashMap::new()));
+            app.manage(compressor_store);
+            let limiter_store: effects::dynamics::LimiterStore =
+                Arc::new(Mutex::new(std::collections::HashMap::new()));
+            app.manage(limiter_store);
+            let gate_store: effects::dynamics::GateStore =
+                Arc::new(Mutex::new(std::collections::HashMap::new()));
+            app.manage(gate_store);
+            log::info!("Dynamics stores initialized");
+
             // --- Sprint 19: Reverb store ---
             let reverb_store: effects::reverb::ReverbStore =
                 Arc::new(Mutex::new(std::collections::HashMap::new()));
@@ -814,6 +826,12 @@ pub fn run() {
             effects::eq::enable_eq_band,
             effects::eq::get_eq_state,
             effects::eq::get_eq_frequency_response,
+            effects::dynamics::set_compressor_param,
+            effects::dynamics::get_compressor_state,
+            effects::dynamics::set_limiter_param,
+            effects::dynamics::get_limiter_state,
+            effects::dynamics::set_gate_param,
+            effects::dynamics::get_gate_state,
             effects::reverb::set_reverb_param,
             effects::reverb::get_reverb_state,
             effects::delay::set_delay_param,

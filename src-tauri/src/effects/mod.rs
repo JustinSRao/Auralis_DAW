@@ -13,5 +13,6 @@ pub trait AudioEffect: Send + Sync {
 }
 
 pub mod delay;
+pub mod dynamics;
 pub mod eq;
 pub mod reverb;
