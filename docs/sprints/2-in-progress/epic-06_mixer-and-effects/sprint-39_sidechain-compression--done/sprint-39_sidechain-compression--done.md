@@ -3,12 +3,13 @@ sprint: 39
 title: "Sidechain Compression"
 type: fullstack
 epic: 6
-status: completed
+status: done
 created: 2026-02-23T17:05:46Z
 started: 2026-03-31T10:41:59Z
-completed: 2026-03-31T12:00:00Z
+completed: 2026-03-31
 hours: 1.5
 workflow_version: "3.1.0"
+
 
 ---
 

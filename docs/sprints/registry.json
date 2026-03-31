@@ -376,13 +376,13 @@
     },
     "39": {
       "title": "Sidechain Compression",
-      "status": "planning",
+      "status": "done",
       "epic": 6,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-31",
+      "hours": 12.4
     },
     "40": {
       "title": "Track Freeze and Bounce in Place",
@@ -508,7 +508,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 9,
-      "completedSprints": 6
+      "completedSprints": 7
     },
     "7": {
       "title": "Export & Finalization",
