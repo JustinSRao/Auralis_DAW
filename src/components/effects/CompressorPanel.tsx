@@ -1,18 +1,43 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useCompressorStore } from '../../stores/compressorStore';
+import { useSidechainStore } from '../../stores/sidechainStore';
+import { useMixerStore } from '../../stores/mixerStore';
 import { Knob } from '../instruments/Knob';
+import SidechainSourceSelector from './SidechainSourceSelector';
+import SidechainHpfControl from './SidechainHpfControl';
 
 interface CompressorPanelProps {
   channelId: string;
+  /** Effect slot ID — used to key sidechain routing. Defaults to "default". */
+  slotId?: string;
 }
 
 function norm(v: number, min: number, max: number) { return Math.max(0, Math.min(1, (v - min) / (max - min))); }
 function denorm(n: number, min: number, max: number) { return min + Math.max(0, Math.min(1, n)) * (max - min); }
 
-const CompressorPanel: React.FC<CompressorPanelProps> = ({ channelId }) => {
+const CompressorPanel: React.FC<CompressorPanelProps> = ({ channelId, slotId = 'default' }) => {
   const channel = useCompressorStore((s) => s.channels[channelId]);
   const loadChannel = useCompressorStore((s) => s.loadChannel);
   const setParam = useCompressorStore((s) => s.setParam);
+
+  const scKey = `${channelId}::${slotId}`;
+  const scSlot = useSidechainStore((s) => s.slots[scKey]);
+  const setScSource = useSidechainStore((s) => s.setSource);
+  const removeScSource = useSidechainStore((s) => s.removeSource);
+  const setScFilter = useSidechainStore((s) => s.setFilter);
+
+  const allMixerChannels = useMixerStore((s) => s.channels);
+  const mixerChannels = useMemo(
+    () =>
+      Object.values(allMixerChannels)
+        .filter((c) => c.id !== channelId)
+        .map((c) => ({ id: c.id, name: c.name })),
+    [allMixerChannels, channelId],
+  );
+
+  const hpfCutoff = scSlot?.hpfCutoffHz ?? 100;
+  const hpfEnabled = scSlot?.hpfEnabled ?? true;
+  const scSource = scSlot?.sourceChannelId ?? null;
 
   useEffect(() => { loadChannel(channelId); }, [channelId, loadChannel]);
 
@@ -49,6 +74,23 @@ const CompressorPanel: React.FC<CompressorPanelProps> = ({ channelId }) => {
         <Knob label="Makeup" value={norm(channel.makeup_db, -12, 24)}
           onValue={(v) => setParam(channelId, 'makeup_db', denorm(v, -12, 24))}
           displayValue={`${channel.makeup_db > 0 ? '+' : ''}${channel.makeup_db.toFixed(1)}dB`} />
+      </div>
+
+      <div className="compressor-panel__sidechain">
+        <SidechainSourceSelector
+          channels={mixerChannels}
+          value={scSource}
+          onSelect={(srcId) => setScSource(channelId, slotId, srcId, hpfCutoff, hpfEnabled)}
+          onRemove={() => removeScSource(channelId, slotId)}
+        />
+        {scSource != null && (
+          <SidechainHpfControl
+            cutoffHz={hpfCutoff}
+            enabled={hpfEnabled}
+            onCutoffChange={(hz) => setScFilter(channelId, slotId, hz, hpfEnabled)}
+            onEnabledChange={(en) => setScFilter(channelId, slotId, hpfCutoff, en)}
+          />
+        )}
       </div>
 
       <div className="compressor-panel__meter" aria-label="Gain reduction meter">

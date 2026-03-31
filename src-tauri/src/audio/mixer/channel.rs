@@ -2,6 +2,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use atomic_float::AtomicF32;
 
+use crate::effects::sidechain::SidechainTap;
+
+/// Pre-allocated scratch capacity for the sidechain tap write buffer.
+const TAP_SCRATCH_CAPACITY: usize = 4096 * 2; // 4096 stereo frames
+
 /// A single mixer channel strip.
 ///
 /// Holds all per-channel parameters as atomics so the audio thread can read
@@ -26,6 +31,13 @@ pub struct MixerChannel {
     pub peak_l: Arc<AtomicF32>,
     /// Latest peak level for the right channel (updated each audio buffer).
     pub peak_r: Arc<AtomicF32>,
+
+    /// Sidechain tap: post-fader output written here each callback so that
+    /// downstream compressors can use this channel as a sidechain source.
+    pub sidechain_tap: Option<Arc<SidechainTap>>,
+    /// Pre-allocated scratch buffer for building the tap write data.
+    /// Capacity = TAP_SCRATCH_CAPACITY; no allocation on the audio thread.
+    tap_scratch: Vec<f32>,
 }
 
 impl MixerChannel {
@@ -45,6 +57,8 @@ impl MixerChannel {
             ],
             peak_l: Arc::new(AtomicF32::new(0.0)),
             peak_r: Arc::new(AtomicF32::new(0.0)),
+            sidechain_tap: None,
+            tap_scratch: vec![0.0; TAP_SCRATCH_CAPACITY],
         }
     }
 
@@ -56,12 +70,13 @@ impl MixerChannel {
     ///
     /// `solo_any` — true if any channel in the mixer has solo enabled.
     pub fn process_into(
-        &self,
+        &mut self,
         source: &[f32],
         output: &mut [f32],
         send_bufs: &mut [Vec<f32>],
         solo_any: bool,
     ) {
+        let frame_count = output.len() / 2;
         let muted = self.mute.load(Ordering::Relaxed);
         let soloed = self.solo.load(Ordering::Relaxed);
         let silent = muted || (solo_any && !soloed);
@@ -69,6 +84,14 @@ impl MixerChannel {
         if silent {
             self.peak_l.store(0.0, Ordering::Relaxed);
             self.peak_r.store(0.0, Ordering::Relaxed);
+            // Write zeros to sidechain tap so downstream compressors see silence.
+            if let Some(tap) = &self.sidechain_tap {
+                let n = (frame_count * 2).min(self.tap_scratch.len());
+                for s in &mut self.tap_scratch[..n] { *s = 0.0; }
+                // SAFETY: single-threaded audio callback; source channel processed
+                // before any destination compressor in the same callback.
+                unsafe { tap.write(&self.tap_scratch[..n]); }
+            }
             return;
         }
 
@@ -80,9 +103,9 @@ impl MixerChannel {
         let gain_l = angle.cos() * fader;
         let gain_r = angle.sin() * fader;
 
-        let frame_count = output.len() / 2;
         let mut peak_l = 0.0f32;
         let mut peak_r = 0.0f32;
+        let write_tap = self.sidechain_tap.is_some();
 
         for i in 0..frame_count {
             let src_l = if source.len() > i * 2 { source[i * 2] } else { 0.0 };
@@ -96,10 +119,24 @@ impl MixerChannel {
 
             peak_l = peak_l.max(out_l.abs());
             peak_r = peak_r.max(out_r.abs());
+
+            // Record post-fader output for the sidechain tap.
+            if write_tap && i * 2 + 1 < self.tap_scratch.len() {
+                self.tap_scratch[i * 2] = out_l;
+                self.tap_scratch[i * 2 + 1] = out_r;
+            }
         }
 
         self.peak_l.store(peak_l, Ordering::Relaxed);
         self.peak_r.store(peak_r, Ordering::Relaxed);
+
+        // Flush post-fader buffer to sidechain tap.
+        if let Some(tap) = &self.sidechain_tap {
+            let n = (frame_count * 2).min(self.tap_scratch.len());
+            // SAFETY: single-threaded audio callback; source channel processed
+            // before any destination compressor in the same callback.
+            unsafe { tap.write(&self.tap_scratch[..n]); }
+        }
 
         // Route to send buses
         for (bus_idx, send_buf) in send_bufs.iter_mut().enumerate() {
@@ -126,7 +163,7 @@ mod tests {
 
     #[test]
     fn test_pan_law_center() {
-        let ch = MixerChannel::new("1", "Test");
+        let mut ch = MixerChannel::new("1", "Test");
         ch.pan.store(0.0, Ordering::Relaxed);
         let src = make_stereo_buf(8, 1.0);
         let mut out = vec![0.0f32; 16];
@@ -141,7 +178,7 @@ mod tests {
 
     #[test]
     fn test_pan_law_hard_left() {
-        let ch = MixerChannel::new("1", "Test");
+        let mut ch = MixerChannel::new("1", "Test");
         ch.pan.store(-1.0, Ordering::Relaxed);
         let src = make_stereo_buf(8, 1.0);
         let mut out = vec![0.0f32; 16];
@@ -155,7 +192,7 @@ mod tests {
 
     #[test]
     fn test_pan_law_hard_right() {
-        let ch = MixerChannel::new("1", "Test");
+        let mut ch = MixerChannel::new("1", "Test");
         ch.pan.store(1.0, Ordering::Relaxed);
         let src = make_stereo_buf(8, 1.0);
         let mut out = vec![0.0f32; 16];
@@ -169,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_fader_zero_silences() {
-        let ch = MixerChannel::new("1", "Test");
+        let mut ch = MixerChannel::new("1", "Test");
         ch.fader.store(0.0, Ordering::Relaxed);
         let src = make_stereo_buf(8, 1.0);
         let mut out = vec![0.0f32; 16];
@@ -180,7 +217,7 @@ mod tests {
 
     #[test]
     fn test_mute_silences() {
-        let ch = MixerChannel::new("1", "Test");
+        let mut ch = MixerChannel::new("1", "Test");
         ch.mute.store(true, Ordering::Relaxed);
         let src = make_stereo_buf(8, 1.0);
         let mut out = vec![0.0f32; 16];
@@ -191,7 +228,7 @@ mod tests {
 
     #[test]
     fn test_solo_any_silences_non_soloed() {
-        let ch = MixerChannel::new("1", "Test");
+        let mut ch = MixerChannel::new("1", "Test");
         // solo_any = true but this channel is NOT soloed
         let src = make_stereo_buf(8, 1.0);
         let mut out = vec![0.0f32; 16];
@@ -202,7 +239,7 @@ mod tests {
 
     #[test]
     fn test_solo_passes_soloed_channel() {
-        let ch = MixerChannel::new("1", "Test");
+        let mut ch = MixerChannel::new("1", "Test");
         ch.solo.store(true, Ordering::Relaxed);
         let src = make_stereo_buf(8, 1.0);
         let mut out = vec![0.0f32; 16];
@@ -214,7 +251,7 @@ mod tests {
 
     #[test]
     fn test_send_accumulates() {
-        let ch = MixerChannel::new("1", "Test");
+        let mut ch = MixerChannel::new("1", "Test");
         ch.sends[0].store(0.5, Ordering::Relaxed);
         let src = make_stereo_buf(4, 1.0);
         let mut out = vec![0.0f32; 8];

@@ -44,6 +44,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::effects::AudioEffect;
+use crate::effects::sidechain::SidechainTap;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -111,6 +112,90 @@ fn db_to_linear(db: f32) -> f32 {
     10.0f32.powf(db / 20.0)
 }
 
+// ─── SidechainHpf ─────────────────────────────────────────────────────────────
+
+/// Two-pole Butterworth high-pass filter for the sidechain detection path.
+///
+/// Implemented as a direct-form II transposed biquad.  Coefficients are
+/// recomputed on cutoff change (control thread); state is updated per-sample
+/// on the audio thread (no allocation).
+///
+/// ## Coefficient derivation
+///
+/// ```text
+/// ω₀ = 2π·fc/fs
+/// α  = sin(ω₀)/√2          (Butterworth: Q = 1/√2)
+/// b0 = (1 + cos(ω₀)) / 2
+/// b1 = -(1 + cos(ω₀))
+/// b2 = (1 + cos(ω₀)) / 2
+/// a0 = 1 + α
+/// a1 = -2·cos(ω₀)
+/// a2 = 1 - α
+/// Normalised: divide all by a0.
+/// ```
+pub struct SidechainHpf {
+    b0: f32, b1: f32, b2: f32,
+    a1: f32, a2: f32,
+    // DFT-II transposed state — two delay elements per channel
+    s1_l: f32, s2_l: f32,
+    s1_r: f32, s2_r: f32,
+    pub enabled: bool,
+}
+
+impl SidechainHpf {
+    /// Creates a new HPF with `cutoff_hz` and Butterworth Q.
+    pub fn new(cutoff_hz: f32, sample_rate: f32) -> Self {
+        let mut hpf = Self {
+            b0: 0.0, b1: 0.0, b2: 0.0, a1: 0.0, a2: 0.0,
+            s1_l: 0.0, s2_l: 0.0,
+            s1_r: 0.0, s2_r: 0.0,
+            enabled: true,
+        };
+        hpf.update_coeffs(cutoff_hz, sample_rate);
+        hpf
+    }
+
+    /// Recomputes biquad coefficients for the new cutoff.  Call from control thread.
+    pub fn update_coeffs(&mut self, cutoff_hz: f32, sample_rate: f32) {
+        let fc = cutoff_hz.clamp(20.0, sample_rate * 0.45);
+        let w0 = 2.0 * std::f32::consts::PI * fc / sample_rate;
+        let cos_w0 = w0.cos();
+        let sin_w0 = w0.sin();
+        let alpha = sin_w0 / std::f32::consts::SQRT_2; // Q = 1/√2
+        let a0 = 1.0 + alpha;
+        self.b0 = (1.0 + cos_w0) / (2.0 * a0);
+        self.b1 = -(1.0 + cos_w0) / a0;
+        self.b2 = (1.0 + cos_w0) / (2.0 * a0);
+        self.a1 = (-2.0 * cos_w0) / a0;
+        self.a2 = (1.0 - alpha) / a0;
+    }
+
+    /// Processes one left-channel sample through the HPF.
+    #[inline]
+    pub fn process_l(&mut self, x: f32) -> f32 {
+        if !self.enabled { return x; }
+        let y = self.b0 * x + self.s1_l;
+        self.s1_l = self.b1 * x - self.a1 * y + self.s2_l;
+        self.s2_l = self.b2 * x - self.a2 * y;
+        y
+    }
+
+    /// Processes one right-channel sample through the HPF.
+    #[inline]
+    pub fn process_r(&mut self, x: f32) -> f32 {
+        if !self.enabled { return x; }
+        let y = self.b0 * x + self.s1_r;
+        self.s1_r = self.b1 * x - self.a1 * y + self.s2_r;
+        self.s2_r = self.b2 * x - self.a2 * y;
+        y
+    }
+
+    pub fn reset(&mut self) {
+        self.s1_l = 0.0; self.s2_l = 0.0;
+        self.s1_r = 0.0; self.s2_r = 0.0;
+    }
+}
+
 // ─── Compressor ───────────────────────────────────────────────────────────────
 
 /// Atomic parameter bundle for `Compressor`.
@@ -155,11 +240,17 @@ pub struct CompressorStateSnapshot {
     pub gain_reduction_db: f32,
 }
 
-/// Feed-forward RMS compressor with soft-knee and makeup gain.
+/// Feed-forward RMS compressor with soft-knee, makeup gain, and optional
+/// cross-channel sidechain detection (Sprint 39).
 pub struct Compressor {
     envelope: EnvelopeFollower,
     atomics: Arc<CompressorAtomics>,
     sample_rate: f32,
+    /// When `Some`, the envelope follower reads from this tap instead of the
+    /// compressor's own input buffer.
+    sidechain_tap: Option<Arc<SidechainTap>>,
+    /// Two-pole Butterworth HPF applied to the sidechain signal before detection.
+    sidechain_hpf: SidechainHpf,
 }
 
 impl Compressor {
@@ -168,6 +259,8 @@ impl Compressor {
             envelope: EnvelopeFollower::new(10.0, 100.0, sample_rate),
             atomics: Arc::new(CompressorAtomics::default()),
             sample_rate,
+            sidechain_tap: None,
+            sidechain_hpf: SidechainHpf::new(100.0, sample_rate),
         }
     }
 
@@ -215,20 +308,41 @@ impl AudioEffect for Compressor {
 
         let makeup_linear = db_to_linear(makeup_db);
         let mut max_gr = 0.0f32;
-
         let n = left.len().min(right.len());
-        for i in 0..n {
-            // Use the louder of the two channels as the detection signal.
-            let detected = left[i].abs().max(right[i].abs());
-            let env = self.envelope.process(detected);
-            let level_db = linear_to_db(env);
-            let gain_db = Self::compute_gain_db(level_db, threshold_db, ratio, knee_db);
-            let gain_linear = db_to_linear(gain_db) * makeup_linear;
-            left[i] *= gain_linear;
-            right[i] *= gain_linear;
-            // gain_db is negative (reduction); store as positive dB
-            if -gain_db > max_gr {
-                max_gr = -gain_db;
+
+        if let Some(tap) = &self.sidechain_tap {
+            // Sidechain mode: detection runs on the source channel's tap buffer;
+            // gain reduction is applied to this channel's own audio.
+            let tap_data = tap.read();
+            let tap_frames = tap.frame_count();
+            for i in 0..n {
+                let (sc_l, sc_r) = if i < tap_frames {
+                    (tap_data[i * 2], tap_data[i * 2 + 1])
+                } else {
+                    (0.0, 0.0)
+                };
+                let sc_l = self.sidechain_hpf.process_l(sc_l);
+                let sc_r = self.sidechain_hpf.process_r(sc_r);
+                let detected = sc_l.abs().max(sc_r.abs());
+                let env = self.envelope.process(detected);
+                let level_db = linear_to_db(env);
+                let gain_db = Self::compute_gain_db(level_db, threshold_db, ratio, knee_db);
+                let gain_linear = db_to_linear(gain_db) * makeup_linear;
+                left[i] *= gain_linear;
+                right[i] *= gain_linear;
+                if -gain_db > max_gr { max_gr = -gain_db; }
+            }
+        } else {
+            // Standard mode: detect from this channel's own input (Sprint 20 behaviour).
+            for i in 0..n {
+                let detected = left[i].abs().max(right[i].abs());
+                let env = self.envelope.process(detected);
+                let level_db = linear_to_db(env);
+                let gain_db = Self::compute_gain_db(level_db, threshold_db, ratio, knee_db);
+                let gain_linear = db_to_linear(gain_db) * makeup_linear;
+                left[i] *= gain_linear;
+                right[i] *= gain_linear;
+                if -gain_db > max_gr { max_gr = -gain_db; }
             }
         }
 
@@ -237,7 +351,17 @@ impl AudioEffect for Compressor {
 
     fn reset(&mut self) {
         self.envelope.reset();
+        self.sidechain_hpf.reset();
         self.atomics.gain_reduction_db.store(0.0, Ordering::Relaxed);
+    }
+
+    fn set_sidechain(&mut self, tap: Option<Arc<SidechainTap>>) {
+        self.sidechain_tap = tap;
+    }
+
+    fn set_sidechain_hpf(&mut self, cutoff_hz: f32, enabled: bool) {
+        self.sidechain_hpf.update_coeffs(cutoff_hz, self.sample_rate);
+        self.sidechain_hpf.enabled = enabled;
     }
 
     fn get_params(&self) -> serde_json::Value {

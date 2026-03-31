@@ -14,9 +14,20 @@ pub trait AudioEffect: Send + Sync {
     fn get_params(&self) -> serde_json::Value;
     /// Applies a parameter map previously returned by `get_params` (for preset load).
     fn set_params(&mut self, params: &serde_json::Value);
+
+    /// Wires a sidechain tap buffer into this effect (Sprint 39).
+    ///
+    /// Only `Compressor` overrides this; all other effects silently ignore it.
+    fn set_sidechain(&mut self, _tap: Option<std::sync::Arc<sidechain::SidechainTap>>) {}
+
+    /// Configures the sidechain high-pass filter (Sprint 39).
+    ///
+    /// Only `Compressor` overrides this; all other effects silently ignore it.
+    fn set_sidechain_hpf(&mut self, _cutoff_hz: f32, _enabled: bool) {}
 }
 
 pub mod delay;
 pub mod dynamics;
 pub mod eq;
 pub mod reverb;
+pub mod sidechain;

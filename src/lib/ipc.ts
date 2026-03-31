@@ -2187,3 +2187,37 @@ export const ipcGetWaveformPeaks = (
   framesPerPixel: number,
 ): Promise<PeakData> =>
   invoke<PeakData>('get_waveform_peaks', { filePath, framesPerPixel });
+
+// --- Sprint 39: Sidechain routing commands ---
+
+/** Routes `sourceChannelId` as the sidechain source for the compressor at `(destChannelId, slotId)`. */
+export const ipcSetSidechainSource = (
+  destChannelId: string,
+  slotId: string,
+  sourceChannelId: string,
+  hpfCutoffHz: number,
+  hpfEnabled: boolean,
+): Promise<void> =>
+  invoke<void>('set_sidechain_source', {
+    destChannelId,
+    slotId,
+    sourceChannelId,
+    hpfCutoffHz,
+    hpfEnabled,
+  });
+
+/** Removes the sidechain connection from the compressor at `(destChannelId, slotId)`. */
+export const ipcRemoveSidechain = (
+  destChannelId: string,
+  slotId: string,
+): Promise<void> =>
+  invoke<void>('remove_sidechain', { destChannelId, slotId });
+
+/** Updates the sidechain HPF cutoff and enable state for `(destChannelId, slotId)`. */
+export const ipcSetSidechainFilter = (
+  destChannelId: string,
+  slotId: string,
+  cutoffHz: number,
+  enabled: boolean,
+): Promise<void> =>
+  invoke<void>('set_sidechain_filter', { destChannelId, slotId, cutoffHz, enabled });

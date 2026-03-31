@@ -3,6 +3,8 @@ pub mod channel;
 pub mod commands;
 pub mod master;
 pub mod mixer;
+pub mod sidechain;
+pub mod sidechain_commands;
 
 pub use mixer::Mixer;
 pub use channel::MixerChannel;

@@ -8,6 +8,14 @@ vi.mock('../../../stores/compressorStore', () => ({
   useCompressorStore: vi.fn(),
 }));
 
+vi.mock('../../../stores/sidechainStore', () => ({
+  useSidechainStore: vi.fn().mockReturnValue(undefined),
+}));
+
+vi.mock('../../../stores/mixerStore', () => ({
+  useMixerStore: vi.fn().mockReturnValue({}),
+}));
+
 vi.mock('../../instruments/Knob', () => ({
   Knob: ({ label, onValue, displayValue }: { label: string; onValue: (v: number) => void; displayValue: string }) => (
     <div data-testid={`knob-${label.toLowerCase()}`}>
@@ -15,6 +23,14 @@ vi.mock('../../instruments/Knob', () => ({
       <button onClick={() => onValue(0.5)}>{label}</button>
     </div>
   ),
+}));
+
+vi.mock('../SidechainSourceSelector', () => ({
+  default: () => <div data-testid="sidechain-source-selector" />,
+}));
+
+vi.mock('../SidechainHpfControl', () => ({
+  default: () => <div data-testid="sidechain-hpf-control" />,
 }));
 
 const mockLoadChannel = vi.fn();

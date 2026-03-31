@@ -101,14 +101,23 @@ impl Mixer {
         let solo_any = self.channels.iter().any(|c| c.solo.load(Ordering::Relaxed));
 
         // Process each channel into the mix buffer.
-        // silence_buf and channel_level_scratch are pre-allocated — no heap allocation here.
-        for (channel, evt) in self.channels.iter().zip(self.channel_level_scratch.iter_mut()) {
-            channel.process_into(&self.silence_buf, &mut self.mix_buf, &mut self.send_bufs, solo_any);
+        // Borrow fields individually so Rust can track the disjoint borrows:
+        // channels (mut), silence_buf, mix_buf (mut), send_bufs (mut),
+        // channel_level_scratch (mut), channel_level_tx — all different fields.
+        let channels = &mut self.channels;
+        let mix_buf = &mut self.mix_buf;
+        let send_bufs = &mut self.send_bufs;
+        let silence_buf = &self.silence_buf;
+        let channel_level_scratch = &mut self.channel_level_scratch;
+        let channel_level_tx = &self.channel_level_tx;
+
+        for (channel, evt) in channels.iter_mut().zip(channel_level_scratch.iter_mut()) {
+            channel.process_into(silence_buf, mix_buf, send_bufs, solo_any);
 
             // Update the pre-allocated event in-place, then send a clone.
             evt.peak_l = channel.peak_l.load(Ordering::Relaxed);
             evt.peak_r = channel.peak_r.load(Ordering::Relaxed);
-            let _ = self.channel_level_tx.try_send(evt.clone());
+            let _ = channel_level_tx.try_send(evt.clone());
         }
 
         // Flush each bus's accumulated send signal back into the mix buffer
@@ -161,7 +170,7 @@ mod tests {
         let src = vec![0.0f32; 512]; // silence for Sprint 17
         let mut out = vec![0.0f32; 512];
         let mut send_bufs = vec![vec![0.0f32; 512]; 4];
-        mixer.channels[0].process_into(&src, &mut out, &mut send_bufs, true);
+        mixer.channels[0].process_into(&src, &mut out, &mut send_bufs, true); // channels[0] is &mut via IndexMut
         assert!(out.iter().all(|&s| s.abs() < 1e-6), "ch0 should be silent (not soloed)");
     }
 

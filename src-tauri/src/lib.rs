@@ -568,6 +568,12 @@ pub fn run() {
             app.manage(preset_store);
             log::info!("Effect chain stores initialized");
 
+            // --- Sprint 39: Sidechain router ---
+            let sidechain_router: audio::mixer::sidechain::SidechainRouterStore =
+                Arc::new(Mutex::new(audio::mixer::sidechain::SidechainRouter::new()));
+            app.manage(sidechain_router);
+            log::info!("Sidechain router initialized");
+
             // Initialize project manager
             let pm_state: ProjectManagerState =
                 Arc::new(Mutex::new(ProjectManager::new()));
@@ -874,6 +880,9 @@ pub fn run() {
             audio::effect_chain::save_chain_preset,
             audio::effect_chain::load_chain_preset,
             audio::effect_chain::list_chain_presets,
+            audio::mixer::sidechain_commands::set_sidechain_source,
+            audio::mixer::sidechain_commands::remove_sidechain,
+            audio::mixer::sidechain_commands::set_sidechain_filter,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
