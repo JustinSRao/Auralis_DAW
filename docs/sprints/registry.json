@@ -356,13 +356,13 @@
     },
     "37": {
       "title": "Audio Clip Playback Engine",
-      "status": "planning",
+      "status": "done",
       "epic": 6,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-31",
+      "hours": 25.7
     },
     "38": {
       "title": "Punch In/Out Recording",
@@ -508,7 +508,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 9,
-      "completedSprints": 5
+      "completedSprints": 6
     },
     "7": {
       "title": "Export & Finalization",

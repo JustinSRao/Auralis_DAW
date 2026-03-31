@@ -193,7 +193,8 @@
       "Bash(GIT_TRACE2=1 git rev-parse --git-dir)",
       "Bash(GIT_TRACE2=1 git status)",
       "Bash(py --version)",
-      "Bash(/c/Users/nitsu/AppData/Local/Microsoft/WindowsApps/python3 ~/.claude/scripts/sprint_lifecycle.py start-sprint 19)"
+      "Bash(/c/Users/nitsu/AppData/Local/Microsoft/WindowsApps/python3 ~/.claude/scripts/sprint_lifecycle.py start-sprint 19)",
+      "Bash(PYTHONIOENCODING=utf-8 node \"node_modules/vitest/vitest.mjs\" run src/stores/__tests__/clipPlayerStore.test.ts src/components/Timeline/WaveformDisplay.test.tsx)"
     ]
   }
 }
