@@ -2133,3 +2133,57 @@ export const ipcLoadChainPreset = (
 
 export const ipcListChainPresets = (): Promise<string[]> =>
   invoke<string[]>('list_chain_presets');
+
+// ─── Sprint 37: Audio Clip Playback ──────────────────────────────────────────
+
+export interface ClipStateSnapshot {
+  clip_id: string;
+  file_path: string;
+  start_bar: number;
+  duration_bars: number;
+  gain: number;
+  start_offset_frames: number;
+  loaded: boolean;
+}
+
+export interface PeakFrame {
+  min: number;
+  max: number;
+}
+
+export interface PeakData {
+  framesPerPixel: number;
+  left: PeakFrame[];
+  right: PeakFrame[];
+  totalFrames: number;
+  sampleRate: number;
+}
+
+export const ipcLoadAudioClip = (
+  clipId: string,
+  filePath: string,
+  startBar: number,
+  durationBars: number,
+): Promise<ClipStateSnapshot> =>
+  invoke<ClipStateSnapshot>('load_audio_clip', { clipId, filePath, startBar, durationBars });
+
+export const ipcSetClipGain = (clipId: string, gain: number): Promise<void> =>
+  invoke<void>('set_clip_gain', { clipId, gain });
+
+export const ipcSetClipOffset = (clipId: string, startOffsetFrames: number): Promise<void> =>
+  invoke<void>('set_clip_offset', { clipId, startOffsetFrames });
+
+export const ipcTriggerAudioClip = (clipId: string): Promise<void> =>
+  invoke<void>('trigger_audio_clip', { clipId });
+
+export const ipcStopAudioClip = (clipId: string): Promise<void> =>
+  invoke<void>('stop_audio_clip', { clipId });
+
+export const ipcGetClipState = (clipId: string): Promise<ClipStateSnapshot> =>
+  invoke<ClipStateSnapshot>('get_clip_state', { clipId });
+
+export const ipcGetWaveformPeaks = (
+  filePath: string,
+  framesPerPixel: number,
+): Promise<PeakData> =>
+  invoke<PeakData>('get_waveform_peaks', { filePath, framesPerPixel });

@@ -137,6 +137,10 @@ pub fn run() {
                 crossbeam_channel::unbounded::<Box<audio::tempo_map::CumulativeTempoMap>>();
             audio_engine.set_tempo_map_receiver(tempo_map_rx);
 
+            // --- Sprint 37: Clip command channel (must be wired before engine is wrapped) ---
+            let (clip_tx, clip_rx) = crossbeam_channel::bounded::<audio::clip_player::ClipCmd>(128);
+            audio_engine.set_clip_cmd_receiver(clip_rx);
+
             let tempo_map_tx_state: audio::tempo_commands::TempoMapTxState =
                 Arc::new(Mutex::new(Some(tempo_map_tx)));
             let tempo_map_snapshot_state: audio::tempo_commands::TempoMapSnapshotState =
@@ -547,6 +551,14 @@ pub fn run() {
             app.manage(delay_store);
             log::info!("Delay store initialized");
 
+            // --- Sprint 37: Audio clip player stores ---
+            let clip_cmd_tx_state: audio::clip_player::ClipCmdSenderState = Arc::new(clip_tx);
+            app.manage(clip_cmd_tx_state);
+            let clip_store: audio::clip_player::ClipStore =
+                Arc::new(Mutex::new(std::collections::HashMap::new()));
+            app.manage(clip_store);
+            log::info!("Clip player stores initialized");
+
             // --- Sprint 21: Effect chain store ---
             let chain_store: audio::effect_chain::ChainStore =
                 Arc::new(Mutex::new(std::collections::HashMap::new()));
@@ -846,6 +858,13 @@ pub fn run() {
             effects::delay::set_delay_param,
             effects::delay::set_delay_sync,
             effects::delay::get_delay_state,
+            audio::clip_player::load_audio_clip,
+            audio::clip_player::set_clip_gain,
+            audio::clip_player::set_clip_offset,
+            audio::clip_player::trigger_audio_clip,
+            audio::clip_player::stop_audio_clip,
+            audio::clip_player::get_clip_state,
+            audio::clip_player::get_waveform_peaks,
             audio::effect_chain::add_effect_to_chain,
             audio::effect_chain::remove_effect_from_chain,
             audio::effect_chain::move_effect_in_chain,

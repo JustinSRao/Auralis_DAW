@@ -3,12 +3,13 @@ sprint: 37
 title: "Audio Clip Playback Engine"
 type: fullstack
 epic: 6
-status: planning
+status: in-progress
 created: 2026-02-23T12:32:34Z
-started: null
+started: 2026-03-30T15:59:44Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
+
 ---
 
 # Sprint 37: Audio Clip Playback Engine

@@ -7,6 +7,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Stream;
 use crossbeam_channel::{bounded, Receiver, Sender};
 
+use super::clip_player::ClipPlaybackNode;
 use super::devices;
 use super::graph::{AudioGraph, AudioNode, SineTestNode, TripleBuffer};
 use super::metronome::MetronomeNode;
@@ -107,6 +108,9 @@ pub struct AudioEngine {
     /// atomics so that external consumers (LFO, step sequencer, etc.) that were
     /// given a clone before engine start continue to share the same values.
     pub external_transport_atomics: Option<TransportAtomics>,
+    /// Receiver for clip playback commands (Sprint 37).  When `Some`, a
+    /// `ClipPlaybackNode` is added to the initial graph on engine start.
+    pub clip_cmd_rx: Option<crossbeam_channel::Receiver<super::clip_player::ClipCmd>>,
 }
 
 impl AudioEngine {
@@ -125,6 +129,7 @@ impl AudioEngine {
             tempo_map_rx: None,
             transport_snapshot: Arc::new(Mutex::new(TransportSnapshot::default())),
             external_transport_atomics: None,
+            clip_cmd_rx: None,
         }
     }
 
@@ -321,6 +326,17 @@ impl AudioEngine {
         self.tempo_map_rx = Some(rx);
     }
 
+    /// Injects the clip playback command receiver (Sprint 37).
+    ///
+    /// When set, a [`ClipPlaybackNode`] is added to the audio graph on
+    /// `build_and_start_stream`.
+    pub fn set_clip_cmd_receiver(
+        &mut self,
+        rx: crossbeam_channel::Receiver<super::clip_player::ClipCmd>,
+    ) {
+        self.clip_cmd_rx = Some(rx);
+    }
+
     /// Returns the configured sample rate (Hz).
     ///
     /// Used by [`crate::audio::tempo_commands::set_tempo_map`] to build a
@@ -423,6 +439,11 @@ impl AudioEngine {
         // Add MetronomeNode to the graph — shares the transport atomics
         let metronome = MetronomeNode::new(atomics, sr);
         initial_graph.add_node(Box::new(metronome));
+
+        // Add ClipPlaybackNode if a clip command receiver was provided (Sprint 37).
+        if let Some(clip_rx) = self.clip_cmd_rx.take() {
+            initial_graph.add_node(Box::new(ClipPlaybackNode::from_receiver(clip_rx)));
+        }
 
         // Create the triple buffer
         let mut triple_buf = TripleBuffer::new(initial_graph);
