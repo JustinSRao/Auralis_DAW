@@ -883,6 +883,16 @@ pub fn run() {
             audio::mixer::sidechain_commands::set_sidechain_source,
             audio::mixer::sidechain_commands::remove_sidechain,
             audio::mixer::sidechain_commands::set_sidechain_filter,
+            audio::mixer::group_bus_commands::create_group_bus,
+            audio::mixer::group_bus_commands::delete_group_bus,
+            audio::mixer::group_bus_commands::rename_group_bus,
+            audio::mixer::group_bus_commands::set_channel_output,
+            audio::mixer::group_bus_commands::set_group_bus_output,
+            audio::mixer::group_bus_commands::set_group_bus_fader,
+            audio::mixer::group_bus_commands::set_group_bus_pan,
+            audio::mixer::group_bus_commands::set_group_bus_mute,
+            audio::mixer::group_bus_commands::set_group_bus_solo,
+            audio::mixer::group_bus_commands::get_group_bus_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::Arc;
 use atomic_float::AtomicF32;
 
@@ -32,6 +32,13 @@ pub struct MixerChannel {
     /// Latest peak level for the right channel (updated each audio buffer).
     pub peak_r: Arc<AtomicF32>,
 
+    /// Output routing target encoded as u8 (Sprint 42).
+    ///
+    /// `0` = Master, `N` (1–8) = Group bus `N-1`.
+    /// Written by Tauri commands; read by the audio callback to determine
+    /// which accumulator to write into.
+    pub output_target: Arc<AtomicU8>,
+
     /// Sidechain tap: post-fader output written here each callback so that
     /// downstream compressors can use this channel as a sidechain source.
     pub sidechain_tap: Option<Arc<SidechainTap>>,
@@ -57,6 +64,7 @@ impl MixerChannel {
             ],
             peak_l: Arc::new(AtomicF32::new(0.0)),
             peak_r: Arc::new(AtomicF32::new(0.0)),
+            output_target: Arc::new(AtomicU8::new(0)), // 0 = Master
             sidechain_tap: None,
             tap_scratch: vec![0.0; TAP_SCRATCH_CAPACITY],
         }

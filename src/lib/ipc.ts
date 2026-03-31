@@ -2221,3 +2221,68 @@ export const ipcSetSidechainFilter = (
   enabled: boolean,
 ): Promise<void> =>
   invoke<void>('set_sidechain_filter', { destChannelId, slotId, cutoffHz, enabled });
+
+// ── Group Bus IPC (Sprint 42) ─────────────────────────────────────────────────
+
+export interface OutputTargetDto {
+  kind: 'master' | 'group';
+  group_id?: number;
+}
+
+export interface GroupBusSnapshot {
+  id: number;
+  name: string;
+  output_target: OutputTargetDto;
+  fader: number;
+  pan: number;
+  mute: boolean;
+  solo: boolean;
+  peak_l: number;
+  peak_r: number;
+}
+
+/** Creates a new named group bus. Returns the assigned bus ID (0–7). */
+export const ipcCreateGroupBus = (name: string): Promise<number> =>
+  invoke<number>('create_group_bus', { name });
+
+/** Deletes a group bus. */
+export const ipcDeleteGroupBus = (busId: number): Promise<void> =>
+  invoke<void>('delete_group_bus', { busId });
+
+/** Renames a group bus. */
+export const ipcRenameGroupBus = (busId: number, name: string): Promise<void> =>
+  invoke<void>('rename_group_bus', { busId, name });
+
+/** Sets the output routing target for a mixer channel. */
+export const ipcSetChannelOutput = (
+  channelId: string,
+  target: OutputTargetDto,
+): Promise<void> =>
+  invoke<void>('set_channel_output', { channelId, target });
+
+/** Sets the output routing target for a group bus. */
+export const ipcSetGroupBusOutput = (
+  busId: number,
+  target: OutputTargetDto,
+): Promise<void> =>
+  invoke<void>('set_group_bus_output', { busId, target });
+
+/** Sets the fader level for a group bus (0.0–2.0). */
+export const ipcSetGroupBusFader = (busId: number, value: number): Promise<void> =>
+  invoke<void>('set_group_bus_fader', { busId, value });
+
+/** Sets the pan for a group bus (-1.0 to +1.0). */
+export const ipcSetGroupBusPan = (busId: number, value: number): Promise<void> =>
+  invoke<void>('set_group_bus_pan', { busId, value });
+
+/** Mutes or unmutes a group bus. */
+export const ipcSetGroupBusMute = (busId: number, muted: boolean): Promise<void> =>
+  invoke<void>('set_group_bus_mute', { busId, muted });
+
+/** Solos or unsolos a group bus. */
+export const ipcSetGroupBusSolo = (busId: number, soloed: boolean): Promise<void> =>
+  invoke<void>('set_group_bus_solo', { busId, soloed });
+
+/** Returns a snapshot of all group buses. */
+export const ipcGetGroupBusState = (): Promise<GroupBusSnapshot[]> =>
+  invoke<GroupBusSnapshot[]>('get_group_bus_state');

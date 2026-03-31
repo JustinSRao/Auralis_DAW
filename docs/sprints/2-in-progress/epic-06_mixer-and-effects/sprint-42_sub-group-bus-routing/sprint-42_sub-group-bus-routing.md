@@ -3,13 +3,14 @@ sprint: 42
 title: "Sub-Group Bus Routing"
 type: fullstack
 epic: 6
-status: planning
+status: in-progress
 created: 2026-02-23T17:06:00Z
-started: null
+started: 2026-03-31T16:08:44Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
 coverage_threshold: 80
+
 ---
 
 # Sprint 42: Sub-Group Bus Routing
