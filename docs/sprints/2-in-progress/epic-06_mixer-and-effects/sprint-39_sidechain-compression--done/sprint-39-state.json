@@ -1,0 +1,61 @@
+{
+  "sprint_number": 39,
+  "sprint_file": "docs\\sprints\\2-in-progress\\epic-06_mixer-and-effects\\sprint-39_sidechain-compression\\sprint-39_sidechain-compression.md",
+  "sprint_title": "Sidechain Compression",
+  "status": "complete",
+  "current_phase": 4,
+  "current_step": "4.2",
+  "started_at": "2026-03-31T10:41:59Z",
+  "workflow_version": "3.0",
+  "completed_steps": [
+    {
+      "step": "1.1",
+      "completed_at": "2026-03-31T10:42:15.568632"
+    },
+    {
+      "step": "1.2",
+      "completed_at": "2026-03-31T16:05:04.900702"
+    },
+    {
+      "step": "1.3",
+      "completed_at": "2026-03-31T16:05:11.039640"
+    },
+    {
+      "step": "1.4",
+      "completed_at": "2026-03-31T16:05:11.400886"
+    },
+    {
+      "step": "2.1",
+      "completed_at": "2026-03-31T16:05:11.760541"
+    },
+    {
+      "step": "2.2",
+      "completed_at": "2026-03-31T16:05:12.101995"
+    },
+    {
+      "step": "2.3",
+      "completed_at": "2026-03-31T16:05:12.445754"
+    },
+    {
+      "step": "3.1",
+      "completed_at": "2026-03-31T16:05:12.761664"
+    },
+    {
+      "step": "3.2",
+      "completed_at": "2026-03-31T16:05:13.103678"
+    },
+    {
+      "step": "3.3",
+      "completed_at": "2026-03-31T16:05:13.428638"
+    },
+    {
+      "step": "3.4",
+      "completed_at": "2026-03-31T16:05:13.782710"
+    },
+    {
+      "step": "4.1",
+      "completed_at": "2026-03-31T16:05:14.127430"
+    }
+  ],
+  "completed_at": "2026-03-31T16:07:14.495186-07:00"
+}

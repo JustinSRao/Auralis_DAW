@@ -406,13 +406,13 @@
     },
     "42": {
       "title": "Sub-Group Bus Routing",
-      "status": "planning",
+      "status": "done",
       "epic": 6,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-31",
+      "hours": 7.4
     },
     "43": {
       "title": "MIDI Export",
@@ -508,7 +508,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 9,
-      "completedSprints": 7
+      "completedSprints": 8
     },
     "7": {
       "title": "Export & Finalization",
