@@ -893,6 +893,11 @@ pub fn run() {
             audio::mixer::group_bus_commands::set_group_bus_mute,
             audio::mixer::group_bus_commands::set_group_bus_solo,
             audio::mixer::group_bus_commands::get_group_bus_state,
+            audio::fade_commands::set_clip_fade_in,
+            audio::fade_commands::set_clip_fade_out,
+            audio::fade_commands::set_fade_curve_type,
+            audio::fade_commands::set_crossfade,
+            audio::fade_commands::get_clip_fade_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

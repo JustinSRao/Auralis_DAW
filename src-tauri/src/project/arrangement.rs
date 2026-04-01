@@ -6,6 +6,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::audio::fade::FadeCurve;
+
 /// A single clip placed on the arrangement timeline.
 ///
 /// Clips are lightweight references to patterns — they store only position and
@@ -23,6 +25,48 @@ pub struct ArrangementClip {
     pub start_bar: f64,
     /// Clip length in bars. Defaults to the referenced pattern's `length_bars` on creation.
     pub length_bars: f64,
+
+    // ── Fade parameters (Sprint 45) ───────────────────────────────────────────
+
+    /// Fade-in length in audio samples (`0` = no fade-in).
+    /// Absent in project files before Sprint 45 — defaults to `0`.
+    #[serde(default)]
+    pub fade_in_samples: u64,
+    /// Fade-out length in audio samples (`0` = no fade-out).
+    #[serde(default)]
+    pub fade_out_samples: u64,
+    /// Curve shape used for the fade-in.
+    #[serde(default)]
+    pub fade_in_curve: FadeCurve,
+    /// Curve shape used for the fade-out.
+    #[serde(default)]
+    pub fade_out_curve: FadeCurve,
+    /// Optional ID of an adjacent clip to crossfade with (the overlap partner).
+    /// `None` means no explicit crossfade is set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub crossfade_partner_id: Option<String>,
+    /// Length of the crossfade overlap in samples (only meaningful when
+    /// `crossfade_partner_id` is `Some`).
+    #[serde(default)]
+    pub crossfade_samples: u64,
+}
+
+impl Default for ArrangementClip {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            pattern_id: String::new(),
+            track_id: String::new(),
+            start_bar: 0.0,
+            length_bars: 1.0,
+            fade_in_samples: 0,
+            fade_out_samples: 0,
+            fade_in_curve: FadeCurve::default(),
+            fade_out_curve: FadeCurve::default(),
+            crossfade_partner_id: None,
+            crossfade_samples: 0,
+        }
+    }
 }
 
 /// Root wrapper stored inside [`ProjectFile`] for all arrangement clip placements.
@@ -50,6 +94,7 @@ mod tests {
             track_id: "track-1".to_string(),
             start_bar: 4.0,
             length_bars: 2.0,
+            ..Default::default()
         }
     }
 

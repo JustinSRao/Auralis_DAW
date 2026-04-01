@@ -43,6 +43,7 @@ pub fn add_arrangement_clip(
         track_id,
         start_bar,
         length_bars,
+        ..Default::default()
     })
 }
 
@@ -142,6 +143,7 @@ pub fn duplicate_arrangement_clip(
         track_id,
         start_bar: new_start_bar,
         length_bars,
+        ..Default::default()
     })
 }
 

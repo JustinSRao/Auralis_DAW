@@ -381,6 +381,14 @@ export interface PatternData {
 
 // ── Arrangement types (mirror Rust project::arrangement) ─────────────────────
 
+/** Fade curve shape (mirrors Rust `FadeCurve` enum). */
+export type FadeCurveType =
+  | 'linear'
+  | 'exponential_in'
+  | 'exponential_out'
+  | 's_curve'
+  | 'logarithmic';
+
 /** A single clip placed on the song timeline. References a Pattern by UUID. */
 export interface ArrangementClip {
   id: string;
@@ -390,6 +398,18 @@ export interface ArrangementClip {
   startBar: number;
   /** Clip length in bars. */
   lengthBars: number;
+  /** Fade-in length in audio samples (0 = no fade-in). */
+  fadeInSamples?: number;
+  /** Fade-out length in audio samples (0 = no fade-out). */
+  fadeOutSamples?: number;
+  /** Curve shape for the fade-in. */
+  fadeInCurve?: FadeCurveType;
+  /** Curve shape for the fade-out. */
+  fadeOutCurve?: FadeCurveType;
+  /** ID of the clip to crossfade with (if any). */
+  crossfadePartnerId?: string;
+  /** Crossfade overlap in samples. */
+  crossfadeSamples?: number;
 }
 
 /** Root arrangement data embedded in ProjectFileData. */
@@ -2286,3 +2306,51 @@ export const ipcSetGroupBusSolo = (busId: number, soloed: boolean): Promise<void
 /** Returns a snapshot of all group buses. */
 export const ipcGetGroupBusState = (): Promise<GroupBusSnapshot[]> =>
   invoke<GroupBusSnapshot[]>('get_group_bus_state');
+
+// ── Clip Fades IPC (Sprint 45) ────────────────────────────────────────────────
+
+export interface ClipFadeSnapshot {
+  clip_id: string;
+  fade_in_frames: number;
+  fade_out_frames: number;
+  fade_in_curve: FadeCurveType;
+  fade_out_curve: FadeCurveType;
+}
+
+/** Sets the fade-in length and curve for a loaded clip. */
+export const ipcSetClipFadeIn = (
+  clipId: string,
+  fadeFrames: number,
+  curveType: FadeCurveType,
+): Promise<ClipFadeSnapshot> =>
+  invoke<ClipFadeSnapshot>('set_clip_fade_in', { clipId, fadeFrames, curveType });
+
+/** Sets the fade-out length and curve for a loaded clip. */
+export const ipcSetClipFadeOut = (
+  clipId: string,
+  fadeFrames: number,
+  curveType: FadeCurveType,
+): Promise<ClipFadeSnapshot> =>
+  invoke<ClipFadeSnapshot>('set_clip_fade_out', { clipId, fadeFrames, curveType });
+
+/** Changes just the curve type for a fade-in or fade-out. */
+export const ipcSetFadeCurveType = (
+  clipId: string,
+  fadeKind: 'in' | 'out',
+  curveType: FadeCurveType,
+): Promise<ClipFadeSnapshot> =>
+  invoke<ClipFadeSnapshot>('set_fade_curve_type', { clipId, fadeKind, curveType });
+
+/** Sets an equal-power crossfade between two clips. */
+export const ipcSetCrossfade = (
+  clipIdA: string,
+  clipIdB: string,
+  overlapFrames: number,
+): Promise<[ClipFadeSnapshot, ClipFadeSnapshot]> =>
+  invoke<[ClipFadeSnapshot, ClipFadeSnapshot]>('set_crossfade', {
+    clipIdA, clipIdB, overlapFrames,
+  });
+
+/** Returns the current fade parameters for a loaded clip. */
+export const ipcGetClipFadeState = (clipId: string): Promise<ClipFadeSnapshot> =>
+  invoke<ClipFadeSnapshot>('get_clip_fade_state', { clipId });

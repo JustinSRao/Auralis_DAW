@@ -3,12 +3,13 @@ sprint: 45
 title: "Audio Clip Fades"
 type: fullstack
 epic: 6
-status: planning
+status: in-progress
 created: 2026-02-23T17:06:07Z
-started: null
+started: 2026-03-31T16:34:14Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
+
 ---
 
 # Sprint 45: Audio Clip Fades
