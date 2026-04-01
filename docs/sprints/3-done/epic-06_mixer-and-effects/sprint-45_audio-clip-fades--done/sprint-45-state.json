@@ -1,0 +1,69 @@
+{
+  "sprint_number": 45,
+  "sprint_file": "docs\\sprints\\2-in-progress\\epic-06_mixer-and-effects\\sprint-45_audio-clip-fades\\sprint-45_audio-clip-fades.md",
+  "sprint_title": "Audio Clip Fades",
+  "status": "complete",
+  "current_phase": 4,
+  "current_step": "4.4",
+  "started_at": "2026-03-31T16:34:14Z",
+  "workflow_version": "3.0",
+  "completed_steps": [
+    {
+      "step": "1.1",
+      "completed_at": "2026-03-31T16:34:24.222250"
+    },
+    {
+      "step": "1.2",
+      "completed_at": "2026-03-31T20:07:44.651641"
+    },
+    {
+      "step": "1.3",
+      "completed_at": "2026-03-31T20:11:37.484987"
+    },
+    {
+      "step": "1.4",
+      "completed_at": "2026-03-31T20:14:00.446049"
+    },
+    {
+      "step": "2.1",
+      "completed_at": "2026-03-31T20:14:00.795085"
+    },
+    {
+      "step": "2.2",
+      "completed_at": "2026-03-31T20:28:51.722955"
+    },
+    {
+      "step": "2.3",
+      "completed_at": "2026-03-31T20:28:52.037993"
+    },
+    {
+      "step": "3.1",
+      "completed_at": "2026-03-31T20:28:57.433016"
+    },
+    {
+      "step": "3.2",
+      "completed_at": "2026-03-31T20:28:57.775649"
+    },
+    {
+      "step": "3.3",
+      "completed_at": "2026-03-31T20:29:03.045652"
+    },
+    {
+      "step": "3.4",
+      "completed_at": "2026-03-31T20:29:03.385303"
+    },
+    {
+      "step": "4.1",
+      "completed_at": "2026-03-31T20:29:36.064812"
+    },
+    {
+      "step": "4.2",
+      "completed_at": "2026-03-31T20:29:36.400830"
+    },
+    {
+      "step": "4.3",
+      "completed_at": "2026-03-31T20:35:16.603607"
+    }
+  ],
+  "completed_at": "2026-03-31T20:35:32.020296-07:00"
+}

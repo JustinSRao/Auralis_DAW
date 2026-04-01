@@ -2354,3 +2354,41 @@ export const ipcSetCrossfade = (
 /** Returns the current fade parameters for a loaded clip. */
 export const ipcGetClipFadeState = (clipId: string): Promise<ClipFadeSnapshot> =>
   invoke<ClipFadeSnapshot>('get_clip_fade_state', { clipId });
+
+// ── Audio Export IPC (Sprint 22) ──────────────────────────────────────────────
+
+export type WavBitDepth = 'bits16' | 'bits24' | 'bits32Float';
+
+export type ExportFormat =
+  | { format: 'wav';  bitDepth: WavBitDepth }
+  | { format: 'flac'; bitDepth: WavBitDepth }
+  | { format: 'mp3';  kbps: number };
+
+export interface ExportParams {
+  /** Absolute path for the output mix file. */
+  outputPath: string;
+  /** Format settings. */
+  format: ExportFormat;
+  /** Target sample rate (44100 or 48000). */
+  sampleRate: 44100 | 48000;
+  /** Whether to also render per-track stem files. */
+  stems: boolean;
+  /** Directory for stem files (required when stems = true). */
+  stemOutputDir?: string;
+  /** First bar to export (1-based, omit for full song start). */
+  startBar?: number;
+  /** Last bar to export (1-based, omit for full song end). */
+  endBar?: number;
+}
+
+/** Starts an audio export job. */
+export const ipcStartExport = (params: ExportParams): Promise<void> =>
+  invoke<void>('start_export', { params });
+
+/** Signals the running export job to stop. */
+export const ipcCancelExport = (): Promise<void> =>
+  invoke<void>('cancel_export');
+
+/** Returns current export progress in [0, 1], or 0 if idle. */
+export const ipcGetExportProgress = (): Promise<number> =>
+  invoke<number>('get_export_progress');

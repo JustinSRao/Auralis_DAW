@@ -5,6 +5,7 @@ import { useHistoryStore } from '@/stores/historyStore';
 import { useKeyboardStore } from '@/stores/keyboardStore';
 import { useAuthStore } from '@/stores/authStore';
 import { ExportMidiDialog } from './ExportMidiDialog';
+import { ExportAudioDialog } from './ExportAudioDialog';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -56,7 +57,8 @@ export function MenuBar() {
   const { currentUser, logout } = useAuthStore();
 
   const [openMenu, setOpenMenu] = useState<MenuId>(null);
-  const [exportMidiOpen, setExportMidiOpen] = useState(false);
+  const [exportMidiOpen, setExportMidiOpen]   = useState(false);
+  const [exportAudioOpen, setExportAudioOpen] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click
@@ -110,6 +112,11 @@ export function MenuBar() {
   function handleExportMidi() {
     closeMenu();
     setExportMidiOpen(true);
+  }
+
+  function handleExportAudio() {
+    closeMenu();
+    setExportAudioOpen(true);
   }
 
   // ---------------------------------------------------------------------------
@@ -189,6 +196,9 @@ export function MenuBar() {
             </button>
 
             <div className={separatorCls} role="separator" />
+            <button role="menuitem" className={itemCls} onClick={handleExportAudio}>
+              Export Audio...
+            </button>
             <button role="menuitem" className={itemCls} onClick={handleExportMidi}>
               Export MIDI...
             </button>
@@ -339,6 +349,7 @@ export function MenuBar() {
         )}
       </div>
     </div>
+    {exportAudioOpen && <ExportAudioDialog onClose={() => setExportAudioOpen(false)} />}
     {exportMidiOpen && <ExportMidiDialog onClose={() => setExportMidiOpen(false)} />}
     </>
   );

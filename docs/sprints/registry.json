@@ -216,13 +216,13 @@
     },
     "22": {
       "title": "Audio Export (Stereo Mix & Stems)",
-      "status": "planning",
+      "status": "done",
       "epic": 7,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-04-01",
+      "hours": 20.2
     },
     "23": {
       "title": "VST3 Plugin Host (Rust)",
@@ -517,7 +517,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 1,
-      "completedSprints": 0
+      "completedSprints": 1
     },
     "8": {
       "title": "VST3 Plugin Support",

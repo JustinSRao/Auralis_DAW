@@ -55,6 +55,7 @@ use audio_editing::processed_cache::{ProcessedBufferCache, ProcessedBufferCacheS
 use audio::mixer::{Mixer, commands::MixerState};
 use audio::mixer::master::MasterLevelEvent;
 use audio::mixer::mixer::ChannelLevelEvent;
+use audio::export::ExportJobStateArc;
 
 #[tauri::command]
 fn get_version() -> String {
@@ -574,6 +575,12 @@ pub fn run() {
             app.manage(sidechain_router);
             log::info!("Sidechain router initialized");
 
+            // --- Sprint 22: Audio export job state ---
+            let export_job_state: ExportJobStateArc =
+                Arc::new(Mutex::new(None));
+            app.manage(export_job_state);
+            log::info!("Export job state initialized");
+
             // Initialize project manager
             let pm_state: ProjectManagerState =
                 Arc::new(Mutex::new(ProjectManager::new()));
@@ -898,6 +905,9 @@ pub fn run() {
             audio::fade_commands::set_fade_curve_type,
             audio::fade_commands::set_crossfade,
             audio::fade_commands::get_clip_fade_state,
+            audio::export::commands::start_export,
+            audio::export::commands::cancel_export,
+            audio::export::commands::get_export_progress,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

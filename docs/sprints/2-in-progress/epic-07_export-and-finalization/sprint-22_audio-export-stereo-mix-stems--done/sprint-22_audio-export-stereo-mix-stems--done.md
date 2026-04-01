@@ -3,12 +3,15 @@ sprint: 22
 title: "Audio Export (Stereo Mix & Stems)"
 type: fullstack
 epic: 7
-status: planning
+status: done
 created: 2026-02-22T22:10:13Z
-started: null
-completed: null
+started: 2026-03-31T21:00:40Z
+completed: 2026-04-01
 hours: null
 workflow_version: "3.1.0"
+
+
+
 ---
 
 # Sprint 22: Audio Export (Stereo Mix & Stems)

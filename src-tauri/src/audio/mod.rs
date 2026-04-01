@@ -1,6 +1,7 @@
 // Audio engine — implemented in Sprint 2
 // Handles: ASIO/WASAPI device management, real-time audio thread, audio graph
 pub mod clip_player;
+pub mod export;
 pub mod commands;
 pub mod fade;
 pub mod fade_commands;
