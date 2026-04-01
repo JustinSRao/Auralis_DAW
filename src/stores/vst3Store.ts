@@ -6,7 +6,7 @@
 
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { Vst3PluginInfo, LoadedPluginView } from '../lib/ipc';
+import type { Vst3PluginInfo, LoadedPluginView, PresetInfo } from '../lib/ipc';
 import {
   ipcScanVst3Plugins,
   ipcLoadVst3Plugin,
@@ -15,6 +15,10 @@ import {
   ipcGetVst3Params,
   ipcSaveVst3State,
   ipcLoadVst3State,
+  ipcOpenPluginGui,
+  ipcClosePluginGui,
+  ipcGetPluginPresets,
+  ipcApplyPluginPreset,
 } from '../lib/ipc';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -30,6 +34,13 @@ interface Vst3State {
   isScanning: boolean;
   /** Last error message, or null. */
   error: string | null;
+
+  // ── Sprint 24 additions ───────────────────────────────────────────────────
+
+  /** Set of instance IDs whose native GUIs are currently open. */
+  openGuis: Set<string>;
+  /** Cached preset lists per instance ID. */
+  presets: Record<string, PresetInfo[]>;
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
@@ -56,6 +67,23 @@ interface Vst3State {
 
   /** Clears the last error message. */
   clearError(): void;
+
+  // ── Sprint 24 GUI & preset actions ────────────────────────────────────────
+
+  /** Opens the native plugin GUI window. */
+  openGui(instanceId: string): Promise<void>;
+
+  /** Closes the native plugin GUI window. */
+  closeGui(instanceId: string): Promise<void>;
+
+  /** Fetches and caches the preset list for the given instance. */
+  setPresets(instanceId: string, presets: PresetInfo[]): void;
+
+  /** Fetches presets from the backend and caches them. */
+  fetchPresets(instanceId: string): Promise<void>;
+
+  /** Applies a preset file to the plugin and refreshes params. */
+  applyPreset(instanceId: string, presetPath: string): Promise<void>;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -68,6 +96,8 @@ export const useVst3Store = create<Vst3State>()(
     loadedPlugins: {},
     isScanning:    false,
     error:         null,
+    openGuis:      new Set<string>(),
+    presets:       {},
 
     async scanPlugins(extraDirs) {
       set((s) => { s.isScanning = true; s.error = null; });
@@ -152,6 +182,49 @@ export const useVst3Store = create<Vst3State>()(
 
     clearError() {
       set((s) => { s.error = null; });
+    },
+
+    async openGui(instanceId) {
+      try {
+        await ipcOpenPluginGui(instanceId);
+        set((s) => { s.openGuis.add(instanceId); });
+      } catch (e) {
+        set((s) => { s.error = String(e); });
+        throw e;
+      }
+    },
+
+    async closeGui(instanceId) {
+      try {
+        await ipcClosePluginGui(instanceId);
+        set((s) => { s.openGuis.delete(instanceId); });
+      } catch (e) {
+        set((s) => { s.error = String(e); });
+        throw e;
+      }
+    },
+
+    setPresets(instanceId, presets) {
+      set((s) => { s.presets[instanceId] = presets; });
+    },
+
+    async fetchPresets(instanceId) {
+      try {
+        const presets = await ipcGetPluginPresets(instanceId);
+        set((s) => { s.presets[instanceId] = presets; });
+      } catch (e) {
+        set((s) => { s.error = String(e); });
+        throw e;
+      }
+    },
+
+    async applyPreset(instanceId, presetPath) {
+      try {
+        await ipcApplyPluginPreset(instanceId, presetPath);
+      } catch (e) {
+        set((s) => { s.error = String(e); });
+        throw e;
+      }
     },
   })),
 );

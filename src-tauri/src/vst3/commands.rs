@@ -7,8 +7,11 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
+use tauri::State;
 
+use super::gui_bridge::{Vst3GuiBridge, Vst3GuiState};
 use super::params::ParamInfo;
+use super::preset_manager::PresetInfo;
 use super::scanner::{PluginInfo, scan_vst3_directories, default_scan_paths};
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -273,4 +276,200 @@ pub fn load_vst3_state(
         return Err(format!("IComponent::set_state returned {res}"));
     }
     Ok(())
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Sprint 24: GUI bridge commands
+// ────────────────────────────────────────────────────────────────────────────
+
+/// Opens the native VST3 plugin GUI as a Win32 child window embedded in the
+/// main Tauri window.
+///
+/// On non-Windows targets this is a no-op that returns an error.
+#[tauri::command]
+pub async fn open_plugin_gui(
+    instance_id: String,
+    app_handle: tauri::AppHandle,
+    registry: State<'_, Vst3RegistryState>,
+    gui_state: State<'_, Vst3GuiState>,
+) -> Result<(), String> {
+    // Get the controller pointer while holding the registry lock, then release
+    // the lock before the (potentially slow) main-thread dispatch.
+    // Cast to isize so the pointer is Send-safe across threads.
+    let controller_isize: isize = {
+        let reg = registry
+            .lock()
+            .map_err(|e| format!("registry lock poisoned: {e}"))?;
+        let entry = reg
+            .get(&instance_id)
+            .ok_or_else(|| format!("Plugin instance '{}' not found", instance_id))?;
+        let ctrl = entry
+            .controller
+            .ok_or_else(|| format!("Plugin '{}' has no IEditController", instance_id))?;
+        ctrl as isize
+    };
+
+    // Obtain the Win32 HWND from the main Tauri window, encoded as isize for Send safety.
+    #[cfg(target_os = "windows")]
+    let parent_hwnd_isize: isize = {
+        use raw_window_handle::HasWindowHandle;
+        use tauri::Manager;
+        let window = app_handle
+            .get_webview_window("main")
+            .ok_or_else(|| "no main window".to_string())?;
+        let handle = window
+            .window_handle()
+            .map_err(|e| format!("window handle error: {e}"))?;
+        match handle.as_raw() {
+            raw_window_handle::RawWindowHandle::Win32(h) => h.hwnd.get() as isize,
+            _ => return Err("not a Win32 window".to_string()),
+        }
+    };
+
+    #[cfg(not(target_os = "windows"))]
+    return Err("open_plugin_gui is only supported on Windows".to_string());
+
+    #[cfg(target_os = "windows")]
+    {
+        let id_clone = instance_id.clone();
+        let (tx, rx) = std::sync::mpsc::channel::<anyhow::Result<Vst3GuiBridge>>();
+        app_handle
+            .run_on_main_thread(move || {
+                // Safety: controller_isize was obtained from a valid IEditController pointer
+                // stored in the plugin registry. The plugin DLL remains loaded while the
+                // entry exists. We dereference it only on the main thread as required by VST3.
+                let ctrl_ptr =
+                    controller_isize as *mut super::com::IEditController;
+                let result = Vst3GuiBridge::open(id_clone, ctrl_ptr, parent_hwnd_isize);
+                let _ = tx.send(result);
+            })
+            .map_err(|e| format!("run_on_main_thread failed: {e}"))?;
+
+        let bridge = rx
+            .recv()
+            .map_err(|e| format!("channel recv failed: {e}"))?
+            .map_err(|e| format!("GUI open failed: {e}"))?;
+
+        gui_state
+            .lock()
+            .map_err(|e| format!("gui_state lock poisoned: {e}"))?
+            .insert(instance_id, bridge);
+
+        Ok(())
+    }
+}
+
+/// Closes an open VST3 plugin GUI and destroys the child window.
+#[tauri::command]
+pub async fn close_plugin_gui(
+    instance_id: String,
+    app_handle: tauri::AppHandle,
+    gui_state: State<'_, Vst3GuiState>,
+) -> Result<(), String> {
+    let bridge = gui_state
+        .lock()
+        .map_err(|e| format!("gui_state lock poisoned: {e}"))?
+        .remove(&instance_id)
+        .ok_or_else(|| format!("No open GUI for instance '{instance_id}'"))?;
+
+    #[cfg(target_os = "windows")]
+    {
+        let (tx, rx) = std::sync::mpsc::channel::<anyhow::Result<()>>();
+        app_handle
+            .run_on_main_thread(move || {
+                let result = bridge.close();
+                let _ = tx.send(result);
+            })
+            .map_err(|e| format!("run_on_main_thread failed: {e}"))?;
+        rx.recv()
+            .map_err(|e| format!("channel recv failed: {e}"))?
+            .map_err(|e| format!("GUI close failed: {e}"))?;
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = app_handle;
+        drop(bridge);
+    }
+
+    Ok(())
+}
+
+/// Resizes the child window that hosts the VST3 plugin GUI.
+#[tauri::command]
+pub async fn resize_plugin_gui(
+    instance_id: String,
+    width: i32,
+    height: i32,
+    app_handle: tauri::AppHandle,
+    gui_state: State<'_, Vst3GuiState>,
+) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        let hwnd_isize = {
+            let gs = gui_state
+                .lock()
+                .map_err(|e| format!("gui_state lock poisoned: {e}"))?;
+            let bridge = gs
+                .get(&instance_id)
+                .ok_or_else(|| format!("No open GUI for instance '{instance_id}'"))?;
+            bridge.hwnd_isize()
+        };
+
+        let (tx, rx) = std::sync::mpsc::channel::<()>();
+        app_handle
+            .run_on_main_thread(move || {
+                use windows_sys::Win32::Foundation::HWND;
+                use windows_sys::Win32::UI::WindowsAndMessaging::MoveWindow;
+                let hwnd: HWND = hwnd_isize as HWND;
+                unsafe { MoveWindow(hwnd, 0, 0, width, height, 1) };
+                let _ = tx.send(());
+            })
+            .map_err(|e| format!("run_on_main_thread failed: {e}"))?;
+        let _ = rx.recv();
+        Ok(())
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = (app_handle, gui_state, width, height);
+        Err("resize_plugin_gui is only supported on Windows".to_string())
+    }
+}
+
+/// Returns the list of preset files for the given plugin instance.
+#[tauri::command]
+pub fn get_plugin_presets(
+    instance_id: String,
+    registry: State<'_, Vst3RegistryState>,
+) -> Result<Vec<PresetInfo>, String> {
+    let reg = registry
+        .lock()
+        .map_err(|e| format!("registry lock poisoned: {e}"))?;
+    let entry = reg
+        .get(&instance_id)
+        .ok_or_else(|| format!("Plugin instance '{}' not found", instance_id))?;
+    let presets = super::preset_manager::get_presets(&entry.info.vendor, &entry.info.name);
+    Ok(presets)
+}
+
+/// Applies a `.vstpreset` file to the component state of the given plugin instance.
+#[tauri::command]
+pub fn apply_plugin_preset(
+    instance_id: String,
+    preset_path: String,
+    registry: State<'_, Vst3RegistryState>,
+) -> Result<(), String> {
+    let reg = registry
+        .lock()
+        .map_err(|e| format!("registry lock poisoned: {e}"))?;
+    let entry = reg
+        .get(&instance_id)
+        .ok_or_else(|| format!("Plugin instance '{}' not found", instance_id))?;
+    let component_ptr = *entry
+        .component
+        .lock()
+        .map_err(|e| format!("component lock poisoned: {e}"))?;
+    super::preset_manager::apply_preset(component_ptr, &preset_path)
+        .map_err(|e| format!("apply_preset failed: {e}"))
 }

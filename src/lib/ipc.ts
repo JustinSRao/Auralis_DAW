@@ -2454,3 +2454,40 @@ export const ipcSaveVst3State = (instanceId: string): Promise<string> =>
 /** Restores plugin state from a base64 string. */
 export const ipcLoadVst3State = (instanceId: string, stateB64: string): Promise<void> =>
   invoke<void>('load_vst3_state', { instanceId, stateB64 });
+
+// ── Sprint 24: VST3 GUI bridge & preset management ────────────────────────────
+
+/** Metadata for a single `.vstpreset` file (mirrors Rust `PresetInfo`). */
+export interface PresetInfo {
+  /** Filename without the `.vstpreset` extension. */
+  name: string;
+  /** Full absolute path to the `.vstpreset` file. */
+  path: string;
+}
+
+/** Opens the native VST3 plugin GUI as a child window inside the main Tauri window. */
+export const ipcOpenPluginGui = (instanceId: string): Promise<void> =>
+  invoke<void>('open_plugin_gui', { instanceId });
+
+/** Closes an open VST3 plugin GUI and destroys the child window. */
+export const ipcClosePluginGui = (instanceId: string): Promise<void> =>
+  invoke<void>('close_plugin_gui', { instanceId });
+
+/** Resizes the child window hosting the VST3 plugin GUI. */
+export const ipcResizePluginGui = (
+  instanceId: string,
+  width: number,
+  height: number,
+): Promise<void> =>
+  invoke<void>('resize_plugin_gui', { instanceId, width, height });
+
+/** Returns the preset list for the given plugin instance. */
+export const ipcGetPluginPresets = (instanceId: string): Promise<PresetInfo[]> =>
+  invoke<PresetInfo[]>('get_plugin_presets', { instanceId });
+
+/** Applies a `.vstpreset` file to the given plugin instance's component state. */
+export const ipcApplyPluginPreset = (
+  instanceId: string,
+  presetPath: string,
+): Promise<void> =>
+  invoke<void>('apply_plugin_preset', { instanceId, presetPath });

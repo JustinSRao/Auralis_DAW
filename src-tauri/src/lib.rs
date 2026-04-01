@@ -56,7 +56,7 @@ use audio::mixer::{Mixer, commands::MixerState};
 use audio::mixer::master::MasterLevelEvent;
 use audio::mixer::mixer::ChannelLevelEvent;
 use audio::export::ExportJobStateArc;
-use vst3::{Vst3RegistryState, Vst3CmdTxState};
+use vst3::{Vst3CmdTxState, Vst3GuiState, Vst3RegistryState};
 
 #[tauri::command]
 fn get_version() -> String {
@@ -591,6 +591,12 @@ pub fn run() {
             app.manage(vst3_cmd_tx_map);
             log::info!("VST3 plugin host initialized");
 
+            // --- Sprint 24: VST3 GUI bridge state ---
+            let vst3_gui_state: Vst3GuiState =
+                Arc::new(Mutex::new(std::collections::HashMap::new()));
+            app.manage(vst3_gui_state);
+            log::info!("VST3 GUI bridge state initialized");
+
             // Initialize project manager
             let pm_state: ProjectManagerState =
                 Arc::new(Mutex::new(ProjectManager::new()));
@@ -728,6 +734,22 @@ pub fn run() {
             });
 
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            // On window destruction, drop all open VST3 GUI bridges so their
+            // Win32 child windows are destroyed and IPlugView::removed is called.
+            if let tauri::WindowEvent::Destroyed = event {
+                let app_handle = window.app_handle().clone();
+                // Clone the Arc out of managed state; use a tight block so the
+                // MutexGuard is dropped before gui_arc goes out of scope.
+                let gui_arc: Vst3GuiState =
+                    Arc::clone(&*app_handle.state::<Vst3GuiState>());
+                {
+                    if let Ok(mut gs) = gui_arc.lock() {
+                        gs.clear();
+                    };
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![
             get_version,
@@ -925,6 +947,11 @@ pub fn run() {
             vst3::commands::get_vst3_params,
             vst3::commands::save_vst3_state,
             vst3::commands::load_vst3_state,
+            vst3::commands::open_plugin_gui,
+            vst3::commands::close_plugin_gui,
+            vst3::commands::resize_plugin_gui,
+            vst3::commands::get_plugin_presets,
+            vst3::commands::apply_plugin_preset,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

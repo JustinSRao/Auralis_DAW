@@ -1,0 +1,65 @@
+{
+  "sprint_number": 23,
+  "sprint_file": "docs\\sprints\\2-in-progress\\epic-08_vst3-plugin-support\\sprint-23_vst3-plugin-host-rust\\sprint-23_vst3-plugin-host-rust.md",
+  "sprint_title": "VST3 Plugin Host (Rust)",
+  "status": "complete",
+  "current_phase": 4,
+  "current_step": "4.3",
+  "started_at": "2026-04-01T10:38:24Z",
+  "workflow_version": "3.0",
+  "completed_steps": [
+    {
+      "step": "1.1",
+      "completed_at": "2026-04-01T10:38:34.770075"
+    },
+    {
+      "step": "1.2",
+      "completed_at": "2026-04-01T10:42:30.301956"
+    },
+    {
+      "step": "1.3",
+      "completed_at": "2026-04-01T10:46:58.002360"
+    },
+    {
+      "step": "1.4",
+      "completed_at": "2026-04-01T10:47:02.756283"
+    },
+    {
+      "step": "2.1",
+      "completed_at": "2026-04-01T12:01:27.150237"
+    },
+    {
+      "step": "2.2",
+      "completed_at": "2026-04-01T12:01:27.496179"
+    },
+    {
+      "step": "2.3",
+      "completed_at": "2026-04-01T12:04:04.962646"
+    },
+    {
+      "step": "3.1",
+      "completed_at": "2026-04-01T12:04:05.205407"
+    },
+    {
+      "step": "3.2",
+      "completed_at": "2026-04-01T12:04:05.479811"
+    },
+    {
+      "step": "3.3",
+      "completed_at": "2026-04-01T12:04:05.715403"
+    },
+    {
+      "step": "3.4",
+      "completed_at": "2026-04-01T12:04:11.317420"
+    },
+    {
+      "step": "4.1",
+      "completed_at": "2026-04-01T12:04:11.577631"
+    },
+    {
+      "step": "4.2",
+      "completed_at": "2026-04-01T12:04:28.537187"
+    }
+  ],
+  "completed_at": "2026-04-01T12:04:39.693750-07:00"
+}
