@@ -3,12 +3,13 @@ sprint: 24
 title: "VST3 UI Bridge & Plugin Management"
 type: fullstack
 epic: 8
-status: in-progress
+status: done
 created: 2026-02-22T22:10:14Z
 started: 2026-04-01T12:04:49Z
-completed: null
+completed: 2026-04-01
 hours: null
 workflow_version: "3.1.0"
+
 
 ---
 

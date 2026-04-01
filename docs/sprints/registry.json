@@ -236,13 +236,13 @@
     },
     "24": {
       "title": "VST3 UI Bridge & Plugin Management",
-      "status": "planning",
+      "status": "done",
       "epic": 8,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-04-01",
+      "hours": 11.5
     },
     "25": {
       "title": "Transport & Tempo Engine",
@@ -526,7 +526,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 2,
-      "completedSprints": 1
+      "completedSprints": 2
     },
     "9": {
       "title": "Settings & Preferences",

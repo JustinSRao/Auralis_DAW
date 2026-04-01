@@ -2550,6 +2550,7 @@ dependencies = [
  "midir",
  "midly",
  "rand 0.8.5",
+ "raw-window-handle",
  "ringbuf",
  "rubato",
  "rusqlite",
