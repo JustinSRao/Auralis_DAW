@@ -2392,3 +2392,65 @@ export const ipcCancelExport = (): Promise<void> =>
 /** Returns current export progress in [0, 1], or 0 if idle. */
 export const ipcGetExportProgress = (): Promise<number> =>
   invoke<number>('get_export_progress');
+
+// ─── VST3 Plugin Host (Sprint 23) ────────────────────────────────────────────
+
+/** Metadata for a discovered VST3 plugin (mirrors Rust `PluginInfo`). */
+export interface Vst3PluginInfo {
+  id: string;
+  name: string;
+  vendor: string;
+  version: string;
+  category: string;
+  bundle_path: string;
+  dll_path: string;
+  is_instrument: boolean;
+}
+
+/** A single VST3 parameter descriptor (mirrors Rust `ParamInfo`). */
+export interface Vst3ParamInfo {
+  id: number;
+  title: string;
+  units: string;
+  step_count: number;
+  default_normalized: number;
+  flags: number;
+  current_normalized: number;
+}
+
+/** Loaded plugin view returned by `load_vst3_plugin` (mirrors Rust `LoadedPluginView`). */
+export interface LoadedPluginView {
+  instance_id: string;
+  name: string;
+  vendor: string;
+  is_instrument: boolean;
+  params: Vst3ParamInfo[];
+}
+
+/** Scans VST3 directories and returns discovered plugin metadata. */
+export const ipcScanVst3Plugins = (extraDirs?: string[]): Promise<Vst3PluginInfo[]> =>
+  invoke<Vst3PluginInfo[]>('scan_vst3_plugins', { extraDirs: extraDirs ?? null });
+
+/** Loads a VST3 plugin and returns the instance view. */
+export const ipcLoadVst3Plugin = (info: Vst3PluginInfo): Promise<LoadedPluginView> =>
+  invoke<LoadedPluginView>('load_vst3_plugin', { info });
+
+/** Unloads a previously loaded VST3 plugin instance. */
+export const ipcUnloadVst3Plugin = (instanceId: string): Promise<void> =>
+  invoke<void>('unload_vst3_plugin', { instanceId });
+
+/** Sets a normalised parameter value on a loaded plugin. */
+export const ipcSetVst3Param = (instanceId: string, paramId: number, value: number): Promise<void> =>
+  invoke<void>('set_vst3_param', { instanceId, paramId, value });
+
+/** Returns the current parameter list for a loaded plugin. */
+export const ipcGetVst3Params = (instanceId: string): Promise<Vst3ParamInfo[]> =>
+  invoke<Vst3ParamInfo[]>('get_vst3_params', { instanceId });
+
+/** Serialises plugin state to a base64 string. */
+export const ipcSaveVst3State = (instanceId: string): Promise<string> =>
+  invoke<string>('save_vst3_state', { instanceId });
+
+/** Restores plugin state from a base64 string. */
+export const ipcLoadVst3State = (instanceId: string, stateB64: string): Promise<void> =>
+  invoke<void>('load_vst3_state', { instanceId, stateB64 });

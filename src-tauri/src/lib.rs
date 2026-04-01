@@ -56,6 +56,7 @@ use audio::mixer::{Mixer, commands::MixerState};
 use audio::mixer::master::MasterLevelEvent;
 use audio::mixer::mixer::ChannelLevelEvent;
 use audio::export::ExportJobStateArc;
+use vst3::{Vst3RegistryState, Vst3CmdTxState};
 
 #[tauri::command]
 fn get_version() -> String {
@@ -581,6 +582,15 @@ pub fn run() {
             app.manage(export_job_state);
             log::info!("Export job state initialized");
 
+            // --- Sprint 23: VST3 plugin registry and command-channel map ---
+            let vst3_registry: Vst3RegistryState =
+                Arc::new(Mutex::new(std::collections::HashMap::new()));
+            app.manage(vst3_registry);
+            let vst3_cmd_tx_map: Vst3CmdTxState =
+                Arc::new(Mutex::new(std::collections::HashMap::new()));
+            app.manage(vst3_cmd_tx_map);
+            log::info!("VST3 plugin host initialized");
+
             // Initialize project manager
             let pm_state: ProjectManagerState =
                 Arc::new(Mutex::new(ProjectManager::new()));
@@ -908,6 +918,13 @@ pub fn run() {
             audio::export::commands::start_export,
             audio::export::commands::cancel_export,
             audio::export::commands::get_export_progress,
+            vst3::commands::scan_vst3_plugins,
+            vst3::commands::load_vst3_plugin,
+            vst3::commands::unload_vst3_plugin,
+            vst3::commands::set_vst3_param,
+            vst3::commands::get_vst3_params,
+            vst3::commands::save_vst3_state,
+            vst3::commands::load_vst3_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
