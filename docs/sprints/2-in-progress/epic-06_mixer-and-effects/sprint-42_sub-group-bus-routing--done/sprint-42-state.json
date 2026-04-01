@@ -1,0 +1,69 @@
+{
+  "sprint_number": 42,
+  "sprint_file": "docs\\sprints\\2-in-progress\\epic-06_mixer-and-effects\\sprint-42_sub-group-bus-routing\\sprint-42_sub-group-bus-routing.md",
+  "sprint_title": "Sub-Group Bus Routing",
+  "status": "complete",
+  "current_phase": 4,
+  "current_step": "4.4",
+  "started_at": "2026-03-31T16:08:44Z",
+  "workflow_version": "3.0",
+  "completed_steps": [
+    {
+      "step": "1.1",
+      "completed_at": "2026-03-31T16:08:58.171152"
+    },
+    {
+      "step": "1.2",
+      "completed_at": "2026-03-31T16:12:34.021770"
+    },
+    {
+      "step": "1.3",
+      "completed_at": "2026-03-31T16:12:34.378709"
+    },
+    {
+      "step": "1.4",
+      "completed_at": "2026-03-31T16:12:42.234246"
+    },
+    {
+      "step": "2.1",
+      "completed_at": "2026-03-31T16:12:42.646442"
+    },
+    {
+      "step": "2.2",
+      "completed_at": "2026-03-31T16:31:57.815112"
+    },
+    {
+      "step": "2.3",
+      "completed_at": "2026-03-31T16:32:03.051121"
+    },
+    {
+      "step": "3.1",
+      "completed_at": "2026-03-31T16:32:08.601239"
+    },
+    {
+      "step": "3.2",
+      "completed_at": "2026-03-31T16:32:44.105737"
+    },
+    {
+      "step": "3.3",
+      "completed_at": "2026-03-31T16:32:51.033579"
+    },
+    {
+      "step": "3.4",
+      "completed_at": "2026-03-31T16:32:51.336203"
+    },
+    {
+      "step": "4.1",
+      "completed_at": "2026-03-31T16:33:14.257572"
+    },
+    {
+      "step": "4.2",
+      "completed_at": "2026-03-31T16:33:19.359871"
+    },
+    {
+      "step": "4.3",
+      "completed_at": "2026-03-31T16:33:50.292200"
+    }
+  ],
+  "completed_at": "2026-03-31T16:34:01.897974-07:00"
+}

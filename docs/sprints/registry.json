@@ -436,13 +436,13 @@
     },
     "45": {
       "title": "Audio Clip Fades",
-      "status": "planning",
+      "status": "done",
       "epic": 6,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-03-31",
+      "hours": 11.0
     },
     "46": {
       "title": "Keyboard Shortcut Remapping UI",
@@ -508,7 +508,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 9,
-      "completedSprints": 8
+      "completedSprints": 9
     },
     "7": {
       "title": "Export & Finalization",
