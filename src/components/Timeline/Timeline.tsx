@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { listen } from '@tauri-apps/api/event'
 import type { TransportSnapshot, TakeCreatedEvent, TakeRecordingStartedEvent } from '../../lib/ipc'
 import { useArrangementStore } from '../../stores/arrangementStore'
@@ -10,11 +10,14 @@ import { usePunchStore } from '../../stores/punchStore'
 import { useTakeLaneStore } from '../../stores/takeLaneStore'
 import { useFileStore } from '../../stores/fileStore'
 import { useWaveformEditorStore } from '../../stores/waveformEditorStore'
+import { useFadeStore } from '../../stores/fadeStore'
 import { AutomationRow } from '../automation/AutomationRow'
 import { TempoTrack } from '../daw/TempoTrack'
 import { TimeRuler, RULER_HEIGHT } from './TimeRuler'
 import { PlayheadOverlay } from './PlayheadOverlay'
 import { TakeLaneView, TAKE_ROW_HEIGHT } from './TakeLaneView'
+import FadeHandle from './FadeHandle'
+import FadeCurveOverlay from './FadeCurveOverlay'
 import {
   barToX,
   xToBar,
@@ -127,6 +130,16 @@ export function Timeline() {
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
+
+  // Fade store
+  const fades = useFadeStore((s) => s.fades)
+  const { initClip: initFadeClip, setCrossfade, removeCrossfade } = useFadeStore.getState()
+
+  // Samples per bar at current BPM (for drag-to-sample conversion in FadeHandle)
+  const samplesPerBar = useMemo(
+    () => (60 / currentBpm) * beatsPerBar * 44100,
+    [currentBpm, beatsPerBar],
+  )
 
   // ---------------------------------------------------------------------------
   // ResizeObserver
@@ -681,6 +694,76 @@ export function Timeline() {
           drawFnRef={drawPlayheadRef}
         />
 
+        {/* Fade handles and curve overlays — one per visible clip */}
+        {Object.values(clips).map((clip) => {
+          const trackIdx = tracks.findIndex((t) => t.id === clip.trackId)
+          if (trackIdx === -1) return null
+          const x = barToX(clip.startBar, viewport)
+          const w = clip.lengthBars * viewport.pixelsPerBar
+          if (x + w < 0 || x > canvasSize.width) return null
+
+          const y = trackIndexToY(trackIdx, viewport)
+          const h = viewport.trackHeight - 2
+          const fade = fades[clip.id]
+
+          // Ensure fade state is initialised when clip is visible
+          if (!fade) {
+            initFadeClip(clip.id, {
+              fadeInSamples: clip.fadeInSamples ?? 0,
+              fadeOutSamples: clip.fadeOutSamples ?? 0,
+              fadeInCurve: clip.fadeInCurve ?? 'linear',
+              fadeOutCurve: clip.fadeOutCurve ?? 'linear',
+              crossfadePartnerId: clip.crossfadePartnerId ?? null,
+              crossfadeSamples: clip.crossfadeSamples ?? 0,
+            })
+            return null
+          }
+
+          // Total samples: rough estimate from duration_bars (for overlay proportions)
+          const totalSamples = clip.lengthBars * samplesPerBar
+
+          return (
+            <div key={clip.id} data-testid={`clip-fade-layer-${clip.id}`}>
+              {/* Fade-in handle at left edge */}
+              <FadeHandle
+                clipId={clip.id}
+                kind="in"
+                x={x}
+                y={y + 1}
+                height={h}
+                fadeSamples={fade.fadeInSamples}
+                pixelsPerBar={viewport.pixelsPerBar}
+                samplesPerBar={samplesPerBar}
+              />
+              {/* Fade-out handle at right edge */}
+              <FadeHandle
+                clipId={clip.id}
+                kind="out"
+                x={x + w}
+                y={y + 1}
+                height={h}
+                fadeSamples={fade.fadeOutSamples}
+                pixelsPerBar={viewport.pixelsPerBar}
+                samplesPerBar={samplesPerBar}
+              />
+              {/* Visual curve overlays */}
+              {(fade.fadeInSamples > 0 || fade.fadeOutSamples > 0) && (
+                <FadeCurveOverlay
+                  clipX={x}
+                  clipY={y + 1}
+                  clipWidth={w}
+                  clipHeight={h}
+                  fadeInSamples={fade.fadeInSamples}
+                  fadeOutSamples={fade.fadeOutSamples}
+                  totalSamples={totalSamples}
+                  fadeInCurve={fade.fadeInCurve}
+                  fadeOutCurve={fade.fadeOutCurve}
+                />
+              )}
+            </div>
+          )
+        })}
+
         {/* Automation expand buttons — one per track, overlaid on the left edge */}
         <div className="absolute top-0 left-0 pointer-events-none" style={{ width: 16 }}>
           {tracks.map((track, idx) => (
@@ -799,40 +882,84 @@ export function Timeline() {
       </div>
 
       {/* Context menu */}
-      {contextMenu && (
-        <div
-          className="fixed z-50 bg-[#2a2a2a] border border-[#444] rounded shadow-lg py-1 text-xs font-mono text-[#cccccc]"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-        >
-          <button
-            className="block w-full px-4 py-1.5 text-left hover:bg-[#3a3a3a]"
-            onClick={() => {
-              const clip = clips[contextMenu.clipId]
-              if (clip) {
-                void duplicateClip(
-                  contextMenu.clipId,
-                  clip.startBar + clip.lengthBars,
-                  clip.patternId,
-                  clip.trackId,
-                  clip.lengthBars,
-                )
-              }
-              setContextMenu(null)
-            }}
+      {contextMenu && (() => {
+        const ctxClip = clips[contextMenu.clipId]
+        const ctxFade = fades[contextMenu.clipId]
+        const hasCrossfade = !!(ctxFade?.crossfadePartnerId)
+
+        // Find adjacent clip on the same track to the right (for crossfade offer)
+        const adjacentClip = ctxClip
+          ? Object.values(clips).find(
+              (c) => c.trackId === ctxClip.trackId
+                && c.id !== contextMenu.clipId
+                && Math.abs(c.startBar - (ctxClip.startBar + ctxClip.lengthBars)) < 0.25,
+            )
+          : undefined
+
+        return (
+          <div
+            className="fixed z-50 bg-[#2a2a2a] border border-[#444] rounded shadow-lg py-1 text-xs font-mono text-[#cccccc]"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
           >
-            Duplicate
-          </button>
-          <button
-            className="block w-full px-4 py-1.5 text-left hover:bg-[#3a3a3a] text-red-400"
-            onClick={() => {
-              void deleteClip(contextMenu.clipId)
-              setContextMenu(null)
-            }}
-          >
-            Delete
-          </button>
-        </div>
-      )}
+            <button
+              className="block w-full px-4 py-1.5 text-left hover:bg-[#3a3a3a]"
+              onClick={() => {
+                if (ctxClip) {
+                  void duplicateClip(
+                    contextMenu.clipId,
+                    ctxClip.startBar + ctxClip.lengthBars,
+                    ctxClip.patternId,
+                    ctxClip.trackId,
+                    ctxClip.lengthBars,
+                  )
+                }
+                setContextMenu(null)
+              }}
+            >
+              Duplicate
+            </button>
+
+            {/* Crossfade with adjacent clip */}
+            {adjacentClip && !hasCrossfade && (
+              <button
+                className="block w-full px-4 py-1.5 text-left hover:bg-[#3a3a3a] text-[#5b8def]"
+                data-testid="ctx-add-crossfade"
+                onClick={() => {
+                  // Default crossfade: ~100 ms at 44.1 kHz
+                  setCrossfade(contextMenu.clipId, adjacentClip.id, 4410)
+                  setContextMenu(null)
+                }}
+              >
+                Crossfade with next clip
+              </button>
+            )}
+
+            {/* Remove crossfade */}
+            {hasCrossfade && ctxFade.crossfadePartnerId && (
+              <button
+                className="block w-full px-4 py-1.5 text-left hover:bg-[#3a3a3a] text-yellow-400"
+                data-testid="ctx-remove-crossfade"
+                onClick={() => {
+                  removeCrossfade(contextMenu.clipId, ctxFade.crossfadePartnerId!)
+                  setContextMenu(null)
+                }}
+              >
+                Remove crossfade
+              </button>
+            )}
+
+            <button
+              className="block w-full px-4 py-1.5 text-left hover:bg-[#3a3a3a] text-red-400"
+              onClick={() => {
+                void deleteClip(contextMenu.clipId)
+                setContextMenu(null)
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        )
+      })()}
     </div>
   )
 }
