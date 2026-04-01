@@ -3,12 +3,14 @@ sprint: 23
 title: "VST3 Plugin Host (Rust)"
 type: fullstack
 epic: 8
-status: planning
+status: done
 created: 2026-02-22T22:10:14Z
-started: null
-completed: null
+started: 2026-04-01T10:38:24Z
+completed: 2026-04-01
 hours: null
 workflow_version: "3.1.0"
+
+
 ---
 
 # Sprint 23: VST3 Plugin Host (Rust)

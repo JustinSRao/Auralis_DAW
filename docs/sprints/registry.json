@@ -226,13 +226,13 @@
     },
     "23": {
       "title": "VST3 Plugin Host (Rust)",
-      "status": "planning",
+      "status": "done",
       "epic": 8,
       "type": "fullstack",
       "created": "2026-02-22",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-04-01",
+      "hours": 8.4
     },
     "24": {
       "title": "VST3 UI Bridge & Plugin Management",
@@ -526,7 +526,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 2,
-      "completedSprints": 0
+      "completedSprints": 1
     },
     "9": {
       "title": "Settings & Preferences",

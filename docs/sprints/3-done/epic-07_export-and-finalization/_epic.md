@@ -1,11 +1,13 @@
 ---
 epic: 07
 title: "Export & Finalization"
-status: in-progress
+status: done
 created: 2026-02-22
 started: 2026-03-31T20:58:02Z
-completed: null
+completed: 2026-04-01T10:31:03Z
 
+
+total_hours: 0.0
 ---
 
 # Epic 07: Export & Finalization

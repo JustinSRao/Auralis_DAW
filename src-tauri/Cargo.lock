@@ -2537,6 +2537,7 @@ dependencies = [
  "anyhow",
  "argon2",
  "atomic_float",
+ "base64 0.22.1",
  "chrono",
  "cpal",
  "crossbeam-channel",
@@ -2544,6 +2545,7 @@ dependencies = [
  "dasp",
  "env_logger",
  "hound",
+ "libloading 0.8.9",
  "log",
  "midir",
  "midly",
@@ -2563,6 +2565,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "uuid",
+ "windows-sys 0.59.0",
  "zip",
 ]
 

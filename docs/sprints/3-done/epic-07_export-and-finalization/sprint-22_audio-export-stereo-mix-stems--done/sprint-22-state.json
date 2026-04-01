@@ -1,0 +1,29 @@
+{
+  "sprint_number": 22,
+  "sprint_file": "docs\\sprints\\2-in-progress\\epic-07_export-and-finalization\\sprint-22_audio-export-stereo-mix-stems\\sprint-22_audio-export-stereo-mix-stems.md",
+  "sprint_title": "Audio Export (Stereo Mix & Stems)",
+  "status": "complete",
+  "current_phase": 2,
+  "current_step": "2.1",
+  "started_at": "2026-03-31T21:00:40Z",
+  "workflow_version": "3.0",
+  "completed_steps": [
+    {
+      "step": "1.1",
+      "completed_at": "2026-03-31T21:00:49.723358"
+    },
+    {
+      "step": "1.2",
+      "completed_at": "2026-03-31T21:05:30.041321"
+    },
+    {
+      "step": "1.3",
+      "completed_at": "2026-03-31T21:59:00.780224"
+    },
+    {
+      "step": "1.4",
+      "completed_at": "2026-03-31T21:59:05.018742"
+    }
+  ],
+  "completed_at": "2026-04-01T10:15:10.597925-07:00"
+}
