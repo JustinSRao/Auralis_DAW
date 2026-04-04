@@ -2491,3 +2491,49 @@ export const ipcApplyPluginPreset = (
   presetPath: string,
 ): Promise<void> =>
   invoke<void>('apply_plugin_preset', { instanceId, presetPath });
+
+// ---------------------------------------------------------------------------
+// App Config types and commands (Sprint 27)
+// Mirrors Rust config::AppConfig — Tauri auto-converts snake_case ↔ camelCase.
+// ---------------------------------------------------------------------------
+
+export interface AppAudioConfig {
+  outputDevice: string | null;
+  inputDevice: string | null;
+  sampleRate: number;
+  bufferSize: number;
+}
+
+export interface AppMidiConfig {
+  activeInput: string | null;
+  activeOutput: string | null;
+}
+
+export interface AppGeneralConfig {
+  autosaveIntervalSecs: number;
+  recentProjectsLimit: number;
+}
+
+export interface AppUiConfig {
+  browserOpen: boolean;
+  mixerOpen: boolean;
+  followPlayhead: boolean;
+  theme: string;
+}
+
+export interface AppConfig {
+  audio: AppAudioConfig;
+  midi: AppMidiConfig;
+  general: AppGeneralConfig;
+  ui: AppUiConfig;
+}
+
+/** Returns the current application configuration from the backend. */
+export async function ipcGetAppConfig(): Promise<AppConfig> {
+  return invoke<AppConfig>('get_config');
+}
+
+/** Saves the given configuration to disk and re-applies device/MIDI settings. */
+export async function ipcSaveAppConfig(config: AppConfig): Promise<void> {
+  return invoke<void>('save_config', { newConfig: config });
+}

@@ -2,6 +2,7 @@ pub mod audio;
 pub mod audio_editing;
 pub mod auth;
 pub mod automation;
+pub mod config;
 pub mod effects;
 pub mod instruments;
 pub mod midi;
@@ -89,6 +90,18 @@ pub fn run() {
 
             log::info!("Database initialized at {:?}", db_path);
 
+            // --- Sprint 27: Load application config from TOML ---
+            let app_config = config::load(&app_data_dir)
+                .unwrap_or_else(|e| {
+                    log::warn!("Failed to load app config, using defaults: {}", e);
+                    config::AppConfig::default()
+                });
+            log::info!("App config loaded (sample_rate={}, buffer_size={})",
+                app_config.audio.sample_rate, app_config.audio.buffer_size);
+            let app_config_state: config::AppConfigState =
+                std::sync::Arc::new(std::sync::Mutex::new(app_config.clone()));
+            app.manage(app_config_state);
+
             // Initialize MIDI manager and get the event receiver
             let (midi_manager, midi_rx) = midi::manager::MidiManager::new();
 
@@ -153,6 +166,9 @@ pub fn run() {
 
             let audio_engine: audio::commands::AudioEngineState =
                 Arc::new(Mutex::new(audio_engine));
+            // Clone the Arc so the startup config apply block (Sprint 27) can
+            // access the engine after it is moved into managed state.
+            let audio_engine_for_config = audio_engine.clone();
             app.manage(audio_engine);
             log::info!("Audio engine initialized");
 
@@ -169,8 +185,44 @@ pub fn run() {
             }
             // Clone before managing so the loop record watcher task can access it.
             let loop_watcher_midi_manager = midi_state.clone();
-            app.manage(midi_state);
+            app.manage(midi_state.clone());
             log::info!("MIDI manager initialized");
+
+            // --- Sprint 27: Apply saved config to audio engine and MIDI manager ---
+            {
+                let mut eng = audio_engine_for_config.lock()
+                    .expect("failed to lock audio engine for config apply");
+                if let Some(ref name) = app_config.audio.output_device {
+                    if let Err(e) = eng.set_device(name, false) {
+                        log::warn!("Startup config: failed to set output device '{}': {}", name, e);
+                    }
+                }
+                if let Some(ref name) = app_config.audio.input_device {
+                    if let Err(e) = eng.set_device(name, true) {
+                        log::warn!("Startup config: failed to set input device '{}': {}", name, e);
+                    }
+                }
+                if let Err(e) = eng.set_config(
+                    Some(app_config.audio.sample_rate),
+                    Some(app_config.audio.buffer_size),
+                ) {
+                    log::warn!("Startup config: failed to apply engine config: {}", e);
+                }
+            }
+            {
+                let mut mgr = midi_state.lock()
+                    .expect("failed to lock MIDI manager for config apply");
+                if let Some(ref port) = app_config.midi.active_input {
+                    if let Err(e) = mgr.connect_input(port) {
+                        log::warn!("Startup config: failed to connect MIDI input '{}': {}", port, e);
+                    }
+                }
+                if let Some(ref port) = app_config.midi.active_output {
+                    if let Err(e) = mgr.connect_output(port) {
+                        log::warn!("Startup config: failed to connect MIDI output '{}': {}", port, e);
+                    }
+                }
+            }
 
             // --- Sprint 36: MIDI Recorder managed state ---
             let midi_recorder: MidiRecorderState = Arc::new(Mutex::new(None));
@@ -952,6 +1004,8 @@ pub fn run() {
             vst3::commands::resize_plugin_gui,
             vst3::commands::get_plugin_presets,
             vst3::commands::apply_plugin_preset,
+            config::commands::get_config,
+            config::commands::save_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

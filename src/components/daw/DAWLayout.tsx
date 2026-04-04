@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AudioSettingsPanel } from '@/components/audio/AudioSettingsPanel';
 import { MidiSettingsPanel } from '@/components/midi/MidiSettingsPanel';
 import { TransportBar } from '@/components/daw/TransportBar';
@@ -20,6 +20,7 @@ import { useGlobalKeyboard } from '@/hooks/useGlobalKeyboard';
 import { useKeyboardStore } from '@/stores/keyboardStore';
 import { usePianoRollStore } from '@/stores/pianoRollStore';
 import { useWaveformEditorStore } from '@/stores/waveformEditorStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 /**
  * Root layout component for the DAW shell.
@@ -46,6 +47,13 @@ export function DAWLayout() {
 
   // Sprint 30 — global DAW shortcuts (Space, M, S, R, F, L, Delete, Ctrl+S/N).
   useGlobalKeyboard();
+
+  // Sprint 27 — hydrate UI prefs from TOML config on startup.
+  const loadConfig = useSettingsStore((s) => s.loadConfig);
+  useEffect(() => {
+    void loadConfig();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { browserOpen, mixerOpen } = useKeyboardStore();
   const [activeInstrument, setActiveInstrument] = useState<'synth' | 'sampler' | 'drums' | 'sequencer'>('synth');

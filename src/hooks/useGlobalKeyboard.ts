@@ -3,6 +3,7 @@ import { useTransportStore } from '@/stores/transportStore';
 import { useTrackStore } from '@/stores/trackStore';
 import { useKeyboardStore } from '@/stores/keyboardStore';
 import { useFileStore } from '@/stores/fileStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 /**
  * Wires DAW-global keyboard shortcuts to their respective store actions.
@@ -37,6 +38,13 @@ export function useGlobalKeyboard(): void {
 
       // Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z — owned by useUndoRedo, skip entirely.
       if (ctrl && (key === 'z' || key === 'y')) return;
+
+      // Ctrl+, — open Preferences.
+      if (ctrl && e.key === ',') {
+        e.preventDefault();
+        useSettingsStore.getState().open();
+        return;
+      }
 
       // Ctrl+S — save project to the current file path.
       if (ctrl && key === 's') {

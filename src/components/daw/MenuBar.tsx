@@ -4,8 +4,10 @@ import { useFileStore } from '@/stores/fileStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { useKeyboardStore } from '@/stores/keyboardStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { ExportMidiDialog } from './ExportMidiDialog';
 import { ExportAudioDialog } from './ExportAudioDialog';
+import { SettingsPanel } from './SettingsPanel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -55,6 +57,7 @@ export function MenuBar() {
   const { canUndo, canRedo, undo, redo } = useHistoryStore();
   const { browserOpen, mixerOpen, toggleBrowser, toggleMixer } = useKeyboardStore();
   const { currentUser, logout } = useAuthStore();
+  const { isOpen: settingsOpen, open: openSettings } = useSettingsStore();
 
   const [openMenu, setOpenMenu] = useState<MenuId>(null);
   const [exportMidiOpen, setExportMidiOpen]   = useState(false);
@@ -131,6 +134,11 @@ export function MenuBar() {
   function handleRedo() {
     closeMenu();
     redo();
+  }
+
+  function handlePreferences() {
+    closeMenu();
+    openSettings();
   }
 
   // ---------------------------------------------------------------------------
@@ -273,6 +281,17 @@ export function MenuBar() {
               Redo
               <Shortcut keys="Ctrl+Shift+Z" />
             </button>
+
+            <div className={separatorCls} role="separator" />
+
+            <button
+              role="menuitem"
+              className={itemCls}
+              onClick={handlePreferences}
+            >
+              Preferences...
+              <Shortcut keys="Ctrl+," />
+            </button>
           </div>
         )}
       </div>
@@ -351,6 +370,7 @@ export function MenuBar() {
     </div>
     {exportAudioOpen && <ExportAudioDialog onClose={() => setExportAudioOpen(false)} />}
     {exportMidiOpen && <ExportMidiDialog onClose={() => setExportMidiOpen(false)} />}
+    {settingsOpen && <SettingsPanel />}
     </>
   );
 }
