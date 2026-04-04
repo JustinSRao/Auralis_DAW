@@ -21,6 +21,8 @@ import { useKeyboardStore } from '@/stores/keyboardStore';
 import { usePianoRollStore } from '@/stores/pianoRollStore';
 import { useWaveformEditorStore } from '@/stores/waveformEditorStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useShortcutsStore } from '@/stores/shortcutsStore';
+import { ipcGetAppConfig } from '@/lib/ipc';
 
 /**
  * Root layout component for the DAW shell.
@@ -53,6 +55,17 @@ export function DAWLayout() {
   useEffect(() => {
     void loadConfig();
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sprint 46 — hydrate keyboard shortcuts from TOML config on startup.
+  useEffect(() => {
+    ipcGetAppConfig()
+      .then((cfg) => {
+        useShortcutsStore.getState().hydrate(cfg.shortcuts.bindings);
+      })
+      .catch(() => {
+        useShortcutsStore.getState().hydrate({});
+      });
   }, []);
 
   const { browserOpen, mixerOpen } = useKeyboardStore();

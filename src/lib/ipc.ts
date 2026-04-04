@@ -2521,11 +2521,16 @@ export interface AppUiConfig {
   theme: string;
 }
 
+export interface AppShortcutsConfig {
+  bindings: Record<string, string>;
+}
+
 export interface AppConfig {
   audio: AppAudioConfig;
   midi: AppMidiConfig;
   general: AppGeneralConfig;
   ui: AppUiConfig;
+  shortcuts: AppShortcutsConfig;
 }
 
 /** Returns the current application configuration from the backend. */

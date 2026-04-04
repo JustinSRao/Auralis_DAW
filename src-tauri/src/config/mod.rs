@@ -26,6 +26,9 @@ pub struct AppConfig {
     pub general: GeneralConfig,
     /// UI layout settings.
     pub ui: UiConfig,
+    /// Keyboard shortcut bindings.
+    #[serde(default)]
+    pub shortcuts: ShortcutsConfig,
 }
 
 /// Audio engine device and format configuration.
@@ -77,6 +80,15 @@ impl Default for GeneralConfig {
             recent_projects_limit: 10,
         }
     }
+}
+
+/// Keyboard shortcut binding configuration.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ShortcutsConfig {
+    /// Map of action ID (e.g. `"transport.play_stop"`) to key combo string
+    /// (e.g. `"Space"`). Empty string means the action is unbound.
+    #[serde(default)]
+    pub bindings: std::collections::HashMap<String, String>,
 }
 
 /// UI layout and preference settings.
@@ -167,6 +179,48 @@ mod tests {
         assert_eq!(back.general.recent_projects_limit, cfg.general.recent_projects_limit);
         assert_eq!(back.ui.browser_open, cfg.ui.browser_open);
         assert_eq!(back.ui.theme, cfg.ui.theme);
+        // shortcuts field defaults to empty map
+        assert!(back.shortcuts.bindings.is_empty());
+    }
+
+    #[test]
+    fn shortcuts_roundtrip() {
+        let mut cfg = AppConfig::default();
+        cfg.shortcuts.bindings.insert("transport.play_stop".to_string(), "Space".to_string());
+        cfg.shortcuts.bindings.insert("project.save".to_string(), "Ctrl+S".to_string());
+        let text = toml::to_string_pretty(&cfg).expect("serialize");
+        let back: AppConfig = toml::from_str(&text).expect("deserialize");
+        assert_eq!(back.shortcuts.bindings.get("transport.play_stop").map(String::as_str), Some("Space"));
+        assert_eq!(back.shortcuts.bindings.get("project.save").map(String::as_str), Some("Ctrl+S"));
+    }
+
+    #[test]
+    fn old_toml_without_shortcuts_deserializes_ok() {
+        // Simulate a TOML file from before this field existed (no [shortcuts] section).
+        let old_toml = r#"
+[audio]
+output_device = "ASIO4ALL"
+input_device = "Microphone"
+sample_rate = 44100
+buffer_size = 256
+
+[midi]
+active_input = "USB Keyboard"
+active_output = "USB Keyboard"
+
+[general]
+autosave_interval_secs = 300
+recent_projects_limit = 10
+
+[ui]
+browser_open = true
+mixer_open = true
+follow_playhead = false
+theme = "dark"
+"#;
+        let cfg: AppConfig = toml::from_str(old_toml).expect("deserialize old toml");
+        assert!(cfg.shortcuts.bindings.is_empty(), "shortcuts should default to empty map");
+        assert_eq!(cfg.audio.sample_rate, 44100);
     }
 
     #[test]

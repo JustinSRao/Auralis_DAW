@@ -16,18 +16,20 @@ import { GeneralSettingsTab } from "./settings/GeneralSettingsTab";
 import { AudioSettingsTab } from "./settings/AudioSettingsTab";
 import { MidiSettingsTab } from "./settings/MidiSettingsTab";
 import { UiSettingsTab } from "./settings/UiSettingsTab";
+import { ShortcutsSettingsTab } from "./settings/ShortcutsSettingsTab";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type TabId = "general" | "audio" | "midi" | "ui";
+type TabId = "general" | "audio" | "midi" | "ui" | "shortcuts";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "general", label: "General" },
   { id: "audio", label: "Audio" },
   { id: "midi", label: "MIDI" },
   { id: "ui", label: "UI" },
+  { id: "shortcuts", label: "Shortcuts" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -146,6 +148,7 @@ export function SettingsPanel() {
     audio: <AudioSettingsTab />,
     midi: <MidiSettingsTab />,
     ui: <UiSettingsTab />,
+    shortcuts: <ShortcutsSettingsTab />,
   };
 
   return (
@@ -161,7 +164,7 @@ export function SettingsPanel() {
       }}
     >
       {/* Dialog */}
-      <div className="w-[700px] h-[540px] bg-[#1e1e1e] rounded-lg border border-[#3a3a3a] flex flex-col overflow-hidden shadow-2xl">
+      <div className="w-[700px] h-[620px] bg-[#1e1e1e] rounded-lg border border-[#3a3a3a] flex flex-col overflow-hidden shadow-2xl">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-[#3a3a3a] flex-shrink-0">

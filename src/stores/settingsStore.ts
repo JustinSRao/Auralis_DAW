@@ -19,6 +19,7 @@ import type {
   AppUiConfig,
 } from "@/lib/ipc";
 import { ipcGetAppConfig, ipcSaveAppConfig } from "@/lib/ipc";
+import { useShortcutsStore } from "@/stores/shortcutsStore";
 
 // ---------------------------------------------------------------------------
 // Store shape
@@ -41,6 +42,7 @@ interface SettingsStore {
   updateMidi(patch: Partial<AppMidiConfig>): void;
   updateGeneral(patch: Partial<AppGeneralConfig>): void;
   updateUi(patch: Partial<AppUiConfig>): void;
+  updateShortcuts(bindings: Record<string, string>): void;
   saveAndApply(): Promise<void>;
   discardChanges(): void;
 }
@@ -125,6 +127,14 @@ export const useSettingsStore = create<SettingsStore>()(
       });
     },
 
+    updateShortcuts(bindings: Record<string, string>) {
+      set((s) => {
+        if (!s.draft) return;
+        s.draft.shortcuts.bindings = bindings;
+        s.isDirty = true;
+      });
+    },
+
     async saveAndApply() {
       const { draft } = get();
       if (!draft) return;
@@ -134,6 +144,7 @@ export const useSettingsStore = create<SettingsStore>()(
       });
       try {
         await ipcSaveAppConfig(draft);
+        useShortcutsStore.getState().commitDraft();
         set((s) => {
           s.config = structuredClone(draft);
           s.isDirty = false;
@@ -149,6 +160,7 @@ export const useSettingsStore = create<SettingsStore>()(
 
     discardChanges() {
       const current = get().config;
+      useShortcutsStore.getState().discardDraft();
       set((s) => {
         if (current) {
           s.draft = JSON.parse(JSON.stringify(current));
