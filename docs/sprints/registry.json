@@ -446,13 +446,13 @@
     },
     "46": {
       "title": "Keyboard Shortcut Remapping UI",
-      "status": "planning",
+      "status": "done",
       "epic": 9,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-04-03",
+      "hours": 7.5
     }
   },
   "epics": {
@@ -535,7 +535,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 2,
-      "completedSprints": 1
+      "completedSprints": 2
     },
     "10": {
       "title": "Workflow & Productivity",

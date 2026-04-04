@@ -3,12 +3,14 @@ sprint: 46
 title: "Keyboard Shortcut Remapping UI"
 type: fullstack
 epic: 9
-status: planning
+status: done
 created: 2026-02-23T17:06:08Z
-started: null
-completed: null
+started: 2026-04-03T18:41:12Z
+completed: 2026-04-03
 hours: null
 workflow_version: "3.1.0"
+
+
 ---
 
 # Sprint 46: Keyboard Shortcut Remapping UI

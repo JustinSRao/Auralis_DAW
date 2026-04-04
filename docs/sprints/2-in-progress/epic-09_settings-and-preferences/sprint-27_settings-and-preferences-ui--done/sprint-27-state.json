@@ -1,0 +1,65 @@
+{
+  "sprint_number": 27,
+  "sprint_file": "docs\\sprints\\2-in-progress\\epic-09_settings-and-preferences\\sprint-27_settings-and-preferences-ui\\sprint-27_settings-and-preferences-ui.md",
+  "sprint_title": "Settings & Preferences UI",
+  "status": "complete",
+  "current_phase": 4,
+  "current_step": "4.3",
+  "started_at": "2026-04-03T17:57:30Z",
+  "workflow_version": "3.0",
+  "completed_steps": [
+    {
+      "step": "1.1",
+      "completed_at": "2026-04-03T17:57:50.564085"
+    },
+    {
+      "step": "1.2",
+      "completed_at": "2026-04-03T18:06:09.924852"
+    },
+    {
+      "step": "1.3",
+      "completed_at": "2026-04-03T18:11:09.663339"
+    },
+    {
+      "step": "1.4",
+      "completed_at": "2026-04-03T18:11:09.865580"
+    },
+    {
+      "step": "2.1",
+      "completed_at": "2026-04-03T18:33:40.691250"
+    },
+    {
+      "step": "2.2",
+      "completed_at": "2026-04-03T18:33:53.767231"
+    },
+    {
+      "step": "2.3",
+      "completed_at": "2026-04-03T18:33:53.976243"
+    },
+    {
+      "step": "3.1",
+      "completed_at": "2026-04-03T18:33:54.206183"
+    },
+    {
+      "step": "3.2",
+      "completed_at": "2026-04-03T18:33:54.405866"
+    },
+    {
+      "step": "3.3",
+      "completed_at": "2026-04-03T18:33:54.676465"
+    },
+    {
+      "step": "3.4",
+      "completed_at": "2026-04-03T18:33:54.868716"
+    },
+    {
+      "step": "4.1",
+      "completed_at": "2026-04-03T18:33:55.069424"
+    },
+    {
+      "step": "4.2",
+      "completed_at": "2026-04-03T18:36:21.233510"
+    }
+  ],
+  "completed_at": "2026-04-03T18:40:56.533042-07:00"
+}
