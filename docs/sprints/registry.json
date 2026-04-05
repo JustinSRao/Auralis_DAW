@@ -276,13 +276,13 @@
     },
     "28": {
       "title": "Sample & Content Browser",
-      "status": "planning",
+      "status": "done",
       "epic": 10,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-04-05",
+      "hours": 9.3
     },
     "29": {
       "title": "MIDI Learn & Hardware Controller Mapping",
@@ -544,7 +544,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 3,
-      "completedSprints": 0
+      "completedSprints": 1
     },
     "11": {
       "title": "Preset Management System",
