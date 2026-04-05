@@ -2,6 +2,7 @@ pub mod audio;
 pub mod audio_editing;
 pub mod auth;
 pub mod automation;
+pub mod browser;
 pub mod config;
 pub mod effects;
 pub mod instruments;
@@ -187,6 +188,11 @@ pub fn run() {
             let loop_watcher_midi_manager = midi_state.clone();
             app.manage(midi_state.clone());
             log::info!("MIDI manager initialized");
+
+            // --- Sprint 28: Browser preview player managed state ---
+            let preview_player: browser::preview::PreviewPlayerState =
+                Arc::new(Mutex::new(None));
+            app.manage(preview_player);
 
             // --- Sprint 27: Apply saved config to audio engine and MIDI manager ---
             {
@@ -1006,6 +1012,10 @@ pub fn run() {
             vst3::commands::apply_plugin_preset,
             config::commands::get_config,
             config::commands::save_config,
+            browser::list_directory,
+            browser::get_drives,
+            browser::preview::start_preview,
+            browser::preview::stop_preview,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -82,9 +82,15 @@ function DropTarget({ onFileDrop }: { onFileDrop: (path: string) => void }) {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
+    // Accept drag from browser panel (Sprint 28)
+    const browserPath = e.dataTransfer.getData("application/x-daw-filepath");
+    if (browserPath) {
+      onFileDrop(browserPath);
+      return;
+    }
+    // Fallback: OS file drop (Tauri exposes .path on File objects)
     const file = e.dataTransfer.files[0];
     if (!file) return;
-    // In Tauri's webview, dropped files expose a `.path` property
     const path = (file as File & { path?: string }).path ?? file.name;
     onFileDrop(path);
   };

@@ -4,6 +4,7 @@ import { MidiSettingsPanel } from '@/components/midi/MidiSettingsPanel';
 import { TransportBar } from '@/components/daw/TransportBar';
 import { HistoryPanel } from '@/components/daw/HistoryPanel';
 import { PatternBrowser } from '@/components/pattern/PatternBrowser';
+import { BrowserPanel } from '@/components/daw/BrowserPanel';
 import { MenuBar } from '@/components/daw/MenuBar';
 import { TrackList } from '@/components/daw/TrackList';
 import { DrumMachinePanel } from '@/components/instruments/DrumMachinePanel';
@@ -70,6 +71,7 @@ export function DAWLayout() {
 
   const { browserOpen, mixerOpen } = useKeyboardStore();
   const [activeInstrument, setActiveInstrument] = useState<'synth' | 'sampler' | 'drums' | 'sequencer'>('synth');
+  const [leftPanelTab, setLeftPanelTab] = useState<'browser' | 'patterns'>('browser');
   const pianoRollIsOpen = usePianoRollStore((s) => s.isOpen);
   const waveformEditorIsOpen = useWaveformEditorStore((s) => s.isOpen);
 
@@ -91,8 +93,29 @@ export function DAWLayout() {
           aria-hidden={!browserOpen}
         >
           <HistoryPanel />
+          {/* Tab bar: BROWSER / PATTERNS */}
+          <div className="flex bg-[#1a1a1a] border-b border-[#3a3a3a] flex-shrink-0">
+            {(['browser', 'patterns'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setLeftPanelTab(tab)}
+                className={[
+                  'flex-1 py-1 text-[9px] font-mono uppercase tracking-widest transition-colors',
+                  leftPanelTab === tab
+                    ? 'text-[#aaaaaa] border-b-2 border-[#5b8def]'
+                    : 'text-[#555555] hover:text-[#888888] border-b-2 border-transparent',
+                ].join(' ')}
+              >
+                {tab === 'browser' ? 'BROWSE' : 'PATTERNS'}
+              </button>
+            ))}
+          </div>
           <div className="flex-1 overflow-hidden relative">
-            <PatternBrowser />
+            {leftPanelTab === 'browser' ? (
+              <BrowserPanel />
+            ) : (
+              <PatternBrowser />
+            )}
           </div>
         </div>
 

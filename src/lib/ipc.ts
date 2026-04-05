@@ -2525,12 +2525,18 @@ export interface AppShortcutsConfig {
   bindings: Record<string, string>;
 }
 
+export interface AppBrowserConfig {
+  favorites: string[];
+  recentFolders: string[];
+}
+
 export interface AppConfig {
   audio: AppAudioConfig;
   midi: AppMidiConfig;
   general: AppGeneralConfig;
   ui: AppUiConfig;
   shortcuts: AppShortcutsConfig;
+  browser: AppBrowserConfig;
 }
 
 /** Returns the current application configuration from the backend. */
@@ -2541,4 +2547,37 @@ export async function ipcGetAppConfig(): Promise<AppConfig> {
 /** Saves the given configuration to disk and re-applies device/MIDI settings. */
 export async function ipcSaveAppConfig(config: AppConfig): Promise<void> {
   return invoke<void>('save_config', { newConfig: config });
+}
+
+// ---------------------------------------------------------------------------
+// Browser types and commands (Sprint 28)
+// ---------------------------------------------------------------------------
+
+/** A single file system entry returned by list_directory / get_drives. */
+export interface FileEntry {
+  name: string;
+  path: string;
+  size: number;
+  is_dir: boolean;
+  is_audio: boolean;
+}
+
+/** Lists the contents of a directory, sorted dirs-first then files. */
+export async function ipcListDirectory(path: string): Promise<FileEntry[]> {
+  return invoke<FileEntry[]>('list_directory', { path });
+}
+
+/** Returns available drives (Windows: A–Z; other platforms: root). */
+export async function ipcGetDrives(): Promise<FileEntry[]> {
+  return invoke<FileEntry[]>('get_drives');
+}
+
+/** Starts previewing an audio file (decodes first ~3 s, WASAPI stream). */
+export async function ipcStartPreview(path: string): Promise<void> {
+  return invoke<void>('start_preview', { path });
+}
+
+/** Stops any currently-playing preview. */
+export async function ipcStopPreview(): Promise<void> {
+  return invoke<void>('stop_preview');
 }

@@ -29,6 +29,9 @@ pub struct AppConfig {
     /// Keyboard shortcut bindings.
     #[serde(default)]
     pub shortcuts: ShortcutsConfig,
+    /// Sample browser favourites and recent folders.
+    #[serde(default)]
+    pub browser: BrowserConfig,
 }
 
 /// Audio engine device and format configuration.
@@ -89,6 +92,17 @@ pub struct ShortcutsConfig {
     /// (e.g. `"Space"`). Empty string means the action is unbound.
     #[serde(default)]
     pub bindings: std::collections::HashMap<String, String>,
+}
+
+/// Sample & content browser settings (Sprint 28).
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BrowserConfig {
+    /// Absolute folder paths pinned as favourites.
+    #[serde(default)]
+    pub favorites: Vec<String>,
+    /// Recently visited folder paths, newest-first, capped at 10.
+    #[serde(default)]
+    pub recent_folders: Vec<String>,
 }
 
 /// UI layout and preference settings.
@@ -220,6 +234,48 @@ theme = "dark"
 "#;
         let cfg: AppConfig = toml::from_str(old_toml).expect("deserialize old toml");
         assert!(cfg.shortcuts.bindings.is_empty(), "shortcuts should default to empty map");
+        assert_eq!(cfg.audio.sample_rate, 44100);
+    }
+
+    #[test]
+    fn browser_config_roundtrip() {
+        let mut cfg = AppConfig::default();
+        cfg.browser.favorites.push("/music/samples".to_string());
+        cfg.browser.recent_folders.push("/music/drums".to_string());
+        let text = toml::to_string_pretty(&cfg).expect("serialize");
+        let back: AppConfig = toml::from_str(&text).expect("deserialize");
+        assert_eq!(back.browser.favorites, vec!["/music/samples"]);
+        assert_eq!(back.browser.recent_folders, vec!["/music/drums"]);
+    }
+
+    #[test]
+    fn old_toml_without_browser_section_deserializes_ok() {
+        let old_toml = r#"
+[audio]
+output_device = "ASIO4ALL"
+input_device = "Microphone"
+sample_rate = 44100
+buffer_size = 256
+
+[midi]
+active_input = "USB Keyboard"
+active_output = "USB Keyboard"
+
+[general]
+autosave_interval_secs = 300
+recent_projects_limit = 10
+
+[ui]
+browser_open = true
+mixer_open = true
+follow_playhead = false
+theme = "dark"
+
+[shortcuts]
+"#;
+        let cfg: AppConfig = toml::from_str(old_toml).expect("deserialize old toml");
+        assert!(cfg.browser.favorites.is_empty(), "browser favorites should default to empty");
+        assert!(cfg.browser.recent_folders.is_empty(), "browser recent_folders should default to empty");
         assert_eq!(cfg.audio.sample_rate, 44100);
     }
 
