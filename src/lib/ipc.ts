@@ -2581,3 +2581,56 @@ export async function ipcStartPreview(path: string): Promise<void> {
 export async function ipcStopPreview(): Promise<void> {
   return invoke<void>('stop_preview');
 }
+
+// ---------------------------------------------------------------------------
+// MIDI Learn & CC Mapping types and commands (Sprint 29)
+// ---------------------------------------------------------------------------
+
+/** A single CC → parameter binding, mirroring Rust `MidiMapping`. */
+export interface MidiMapping {
+  param_id: string;
+  cc: number;
+  channel: number | null;
+  min_value: number;
+  max_value: number;
+}
+
+/** Payload emitted by the `midi-learn-captured` Tauri event. */
+export interface MidiLearnCapturedPayload {
+  param_id: string;
+  cc: number;
+  channel: number;
+}
+
+/** Enters MIDI learn mode for `paramId`. The next incoming CC will be bound. */
+export async function ipcStartMidiLearn(
+  paramId: string,
+  minValue: number,
+  maxValue: number,
+): Promise<void> {
+  return invoke<void>('start_midi_learn', {
+    paramId,
+    minValue,
+    maxValue,
+  });
+}
+
+/** Cancels any in-progress MIDI learn without creating a mapping. */
+export async function ipcCancelMidiLearn(): Promise<void> {
+  return invoke<void>('cancel_midi_learn');
+}
+
+/** Removes the CC mapping for `paramId`. */
+export async function ipcDeleteMidiMapping(paramId: string): Promise<void> {
+  return invoke<void>('delete_midi_mapping', { paramId });
+}
+
+/** Returns all active CC → parameter mappings. */
+export async function ipcGetMidiMappings(): Promise<MidiMapping[]> {
+  return invoke<MidiMapping[]>('get_midi_mappings');
+}
+
+/** Replaces the entire mapping table (used on project load). */
+export async function ipcLoadMidiMappings(mappings: MidiMapping[]): Promise<void> {
+  return invoke<void>('load_midi_mappings', { mappings });
+}

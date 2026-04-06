@@ -8,6 +8,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::midi::mapping::MidiMapping;
 use crate::project::arrangement::Arrangement;
 use crate::project::pattern::Pattern;
 use crate::project::version::{SchemaVersion, CURRENT_SCHEMA};
@@ -46,6 +47,11 @@ pub struct ProjectFile {
     /// Absent in project files before v1.2.0 — defaults to an empty arrangement.
     #[serde(default)]
     pub arrangement: Arrangement,
+    /// MIDI CC → parameter mappings (Sprint 29).
+    ///
+    /// Absent in project files before v1.4.0 — defaults to an empty list.
+    #[serde(default)]
+    pub midi_mappings: Vec<MidiMapping>,
 }
 
 impl Default for ProjectFile {
@@ -63,6 +69,7 @@ impl Default for ProjectFile {
             samples: Vec::new(),
             patterns: Vec::new(),
             arrangement: Arrangement::default(),
+            midi_mappings: Vec::new(),
         }
     }
 }

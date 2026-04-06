@@ -17,12 +17,13 @@ import { AudioSettingsTab } from "./settings/AudioSettingsTab";
 import { MidiSettingsTab } from "./settings/MidiSettingsTab";
 import { UiSettingsTab } from "./settings/UiSettingsTab";
 import { ShortcutsSettingsTab } from "./settings/ShortcutsSettingsTab";
+import { MidiMappingPanel } from "./MidiMappingPanel";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type TabId = "general" | "audio" | "midi" | "ui" | "shortcuts";
+type TabId = "general" | "audio" | "midi" | "ui" | "shortcuts" | "midi-map";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "general", label: "General" },
@@ -30,6 +31,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "midi", label: "MIDI" },
   { id: "ui", label: "UI" },
   { id: "shortcuts", label: "Shortcuts" },
+  { id: "midi-map", label: "MIDI Map" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -149,6 +151,7 @@ export function SettingsPanel() {
     midi: <MidiSettingsTab />,
     ui: <UiSettingsTab />,
     shortcuts: <ShortcutsSettingsTab />,
+    "midi-map": <MidiMappingPanel />,
   };
 
   return (

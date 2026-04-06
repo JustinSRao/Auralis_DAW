@@ -42,7 +42,7 @@ impl std::fmt::Display for SchemaVersion {
 /// Bump `patch` for clarifications that require no data changes.
 pub const CURRENT_SCHEMA: SchemaVersion = SchemaVersion {
     major: 1,
-    minor: 3,
+    minor: 4,
     patch: 0,
 };
 
@@ -121,6 +121,17 @@ fn migrate_1_2_0_to_1_3_0(data: &mut Value) -> Result<()> {
     Ok(())
 }
 
+/// Migrates a project file from schema v1.3.0 to v1.4.0.
+///
+/// Injects an empty `"midi_mappings": []` array if the field is absent.
+fn migrate_1_3_0_to_1_4_0(data: &mut Value) -> Result<()> {
+    if let Some(obj) = data.as_object_mut() {
+        obj.entry("midi_mappings")
+            .or_insert_with(|| serde_json::json!([]));
+    }
+    Ok(())
+}
+
 /// All registered migrations, in ascending `from` order.
 ///
 /// Add entries here whenever the schema version is bumped.
@@ -142,6 +153,12 @@ static MIGRATIONS: &[Migration] = &[
         from: SchemaVersion { major: 1, minor: 2, patch: 0 },
         to: SchemaVersion { major: 1, minor: 3, patch: 0 },
         apply: migrate_1_2_0_to_1_3_0,
+    },
+    // v1.3.0 → v1.4.0: add `midi_mappings` array (Sprint 29).
+    Migration {
+        from: SchemaVersion { major: 1, minor: 3, patch: 0 },
+        to: SchemaVersion { major: 1, minor: 4, patch: 0 },
+        apply: migrate_1_3_0_to_1_4_0,
     },
 ];
 
@@ -223,8 +240,8 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn current_schema_is_v1_3() {
-        assert_eq!(CURRENT_SCHEMA, SchemaVersion::new(1, 3, 0));
+    fn current_schema_is_v1_4() {
+        assert_eq!(CURRENT_SCHEMA, SchemaVersion::new(1, 4, 0));
     }
 
     #[test]
@@ -240,8 +257,9 @@ mod tests {
     #[test]
     fn no_migration_needed_for_current_version() {
         let mut data = json!({
-            "schema_version": { "major": 1, "minor": 3, "patch": 0 },
-            "patterns": []
+            "schema_version": { "major": 1, "minor": 4, "patch": 0 },
+            "patterns": [],
+            "midi_mappings": []
         });
         assert!(apply_migrations(&mut data).is_ok());
         // Schema version unchanged.
@@ -259,7 +277,7 @@ mod tests {
             "tracks": []
         });
         assert!(apply_migrations(&mut data).is_ok());
-        // Should have been bumped to current (v1.3.0).
+        // Should have been bumped to current (v1.4.0).
         let sv: SchemaVersion =
             serde_json::from_value(data["schema_version"].clone()).unwrap();
         assert_eq!(sv, CURRENT_SCHEMA);
@@ -319,6 +337,19 @@ mod tests {
         // stretch fields must be injected as null
         assert_eq!(data["tracks"][0]["clips"][0]["stretch_ratio"], json!(null));
         assert_eq!(data["tracks"][0]["clips"][0]["pitch_shift_semitones"], json!(null));
+    }
+
+    #[test]
+    fn migration_1_3_0_to_1_4_0_injects_midi_mappings() {
+        let mut data = json!({
+            "schema_version": { "major": 1, "minor": 3, "patch": 0 },
+            "tracks": []
+        });
+        assert!(apply_migrations(&mut data).is_ok());
+        let sv: SchemaVersion =
+            serde_json::from_value(data["schema_version"].clone()).unwrap();
+        assert_eq!(sv, CURRENT_SCHEMA);
+        assert_eq!(data["midi_mappings"], json!([]));
     }
 
     #[test]

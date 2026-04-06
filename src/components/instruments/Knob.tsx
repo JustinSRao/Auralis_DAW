@@ -1,4 +1,5 @@
 import { useRef, useCallback } from "react";
+import { useMidiMappingStore } from "@/stores/midiMappingStore";
 
 interface KnobProps {
   /** Human-readable label displayed below the knob. */
@@ -11,6 +12,16 @@ interface KnobProps {
   unit?: string;
   /** Display value override. When provided, shown instead of the raw normalised value. */
   displayValue?: string;
+  /**
+   * Stable parameter identifier used for MIDI Learn (Sprint 29).
+   * When provided, right-clicking enters learn mode and the knob shows a
+   * learn indicator while waiting for a CC event.
+   */
+  paramId?: string;
+  /** Native minimum value (passed to backend for CC → value scaling). */
+  minValue?: number;
+  /** Native maximum value (passed to backend for CC → value scaling). */
+  maxValue?: number;
 }
 
 /** Total sweep angle of the knob arc in degrees (−135° to +135°). */
@@ -60,7 +71,15 @@ export function Knob({
   onValue,
   unit,
   displayValue,
+  paramId,
+  minValue = 0,
+  maxValue = 1,
 }: KnobProps) {
+  const { learningParamId, getMappingForParam, startLearn, cancelLearn } =
+    useMidiMappingStore();
+  const isLearning = paramId !== undefined && learningParamId === paramId;
+  const hasMapping =
+    paramId !== undefined && getMappingForParam(paramId) !== undefined;
   const SIZE = 48;
   const CX = SIZE / 2;
   const CY = SIZE / 2;
@@ -105,8 +124,24 @@ export function Knob({
   const formattedValue =
     displayValue ?? (unit ? `${value.toFixed(2)}${unit}` : value.toFixed(2));
 
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (!paramId) return;
+      e.preventDefault();
+      if (isLearning) {
+        cancelLearn();
+      } else {
+        startLearn(paramId, minValue, maxValue);
+      }
+    },
+    [paramId, isLearning, cancelLearn, startLearn, minValue, maxValue],
+  );
+
   return (
-    <div className="flex flex-col items-center gap-0.5 select-none">
+    <div
+      className="flex flex-col items-center gap-0.5 select-none"
+      onContextMenu={handleContextMenu}
+    >
       <svg
         width={SIZE}
         height={SIZE}
@@ -140,11 +175,21 @@ export function Knob({
           />
         )}
 
-        {/* Center circle (knob body) */}
-        <circle cx={CX} cy={CY} r={10} fill="#2e2e2e" />
+        {/* Center circle (knob body) — amber when learning, green when mapped */}
+        <circle
+          cx={CX}
+          cy={CY}
+          r={10}
+          fill={isLearning ? "#92400e" : hasMapping ? "#14532d" : "#2e2e2e"}
+        />
 
         {/* Indicator dot */}
-        <circle cx={indX} cy={indY} r={2} fill="#5b8def" />
+        <circle
+          cx={indX}
+          cy={indY}
+          r={2}
+          fill={isLearning ? "#f59e0b" : hasMapping ? "#22c55e" : "#5b8def"}
+        />
       </svg>
 
       {/* Numeric value */}
@@ -152,8 +197,14 @@ export function Knob({
         {formattedValue}
       </span>
 
-      {/* Label */}
-      <span className="text-[9px] text-[#aaaaaa] leading-none">{label}</span>
+      {/* Label — amber while learning */}
+      <span
+        className={`text-[9px] leading-none ${
+          isLearning ? "text-amber-400 animate-pulse" : "text-[#aaaaaa]"
+        }`}
+      >
+        {isLearning ? "LEARN…" : label}
+      </span>
     </div>
   );
 }

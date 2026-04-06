@@ -11,6 +11,7 @@ use crate::audio::transport::TransportAtomics;
 use crate::automation::commands::{AutomationCmdTxState, AutomationLaneStore};
 use crate::automation::engine::{AutomationCommand, AutomationEngine};
 use crate::midi::commands::MidiManagerState;
+use crate::midi::mapping::{register_synth_targets, MappingRegistryState};
 use crate::midi::types::TimestampedMidiEvent;
 
 use super::drum_machine::{
@@ -67,6 +68,7 @@ pub async fn create_synth_instrument(
     transport_atomics: State<'_, TransportAtomicsState>,
     auto_cmd_tx_state: State<'_, AutomationCmdTxState>,
     _auto_lane_store: State<'_, AutomationLaneStore>,
+    mapping_registry: State<'_, MappingRegistryState>,
 ) -> Result<(), String> {
     let params = Arc::clone(&*synth_params);
     let lfo1 = Arc::clone(&lfo_params_state.lfo1);
@@ -121,6 +123,14 @@ pub async fn create_synth_instrument(
     graph.add_node(Box::new(auto_engine));
     let synth = SubtractiveSynth::new(params, midi_rx, 44100.0, lfo1, lfo2, atomics);
     graph.add_node(Box::new(synth));
+
+    // Sprint 29: Register synth params as MIDI CC dispatch targets
+    {
+        let mut reg = mapping_registry
+            .lock()
+            .map_err(|e| format!("Failed to lock mapping registry: {}", e))?;
+        register_synth_targets(&mut reg, &synth_params);
+    }
 
     // Swap the new graph into the running engine
     let eng = engine

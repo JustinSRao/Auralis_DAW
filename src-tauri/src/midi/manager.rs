@@ -4,10 +4,11 @@ use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
-use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use midir::{MidiInput, MidiInputConnection, MidiOutput, MidiOutputConnection};
 use tauri::Emitter;
 
+use super::mapping::{MappingRegistry, MidiLearnCompleteEvent, PendingLearnState, MappingRegistryState};
 use super::types::*;
 
 /// Manages MIDI input and output connections using `midir`.
@@ -41,6 +42,15 @@ pub struct MidiManager {
     scanner_handle: Option<JoinHandle<()>>,
     /// Signal to stop the scanner thread.
     scanner_stop: Arc<AtomicBool>,
+    // --- Sprint 29: MIDI Learn ---
+    /// CC → parameter mapping registry.
+    mapping_registry: MappingRegistryState,
+    /// When `Some(param_id)`, the next incoming CC completes a MIDI Learn mapping.
+    pending_learn: PendingLearnState,
+    /// Sender for learn-complete notifications (drained by a background task).
+    learn_complete_tx: Sender<MidiLearnCompleteEvent>,
+    /// Receiver for learn-complete notifications. Taken out in `lib.rs` setup.
+    learn_complete_rx: Option<Receiver<MidiLearnCompleteEvent>>,
 }
 
 impl MidiManager {
@@ -51,6 +61,7 @@ impl MidiManager {
     /// the MIDI callback thread.
     pub fn new() -> (Self, Receiver<TimestampedMidiEvent>) {
         let (tx, rx) = bounded(256);
+        let (learn_tx, learn_rx) = unbounded::<MidiLearnCompleteEvent>();
         let manager = Self {
             midi_in: None,
             midi_out: None,
@@ -60,8 +71,28 @@ impl MidiManager {
             active_output_port: None,
             scanner_handle: None,
             scanner_stop: Arc::new(AtomicBool::new(false)),
+            mapping_registry: Arc::new(Mutex::new(MappingRegistry::new())),
+            pending_learn: Arc::new(Mutex::new(None)),
+            learn_complete_tx: learn_tx,
+            learn_complete_rx: Some(learn_rx),
         };
         (manager, rx)
+    }
+
+    /// Returns a clone of the `Arc` backing the mapping registry.
+    /// Call before `app.manage(midi_state)` so `lib.rs` can manage it separately.
+    pub fn mapping_registry(&self) -> MappingRegistryState {
+        Arc::clone(&self.mapping_registry)
+    }
+
+    /// Returns a clone of the `Arc` backing the pending-learn state.
+    pub fn pending_learn_arc(&self) -> PendingLearnState {
+        Arc::clone(&self.pending_learn)
+    }
+
+    /// Takes the learn-complete receiver out. Called once in `lib.rs` setup.
+    pub fn take_learn_complete_rx(&mut self) -> Option<Receiver<MidiLearnCompleteEvent>> {
+        self.learn_complete_rx.take()
     }
 
     /// Adds an instrument MIDI sender to the fan-out list.
@@ -194,6 +225,11 @@ impl MidiManager {
 
         let tx = self.event_tx.clone();
         let instrument_txs_arc = self.instrument_txs.clone();
+        // --- Sprint 29: MIDI Learn / CC dispatch ---
+        let mapping_registry_arc = Arc::clone(&self.mapping_registry);
+        let pending_learn_arc = Arc::clone(&self.pending_learn);
+        let learn_complete_tx = self.learn_complete_tx.clone();
+
         let connection = midi_in
             .connect(
                 &port,
@@ -201,16 +237,62 @@ impl MidiManager {
                 move |timestamp_us, data, _| {
                     if let Some(event) = MidiEvent::from_bytes(data) {
                         let stamped = TimestampedMidiEvent {
-                            event,
+                            event: event.clone(),
                             timestamp_us,
                         };
                         // Primary channel: audio engine (discard on full)
                         let _ = tx.try_send(stamped.clone());
 
                         // Fan-out: all registered instrument nodes receive a copy
-                        if let Ok(guard) = instrument_txs_arc.lock() {
+                        if let Ok(guard) = instrument_txs_arc.try_lock() {
                             for itx in guard.iter() {
                                 let _ = itx.try_send(stamped.clone());
+                            }
+                        }
+
+                        // Sprint 29: Handle CC events for MIDI Learn and CC dispatch
+                        if let MidiEvent::ControlChange { channel, controller, value } = event {
+                            // Check if MIDI learn is pending
+                            let learn_complete = if let Ok(mut pending) = pending_learn_arc.try_lock() {
+                                if let Some(param_id) = pending.take() {
+                                    // Complete the learn: add mapping to registry
+                                    if let Ok(mut reg) = mapping_registry_arc.try_lock() {
+                                        // Retrieve range from existing mapping if one exists,
+                                        // or use [0.0, 1.0] as a generic default. The frontend
+                                        // supplies the real range via start_midi_learn.
+                                        let (min_v, max_v) = reg.get_mappings()
+                                            .iter()
+                                            .find(|m| m.param_id == param_id)
+                                            .map(|m| (m.min_value, m.max_value))
+                                            .unwrap_or((0.0, 1.0));
+                                        reg.add_mapping(crate::midi::mapping::MidiMapping {
+                                            param_id: param_id.clone(),
+                                            cc: controller,
+                                            channel: None, // match any channel
+                                            min_value: min_v,
+                                            max_value: max_v,
+                                        });
+                                    }
+                                    Some(MidiLearnCompleteEvent {
+                                        param_id,
+                                        cc: controller,
+                                        channel,
+                                    })
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            };
+
+                            // Signal learn completion (non-blocking)
+                            if let Some(evt) = learn_complete {
+                                let _ = learn_complete_tx.try_send(evt);
+                            }
+
+                            // Dispatch CC to mapped parameters
+                            if let Ok(reg) = mapping_registry_arc.try_lock() {
+                                reg.dispatch_cc(channel, controller, value);
                             }
                         }
                     }

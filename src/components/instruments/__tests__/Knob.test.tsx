@@ -2,10 +2,26 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Knob } from "../Knob";
 
+// Mock the midiMappingStore so Knob renders without Tauri in tests.
+const mockStartLearn = vi.fn();
+const mockCancelLearn = vi.fn();
+const mockGetMappingForParam = vi.fn().mockReturnValue(undefined);
+vi.mock("../../../stores/midiMappingStore", () => ({
+  useMidiMappingStore: () => ({
+    learningParamId: null,
+    getMappingForParam: mockGetMappingForParam,
+    startLearn: mockStartLearn,
+    cancelLearn: mockCancelLearn,
+  }),
+}));
+
 // jsdom does not implement setPointerCapture — polyfill for Knob's onPointerDown handler.
 beforeEach(() => {
   SVGElement.prototype.setPointerCapture = vi.fn();
   SVGElement.prototype.releasePointerCapture = vi.fn();
+  mockStartLearn.mockReset();
+  mockCancelLearn.mockReset();
+  mockGetMappingForParam.mockReturnValue(undefined);
 });
 
 describe("Knob", () => {
@@ -80,5 +96,21 @@ describe("Knob", () => {
     const paths = container.querySelectorAll("path");
     // Background track arc only
     expect(paths.length).toBe(1);
+  });
+
+  it("right-click triggers startLearn when paramId is provided", () => {
+    render(
+      <Knob label="Cutoff" value={0.5} onValue={() => {}} paramId="synth.cutoff" minValue={20} maxValue={20000} />,
+    );
+    const wrapper = screen.getByText("Cutoff").closest("div")!;
+    fireEvent.contextMenu(wrapper);
+    expect(mockStartLearn).toHaveBeenCalledWith("synth.cutoff", 20, 20000);
+  });
+
+  it("right-click does not trigger learn when paramId is absent", () => {
+    render(<Knob label="Volume" value={0.5} onValue={() => {}} />);
+    const wrapper = screen.getByText("Volume").closest("div")!;
+    fireEvent.contextMenu(wrapper);
+    expect(mockStartLearn).not.toHaveBeenCalled();
   });
 });

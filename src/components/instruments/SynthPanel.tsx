@@ -145,6 +145,8 @@ export function SynthPanel() {
     denorm: (n: number) => number,
     formatDisplay: (raw: number) => string,
     unit?: string,
+    nativeMin?: number,
+    nativeMax?: number,
   ) {
     return (
       <Knob
@@ -154,6 +156,9 @@ export function SynthPanel() {
         unit={unit}
         displayValue={formatDisplay(denorm(norm))}
         onValue={(n) => setParamWithRecord(name, denorm(n))}
+        paramId={`synth.${name}`}
+        minValue={nativeMin}
+        maxValue={nativeMax}
       />
     );
   }
@@ -199,6 +204,9 @@ export function SynthPanel() {
           normLinear(p.attack, 0.001, 4.0),
           (n) => denormLinear(n, 0.001, 4.0),
           (v) => `${v.toFixed(2)}s`,
+          undefined,
+          0.001,
+          4.0,
         )}
         {knob(
           "decay",
@@ -206,6 +214,9 @@ export function SynthPanel() {
           normLinear(p.decay, 0.001, 4.0),
           (n) => denormLinear(n, 0.001, 4.0),
           (v) => `${v.toFixed(2)}s`,
+          undefined,
+          0.001,
+          4.0,
         )}
         {knob(
           "sustain",
@@ -213,6 +224,9 @@ export function SynthPanel() {
           p.sustain,
           (n) => n,
           (v) => `${Math.round(v * 100)}%`,
+          undefined,
+          0,
+          1,
         )}
         {knob(
           "release",
@@ -220,6 +234,9 @@ export function SynthPanel() {
           normLinear(p.release, 0.001, 8.0),
           (n) => denormLinear(n, 0.001, 8.0),
           (v) => `${v.toFixed(2)}s`,
+          undefined,
+          0.001,
+          8.0,
         )}
       </Section>
 
@@ -231,6 +248,9 @@ export function SynthPanel() {
           normCutoff(p.cutoff),
           denormCutoff,
           (v) => `${Math.round(v)}Hz`,
+          undefined,
+          20,
+          20000,
         )}
         {knob(
           "resonance",

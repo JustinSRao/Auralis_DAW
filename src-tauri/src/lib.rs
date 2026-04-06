@@ -11,6 +11,8 @@ pub mod project;
 pub mod sequencer;
 pub mod vst3;
 
+use midi::mapping::MappingRegistryState;
+
 use std::sync::{Arc, Mutex};
 
 use tauri::{Emitter, Manager};
@@ -104,7 +106,12 @@ pub fn run() {
             app.manage(app_config_state);
 
             // Initialize MIDI manager and get the event receiver
-            let (midi_manager, midi_rx) = midi::manager::MidiManager::new();
+            let (mut midi_manager, midi_rx) = midi::manager::MidiManager::new();
+            // Extract Sprint 29 arcs BEFORE managing the midi_manager.
+            let mapping_registry: MappingRegistryState = midi_manager.mapping_registry();
+            let learn_complete_rx = midi_manager
+                .take_learn_complete_rx()
+                .expect("learn_complete_rx always present at startup");
 
             // Initialize audio engine with MIDI event receiver
             let mut audio_engine = audio::engine::AudioEngine::new();
@@ -187,6 +194,19 @@ pub fn run() {
             // Clone before managing so the loop record watcher task can access it.
             let loop_watcher_midi_manager = midi_state.clone();
             app.manage(midi_state.clone());
+            // Sprint 29: Manage CC mapping registry and spawn learn-complete emitter
+            app.manage(mapping_registry.clone());
+            {
+                let app_handle_learn = app.handle().clone();
+                tokio::spawn(async move {
+                    loop {
+                        tokio::time::sleep(std::time::Duration::from_millis(16)).await;
+                        while let Ok(evt) = learn_complete_rx.try_recv() {
+                            let _ = app_handle_learn.emit("midi-learn-captured", &evt);
+                        }
+                    }
+                });
+            }
             log::info!("MIDI manager initialized");
 
             // --- Sprint 28: Browser preview player managed state ---
@@ -843,6 +863,11 @@ pub fn run() {
             midi::commands::disconnect_midi_input,
             midi::commands::connect_midi_output,
             midi::commands::disconnect_midi_output,
+            midi::commands::start_midi_learn,
+            midi::commands::cancel_midi_learn,
+            midi::commands::delete_midi_mapping,
+            midi::commands::get_midi_mappings,
+            midi::commands::load_midi_mappings,
             project::commands::new_project,
             project::commands::save_project,
             project::commands::load_project,

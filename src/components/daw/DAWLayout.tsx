@@ -18,6 +18,7 @@ import { Timeline } from '@/components/Timeline/Timeline';
 import MixerView from '@/components/mixer/MixerView';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useGlobalKeyboard } from '@/hooks/useGlobalKeyboard';
+import { useMidiLearn } from '@/hooks/useMidiLearn';
 import { useKeyboardStore } from '@/stores/keyboardStore';
 import { usePianoRollStore } from '@/stores/pianoRollStore';
 import { useWaveformEditorStore } from '@/stores/waveformEditorStore';
@@ -50,6 +51,9 @@ export function DAWLayout() {
 
   // Sprint 30 — global DAW shortcuts (Space, M, S, R, F, L, Delete, Ctrl+S/N).
   useGlobalKeyboard();
+
+  // Sprint 29 — bridge Tauri `midi-learn-captured` events into the mapping store.
+  useMidiLearn();
 
   // Sprint 27 — hydrate UI prefs from TOML config on startup.
   const loadConfig = useSettingsStore((s) => s.loadConfig);
