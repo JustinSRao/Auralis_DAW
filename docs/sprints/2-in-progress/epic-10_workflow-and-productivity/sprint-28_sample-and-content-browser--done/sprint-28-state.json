@@ -1,0 +1,61 @@
+{
+  "sprint_number": 28,
+  "sprint_file": "docs\\sprints\\2-in-progress\\epic-10_workflow-and-productivity\\sprint-28_sample-and-content-browser\\sprint-28_sample-and-content-browser.md",
+  "sprint_title": "Sample & Content Browser",
+  "status": "complete",
+  "current_phase": 4,
+  "current_step": "4.2",
+  "started_at": "2026-04-05T11:54:38Z",
+  "workflow_version": "3.0",
+  "completed_steps": [
+    {
+      "step": "1.1",
+      "completed_at": "2026-04-05T11:54:48.784701"
+    },
+    {
+      "step": "1.2",
+      "completed_at": "2026-04-05T11:59:27.778728"
+    },
+    {
+      "step": "1.3",
+      "completed_at": "2026-04-05T13:55:14.207622"
+    },
+    {
+      "step": "1.4",
+      "completed_at": "2026-04-05T13:55:18.334000"
+    },
+    {
+      "step": "2.1",
+      "completed_at": "2026-04-05T14:08:29.883893"
+    },
+    {
+      "step": "2.2",
+      "completed_at": "2026-04-05T14:08:38.544873"
+    },
+    {
+      "step": "2.3",
+      "completed_at": "2026-04-05T14:08:38.819136"
+    },
+    {
+      "step": "3.1",
+      "completed_at": "2026-04-05T14:08:39.074988"
+    },
+    {
+      "step": "3.2",
+      "completed_at": "2026-04-05T14:08:44.177841"
+    },
+    {
+      "step": "3.3",
+      "completed_at": "2026-04-05T14:08:44.385281"
+    },
+    {
+      "step": "3.4",
+      "completed_at": "2026-04-05T14:08:44.655458"
+    },
+    {
+      "step": "4.1",
+      "completed_at": "2026-04-05T14:09:04.173786"
+    }
+  ],
+  "completed_at": "2026-04-05T14:10:22.961142-07:00"
+}

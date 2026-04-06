@@ -286,13 +286,13 @@
     },
     "29": {
       "title": "MIDI Learn & Hardware Controller Mapping",
-      "status": "planning",
+      "status": "done",
       "epic": 10,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-04-06",
+      "hours": 33.0
     },
     "30": {
       "title": "Main DAW Shell & Track Management",
@@ -544,7 +544,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 3,
-      "completedSprints": 1
+      "completedSprints": 2
     },
     "11": {
       "title": "Preset Management System",

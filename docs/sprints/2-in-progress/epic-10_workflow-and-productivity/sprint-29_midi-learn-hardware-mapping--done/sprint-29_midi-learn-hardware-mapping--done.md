@@ -3,13 +3,14 @@ sprint: 29
 title: "MIDI Learn & Hardware Controller Mapping"
 type: fullstack
 epic: 10
-status: in-progress
+status: done
 created: 2026-02-23T00:00:00Z
 started: 2026-04-05T14:10:34Z
-completed: null
+completed: 2026-04-06
 hours: null
 workflow_version: "3.1.0"
 coverage_threshold: 75
+
 
 ---
 
