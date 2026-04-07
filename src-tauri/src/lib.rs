@@ -201,7 +201,7 @@ pub fn run() {
             app.manage(mapping_registry.clone());
             {
                 let app_handle_learn = app.handle().clone();
-                tokio::spawn(async move {
+                tauri::async_runtime::spawn(async move {
                     loop {
                         tokio::time::sleep(std::time::Duration::from_millis(16)).await;
                         while let Ok(evt) = learn_complete_rx.try_recv() {
@@ -282,7 +282,7 @@ pub fn run() {
             // Spawn punch watcher task (~50 Hz)
             let punch_watcher_punch = punch_controller.clone();
             let app_handle_punch = app.handle().clone();
-            tokio::spawn(async move {
+            tauri::async_runtime::spawn(async move {
                 let mut interval = tokio::time::interval(std::time::Duration::from_millis(20));
                 // Track last-known SPB to detect BPM changes and recalculate punch samples.
                 let mut last_spb_bits: u64 = 0;
@@ -347,7 +347,7 @@ pub fn run() {
             let loop_watcher_ctrl = loop_record_ctrl.clone();
             let loop_watcher_take_store = take_lane_store.clone();
             let loop_app_handle = app.handle().clone();
-            tokio::spawn(async move {
+            tauri::async_runtime::spawn(async move {
                 use std::sync::atomic::Ordering;
                 let mut interval = tokio::time::interval(std::time::Duration::from_millis(20));
                 let mut last_spb_bits: u64 = 0;
@@ -701,7 +701,7 @@ pub fn run() {
             // and emits a "transport-state" Tauri event only when the snapshot changes.
             // This keeps the audio thread and the UI decoupled.
             let app_handle_transport = app.handle().clone();
-            tokio::spawn(async move {
+            tauri::async_runtime::spawn(async move {
                 let mut last_emitted = TransportSnapshot::default();
                 let mut interval =
                     tokio::time::interval(std::time::Duration::from_millis(16));
@@ -722,7 +722,7 @@ pub fn run() {
 
             // Spawn RMS level poller (~30 Hz) — emits "input-level-changed" Tauri event
             let app_handle_rms = app.handle().clone();
-            tokio::spawn(async move {
+            tauri::async_runtime::spawn(async move {
                 let mut interval =
                     tokio::time::interval(std::time::Duration::from_millis(33));
                 let mut last_rms = -1.0f32;
@@ -747,7 +747,7 @@ pub fn run() {
 
             // Spawn mixer master level poller (~30 Hz) — emits "master_level_changed" Tauri event
             let app_handle_master_level = app.handle().clone();
-            tokio::spawn(async move {
+            tauri::async_runtime::spawn(async move {
                 let mut interval =
                     tokio::time::interval(std::time::Duration::from_millis(33));
                 loop {
@@ -769,7 +769,7 @@ pub fn run() {
 
             // Spawn mixer channel level poller (~30 Hz) — emits "channel_level_changed" Tauri event
             let app_handle_channel_level = app.handle().clone();
-            tokio::spawn(async move {
+            tauri::async_runtime::spawn(async move {
                 let mut interval =
                     tokio::time::interval(std::time::Duration::from_millis(33));
                 loop {
@@ -794,7 +794,7 @@ pub fn run() {
 
             // Spawn auto-save background task (fires every 300 seconds)
             let pm_clone = pm_state.clone();
-            tokio::spawn(async move {
+            tauri::async_runtime::spawn(async move {
                 let mut interval =
                     tokio::time::interval(std::time::Duration::from_secs(300));
                 loop {
