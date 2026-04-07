@@ -4,6 +4,14 @@ import { TrackHeader } from "../TrackHeader";
 import type { DawTrack } from "@/stores/trackStore";
 
 // ---------------------------------------------------------------------------
+// Tauri event mock (FreezeProgressDialog uses listen)
+// ---------------------------------------------------------------------------
+
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn().mockResolvedValue(() => {}),
+}));
+
+// ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
@@ -29,6 +37,20 @@ let mockTrackState = {
   toggleArm: mockToggleArm,
   clearError: vi.fn(),
 };
+
+// ---------------------------------------------------------------------------
+// FreezeStore mock
+// ---------------------------------------------------------------------------
+
+vi.mock("@/stores/freezeStore", () => ({
+  useFreezeStore: () => ({
+    isFrozen: vi.fn().mockReturnValue(false),
+    getStatus: vi.fn().mockReturnValue("idle"),
+    freezeTrack: vi.fn().mockResolvedValue({}),
+    unfreezeTrack: vi.fn().mockResolvedValue("clip-1"),
+    bounceTrack: vi.fn().mockResolvedValue({}),
+  }),
+}));
 
 vi.mock("@/stores/trackStore", () => ({
   useTrackStore: (selector?: (s: typeof mockTrackState) => unknown) => {

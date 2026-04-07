@@ -2,6 +2,10 @@
 // Handles: ASIO/WASAPI device management, real-time audio thread, audio graph
 pub mod clip_player;
 pub mod export;
+/// Track Freeze and Bounce in Place — offline MIDI→audio renderer (Sprint 40).
+pub mod freeze;
+/// Tauri IPC commands for track freeze and bounce (Sprint 40).
+pub mod freeze_commands;
 pub mod commands;
 pub mod fade;
 pub mod fade_commands;

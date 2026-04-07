@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
-import { Mic, Music2 } from 'lucide-react';
+import { Mic, Music2, Snowflake } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import type { DawTrack } from '@/lib/ipc';
 import { ipcStartMidiRecording, ipcStopMidiRecording } from '@/lib/ipc';
+import { useFreezeStore } from '@/stores/freezeStore';
+import { FreezeProgressDialog } from '@/components/daw/FreezeProgressDialog';
 import { useTrackStore } from '@/stores/trackStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { usePianoRollStore } from '@/stores/pianoRollStore';
@@ -73,6 +75,13 @@ export function TrackHeader({ track, index = 0 }: TrackHeaderProps) {
 
   // -- Context menu state --
   const [ctxPos, setCtxPos] = useState<{ x: number; y: number } | null>(null);
+
+  // -- Freeze/bounce state --
+  const { isFrozen, getStatus, freezeTrack, unfreezeTrack, bounceTrack } = useFreezeStore();
+  const [showFreezeDialog, setShowFreezeDialog] = useState(false);
+  const [freezeOperation, setFreezeOperation] = useState<'Freeze' | 'Bounce'>('Freeze');
+  const frozen = isFrozen(track.id);
+  const freezeStatus = getStatus(track.id);
 
   const isSelected = selectedTrackId === track.id;
 
@@ -308,6 +317,56 @@ export function TrackHeader({ track, index = 0 }: TrackHeaderProps) {
           R
         </button>
 
+        {/* Freeze/Unfreeze button — visible on Midi tracks only */}
+        {track.kind === 'Midi' && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (frozen) {
+                void unfreezeTrack(track.id);
+              } else {
+                setFreezeOperation('Freeze');
+                setShowFreezeDialog(true);
+                void freezeTrack(track.id, [], 120, '', undefined, undefined)
+                  .catch(() => setShowFreezeDialog(false));
+              }
+            }}
+            title={frozen ? 'Unfreeze track' : 'Freeze track'}
+            aria-label={frozen ? 'Unfreeze track' : 'Freeze track'}
+            aria-pressed={frozen}
+            disabled={freezeStatus === 'rendering'}
+            className={[
+              'w-5 h-5 text-[10px] rounded flex-shrink-0 flex items-center justify-center transition-colors',
+              frozen
+                ? 'bg-[#0e4f5e] text-[#5ee7ff] border border-[#5ee7ff]'
+                : 'bg-[#333333] text-[#888888] hover:bg-[#444444]',
+              freezeStatus === 'rendering' ? 'opacity-50 cursor-not-allowed' : '',
+            ].join(' ')}
+          >
+            <Snowflake size={10} />
+          </button>
+        )}
+
+        {/* FROZEN badge */}
+        {frozen && (
+          <span
+            className="text-[8px] font-bold text-[#5ee7ff] border border-[#5ee7ff] rounded px-1 flex-shrink-0"
+            title="Track is frozen — click snowflake to unfreeze"
+          >
+            FROZEN
+          </span>
+        )}
+
+        {/* Freeze progress dialog — shown while rendering */}
+        {showFreezeDialog && (
+          <FreezeProgressDialog
+            trackId={track.id}
+            trackName={track.name}
+            operation={freezeOperation}
+            onClose={() => setShowFreezeDialog(false)}
+          />
+        )}
+
         {/* Take count badge — shown when loop takes exist */}
         {takeCount > 0 && (
           <span
@@ -347,6 +406,20 @@ export function TrackHeader({ track, index = 0 }: TrackHeaderProps) {
             className="fixed z-50 bg-[#2d2d2d] border border-[#3a3a3a] rounded shadow-xl py-1 text-xs min-w-[140px]"
             style={{ top: ctxPos.y, left: ctxPos.x }}
           >
+            {track.kind === 'Midi' && !frozen && (
+              <button
+                onClick={() => {
+                  closeContextMenu();
+                  setFreezeOperation('Bounce');
+                  setShowFreezeDialog(true);
+                  void bounceTrack(track.id, [], 120, '', undefined, undefined)
+                    .catch(() => setShowFreezeDialog(false));
+                }}
+                className="w-full text-left px-3 py-1.5 text-[#cccccc] hover:bg-[#3a3a3a] transition-colors"
+              >
+                Bounce in Place…
+              </button>
+            )}
             <button
               onClick={handleDeleteFromMenu}
               className="w-full text-left px-3 py-1.5 text-[#ff6666] hover:bg-[#3a1a1a] transition-colors"

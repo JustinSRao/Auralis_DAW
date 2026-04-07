@@ -3,13 +3,14 @@ sprint: 40
 title: "Track Freeze and Bounce in Place"
 type: fullstack
 epic: 10
-status: planning
+status: in-progress
 created: 2026-02-23T17:05:53Z
-started: null
+started: 2026-04-06T16:11:22Z
 completed: null
 hours: null
 workflow_version: "3.1.0"
 coverage_threshold: 75
+
 ---
 
 # Sprint 40: Track Freeze and Bounce in Place

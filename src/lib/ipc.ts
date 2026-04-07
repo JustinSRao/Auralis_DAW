@@ -2583,6 +2583,118 @@ export async function ipcStopPreview(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Track Freeze & Bounce (Sprint 40)
+// ---------------------------------------------------------------------------
+
+/** Result returned by `freeze_track` and `bounce_track_in_place`. */
+export interface FreezeRenderResult {
+  wavPath: string;
+  sampleId: string;
+  clipId: string;
+  startBeats: number;
+  endBeats: number;
+}
+
+/** Payload emitted by the `freeze_progress` Tauri event. */
+export interface FreezeProgressPayload {
+  trackId: string;
+  progress: number; // 0.0–1.0
+}
+
+/**
+ * Renders a MIDI track offline to a temp WAV and silences the live synth.
+ * Returns the data needed to add the freeze audio clip to the track.
+ */
+export async function ipcFreezeTrack(
+  trackId: string,
+  clips: ClipData[],
+  bpm: number,
+  outputDir: string,
+  startBeats?: number,
+  endBeats?: number,
+): Promise<FreezeRenderResult> {
+  return invoke<FreezeRenderResult>('freeze_track', {
+    trackId,
+    clips,
+    bpm,
+    outputDir,
+    startBeats: startBeats ?? null,
+    endBeats: endBeats ?? null,
+  });
+}
+
+/** Restores synth volume, deletes temp WAV, returns the clip ID to remove. */
+export async function ipcUnfreezeTrack(trackId: string): Promise<string> {
+  return invoke<string>('unfreeze_track', { trackId });
+}
+
+/**
+ * Renders a MIDI track offline to a permanent WAV in the project's samples/
+ * directory. The caller must convert the track to Audio type after this call.
+ */
+export async function ipcBounceTrackInPlace(
+  trackId: string,
+  clips: ClipData[],
+  bpm: number,
+  outputDir: string,
+  startBeats?: number,
+  endBeats?: number,
+): Promise<FreezeRenderResult> {
+  return invoke<FreezeRenderResult>('bounce_track_in_place', {
+    trackId,
+    clips,
+    bpm,
+    outputDir,
+    startBeats: startBeats ?? null,
+    endBeats: endBeats ?? null,
+  });
+}
+
+/** Cancels an in-progress freeze or bounce render. */
+export async function ipcCancelFreeze(trackId: string): Promise<void> {
+  return invoke<void>('cancel_freeze', { trackId });
+}
+
+/** Returns current render progress (0–1), or null if idle. */
+export async function ipcGetFreezeProgress(trackId: string): Promise<number | null> {
+  return invoke<number | null>('get_freeze_progress', { trackId });
+}
+
+/** Project ClipData — serialization shape used by freeze/bounce commands. */
+export interface ClipData {
+  id: string;
+  name: string;
+  start_beats: number;
+  duration_beats: number;
+  content: ClipContent;
+  stretch_ratio: number | null;
+  pitch_shift_semitones: number | null;
+}
+
+/** Discriminated union matching Rust `ClipContent` serde tag. */
+export type ClipContent =
+  | { type: 'Audio'; sample_id: string; start_offset_samples: number; gain: number }
+  | { type: 'Midi'; notes: MidiNoteData[]; cc_events: MidiCcData[] }
+  | { type: 'Pattern'; pattern_id: string };
+
+/** MIDI note data — matches Rust `MidiNoteData`. */
+export interface MidiNoteData {
+  note: number;
+  velocity: number;
+  start_beats: number;
+  duration_beats: number;
+  channel: number;
+}
+
+/** MIDI CC data — matches Rust `MidiCcData`. */
+export interface MidiCcData {
+  controller: number;
+  value: number;
+  position_beats: number;
+  channel: number;
+}
+
+// ---------------------------------------------------------------------------
 // MIDI Learn & CC Mapping types and commands (Sprint 29)
 // ---------------------------------------------------------------------------
 

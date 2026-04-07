@@ -212,6 +212,17 @@ pub struct TrackData {
     pub clips: Vec<ClipData>,
     /// Automation lanes for parameters on this track.
     pub automation: Vec<AutomationLane>,
+    /// Whether this track is currently frozen (Sprint 40).
+    ///
+    /// When `true`, the synth DSP is silenced and playback is driven by the
+    /// WAV at `freeze_wav_path`. Absent in files before v1.5.0 — defaults to `false`.
+    #[serde(default)]
+    pub frozen: bool,
+    /// Absolute path to the temporary freeze WAV, or `None` when not frozen.
+    ///
+    /// Set during freeze; cleared on unfreeze. Absent in files before v1.5.0 — defaults to `None`.
+    #[serde(default)]
+    pub freeze_wav_path: Option<String>,
 }
 
 // ---------------------------------------------------------------------------

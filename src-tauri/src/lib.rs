@@ -12,6 +12,7 @@ pub mod sequencer;
 pub mod vst3;
 
 use midi::mapping::MappingRegistryState;
+use audio::freeze::FreezeEngineState;
 
 use std::sync::{Arc, Mutex};
 
@@ -213,6 +214,11 @@ pub fn run() {
             let preview_player: browser::preview::PreviewPlayerState =
                 Arc::new(Mutex::new(None));
             app.manage(preview_player);
+
+            // --- Sprint 40: Track freeze/bounce engine ---
+            let freeze_engine: FreezeEngineState =
+                Arc::new(Mutex::new(audio::freeze::FreezeEngine::new()));
+            app.manage(freeze_engine);
 
             // --- Sprint 27: Apply saved config to audio engine and MIDI manager ---
             {
@@ -1041,6 +1047,11 @@ pub fn run() {
             browser::get_drives,
             browser::preview::start_preview,
             browser::preview::stop_preview,
+            audio::freeze_commands::freeze_track,
+            audio::freeze_commands::unfreeze_track,
+            audio::freeze_commands::bounce_track_in_place,
+            audio::freeze_commands::cancel_freeze,
+            audio::freeze_commands::get_freeze_progress,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
