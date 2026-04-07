@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "preset_type": "synth",
+  "name": "Bass Sub",
+  "params": {
+    "waveform": 0.0,
+    "attack": 0.005,
+    "decay": 0.2,
+    "sustain": 0.8,
+    "release": 0.4,
+    "cutoff": 400.0,
+    "resonance": 0.3,
+    "env_amount": 0.5,
+    "volume": 0.8,
+    "detune": 0.0,
+    "pulse_width": 0.5,
+    "lfo1": { "rate": 1.0, "depth": 0.0, "waveform": 0.0, "bpm_sync": 0.0, "division": 1.0, "phase_reset": 0.0, "destination": 0.0 },
+    "lfo2": { "rate": 1.0, "depth": 0.0, "waveform": 0.0, "bpm_sync": 0.0, "division": 1.0, "phase_reset": 0.0, "destination": 0.0 }
+  }
+}

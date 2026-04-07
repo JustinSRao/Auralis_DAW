@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "preset_type": "eq",
+  "name": "Low Cut 100Hz",
+  "params": [
+    { "filter_type": "HighPass", "frequency": 100.0, "gain_db": 0.0, "q": 0.707, "enabled": true },
+    { "filter_type": "LowShelf", "frequency": 200.0, "gain_db": 0.0, "q": 1.0, "enabled": true },
+    { "filter_type": "Peaking", "frequency": 500.0, "gain_db": 0.0, "q": 1.0, "enabled": true },
+    { "filter_type": "Peaking", "frequency": 1000.0, "gain_db": 0.0, "q": 1.0, "enabled": true },
+    { "filter_type": "Peaking", "frequency": 4000.0, "gain_db": 0.0, "q": 1.0, "enabled": true },
+    { "filter_type": "Peaking", "frequency": 8000.0, "gain_db": 0.0, "q": 1.0, "enabled": true },
+    { "filter_type": "HighShelf", "frequency": 10000.0, "gain_db": 0.0, "q": 1.0, "enabled": true },
+    { "filter_type": "LowPass", "frequency": 20000.0, "gain_db": 0.0, "q": 1.0, "enabled": false }
+  ]
+}

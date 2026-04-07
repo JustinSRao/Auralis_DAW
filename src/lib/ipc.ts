@@ -2746,3 +2746,89 @@ export async function ipcGetMidiMappings(): Promise<MidiMapping[]> {
 export async function ipcLoadMidiMappings(mappings: MidiMapping[]): Promise<void> {
   return invoke<void>('load_midi_mappings', { mappings });
 }
+
+// ─── Sprint 34: Preset system ─────────────────────────────────────────────────
+
+/** Preset type discriminant — mirrors Rust `PresetType` enum. */
+export type PresetType =
+  | 'synth'
+  | 'sampler'
+  | 'drum_machine'
+  | 'eq'
+  | 'reverb'
+  | 'delay'
+  | 'compressor';
+
+/** Lightweight preset metadata returned by `list_presets`. No params included. */
+export interface PresetMeta {
+  name: string;
+  preset_type: PresetType;
+  is_factory: boolean;
+}
+
+/** Full preset including parameter data, returned by `load_preset` and `capture_preset`. */
+export interface Preset {
+  name: string;
+  preset_type: PresetType;
+  /** Opaque params blob — varies by preset_type. Never inspect on the frontend; pass directly to ipcApplyPreset. */
+  params: unknown;
+  is_factory: boolean;
+}
+
+/**
+ * Lists all presets for the given type.
+ * Factory presets come first (alphabetical), then user presets (alphabetical).
+ */
+export async function ipcListPresets(presetType: PresetType): Promise<PresetMeta[]> {
+  return invoke<PresetMeta[]>('list_presets', { presetType });
+}
+
+/** Loads a single preset by type + name and returns its full parameter data. */
+export async function ipcLoadPreset(
+  presetType: PresetType,
+  name: string,
+): Promise<Preset> {
+  return invoke<Preset>('load_preset', { presetType, name });
+}
+
+/**
+ * Saves a user preset to disk.
+ * Returns an error if the name matches a factory preset.
+ */
+export async function ipcSavePreset(preset: Preset): Promise<void> {
+  return invoke<void>('save_preset', { preset });
+}
+
+/**
+ * Deletes a user preset by type + name.
+ * Returns an error if the name is a factory preset.
+ */
+export async function ipcDeletePreset(
+  presetType: PresetType,
+  name: string,
+): Promise<void> {
+  return invoke<void>('delete_preset', { presetType, name });
+}
+
+/**
+ * Captures the current live parameter state for the given preset type.
+ * `channelId` is used for effects presets; ignored for instruments.
+ */
+export async function ipcCapturePreset(
+  presetType: PresetType,
+  name: string,
+  channelId?: string,
+): Promise<Preset> {
+  return invoke<Preset>('capture_preset', { presetType, name, channelId });
+}
+
+/**
+ * Applies a preset's parameters to the live instrument/effect state.
+ * `channelId` is used for effects presets; ignored for instruments.
+ */
+export async function ipcApplyPreset(
+  preset: Preset,
+  channelId?: string,
+): Promise<void> {
+  return invoke<void>('apply_preset', { preset, channelId });
+}

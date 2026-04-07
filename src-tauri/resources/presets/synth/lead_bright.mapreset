@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "preset_type": "synth",
+  "name": "Lead Bright",
+  "params": {
+    "waveform": 1.0,
+    "attack": 0.002,
+    "decay": 0.15,
+    "sustain": 0.6,
+    "release": 0.2,
+    "cutoff": 6000.0,
+    "resonance": 0.5,
+    "env_amount": 0.4,
+    "volume": 0.75,
+    "detune": 5.0,
+    "pulse_width": 0.3,
+    "lfo1": { "rate": 5.0, "depth": 0.15, "waveform": 2.0, "bpm_sync": 0.0, "division": 1.0, "phase_reset": 1.0, "destination": 0.0 },
+    "lfo2": { "rate": 1.0, "depth": 0.0, "waveform": 0.0, "bpm_sync": 0.0, "division": 1.0, "phase_reset": 0.0, "destination": 0.0 }
+  }
+}

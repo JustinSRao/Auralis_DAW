@@ -579,6 +579,8 @@ mod tests {
                     curve: AutomationCurve::Linear,
                 }],
             }],
+            frozen: false,
+            freeze_wav_path: None,
         };
 
         let json = serde_json::to_string(&track).expect("serialize failed");

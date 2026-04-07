@@ -259,6 +259,8 @@ mod tests {
             output_bus: None,
             instrument: None,
             effects: vec![],
+            frozen: false,
+            freeze_wav_path: None,
             clips: vec![ClipData {
                 id: Uuid::new_v4().to_string(),
                 name: "Clip 1".to_string(),

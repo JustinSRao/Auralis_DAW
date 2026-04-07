@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Knob } from "./Knob";
 import { useSamplerStore } from "../../stores/samplerStore";
-import type { SampleZoneSnapshot, SamplerParamName } from "../../lib/ipc";
+import type { SampleZoneSnapshot, SamplerParamName, PresetMeta } from "../../lib/ipc";
+import { PresetBar } from "../daw/PresetBar";
+import { PresetBrowser } from "../daw/PresetBrowser";
+import { usePresets } from "../../hooks/usePresets";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -142,6 +145,23 @@ export function SamplerPanel() {
     }
   }, [isInitialized, isLoading, initialize]);
 
+  // ─── Preset state ────────────────────────────────────────────────────────
+  const [currentPresetName, setCurrentPresetName] = useState<string | null>(null);
+  const [showBrowser, setShowBrowser] = useState(false);
+  const { captureAndSave, loadAndApply } = usePresets('sampler');
+
+  async function handleSavePreset(name: string) {
+    await captureAndSave(name);
+    setCurrentPresetName(name);
+  }
+
+  async function handleLoadPreset(meta: PresetMeta) {
+    const preset = await loadAndApply(meta);
+    setCurrentPresetName(preset.name);
+    await initialize();
+    setShowBrowser(false);
+  }
+
   function knob(
     name: SamplerParamName,
     label: string,
@@ -166,9 +186,26 @@ export function SamplerPanel() {
 
   return (
     <div
-      className="bg-[#1e1e1e] border-t border-[#3a3a3a] px-4 py-2 flex gap-6 items-start overflow-x-auto flex-shrink-0"
+      className="bg-[#1e1e1e] border-t border-[#3a3a3a] flex flex-col flex-shrink-0"
       style={{ minHeight: 100 }}
     >
+      {/* Preset bar */}
+      <PresetBar
+        presetType="sampler"
+        currentPresetName={currentPresetName}
+        onSave={(name) => { void handleSavePreset(name); }}
+        onBrowse={() => setShowBrowser((v) => !v)}
+      />
+      {showBrowser && (
+        <div className="absolute z-50 mt-8">
+          <PresetBrowser
+            presetType="sampler"
+            onLoad={(meta) => { void handleLoadPreset(meta); }}
+            onClose={() => setShowBrowser(false)}
+          />
+        </div>
+      )}
+      <div className="px-4 py-2 flex gap-6 items-start overflow-x-auto">
       {/* Zone loader */}
       <Section title="Load Zone">
         <div className="flex flex-col gap-1">
@@ -246,6 +283,7 @@ export function SamplerPanel() {
           Loading…
         </div>
       )}
+      </div>
     </div>
   );
 }

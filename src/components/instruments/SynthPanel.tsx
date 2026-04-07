@@ -1,10 +1,13 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Knob } from "./Knob";
 import { LfoPanel } from "./LfoPanel";
 import { useSynthStore } from "../../stores/synthStore";
 import { useAutomationStore } from "../../stores/automationStore";
 import { useTransportStore } from "../../stores/transportStore";
 import type { SynthParamName } from "../../lib/ipc";
+import { PresetBar } from "../daw/PresetBar";
+import { PresetBrowser } from "../daw/PresetBrowser";
+import { usePresets } from "../../hooks/usePresets";
 
 // ─── Normalisation helpers ────────────────────────────────────────────────────
 
@@ -97,6 +100,11 @@ export function SynthPanel() {
   const recordEnabled = useAutomationStore((s) => s.recordEnabled);
   const flushIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ─── Preset state ────────────────────────────────────────────────────────
+  const [currentPresetName, setCurrentPresetName] = useState<string | null>(null);
+  const [showBrowser, setShowBrowser] = useState(false);
+  const { captureAndSave, loadAndApply } = usePresets('synth');
+
   useEffect(() => {
     if (!isInitialized && !isLoading) {
       void initialize();
@@ -165,11 +173,45 @@ export function SynthPanel() {
 
   const p = params;
 
+  async function handleSavePreset(name: string) {
+    await captureAndSave(name);
+    setCurrentPresetName(name);
+  }
+
+  async function handleLoadPreset(meta: import('../../lib/ipc').PresetMeta) {
+    const preset = await loadAndApply(meta);
+    setCurrentPresetName(preset.name);
+    // Refresh the store so the UI reflects the new param values
+    await initialize();
+    setShowBrowser(false);
+  }
+
   return (
-    <div
-      className="bg-[#1e1e1e] border-t border-[#3a3a3a] px-4 py-2 flex gap-6 items-start overflow-x-auto flex-shrink-0"
-      style={{ minHeight: 100 }}
-    >
+    <div className="flex flex-col bg-[#1e1e1e] border-t border-[#3a3a3a] flex-shrink-0">
+      {/* Preset bar */}
+      <PresetBar
+        presetType="synth"
+        currentPresetName={currentPresetName}
+        onSave={(name) => { void handleSavePreset(name); }}
+        onBrowse={() => setShowBrowser((v) => !v)}
+      />
+
+      {/* Inline preset browser (toggle) */}
+      {showBrowser && (
+        <div className="absolute z-50 mt-8">
+          <PresetBrowser
+            presetType="synth"
+            onLoad={(meta) => { void handleLoadPreset(meta); }}
+            onClose={() => setShowBrowser(false)}
+          />
+        </div>
+      )}
+
+      {/* Panel controls */}
+      <div
+        className="px-4 py-2 flex gap-6 items-start overflow-x-auto"
+        style={{ minHeight: 100 }}
+      >
       {/* Oscillator section */}
       <Section title="Oscillator">
         <div className="flex flex-col gap-2">
@@ -313,6 +355,7 @@ export function SynthPanel() {
       {/* LFO modulation section */}
       <LfoPanel slot={1} />
       <LfoPanel slot={2} />
+    </div>
     </div>
   );
 }

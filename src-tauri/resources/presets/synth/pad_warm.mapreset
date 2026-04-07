@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "preset_type": "synth",
+  "name": "Pad Warm",
+  "params": {
+    "waveform": 0.0,
+    "attack": 0.8,
+    "decay": 0.5,
+    "sustain": 0.9,
+    "release": 1.2,
+    "cutoff": 1200.0,
+    "resonance": 0.1,
+    "env_amount": 0.2,
+    "volume": 0.65,
+    "detune": 8.0,
+    "pulse_width": 0.5,
+    "lfo1": { "rate": 0.5, "depth": 0.05, "waveform": 2.0, "bpm_sync": 0.0, "division": 1.0, "phase_reset": 0.0, "destination": 1.0 },
+    "lfo2": { "rate": 0.3, "depth": 0.03, "waveform": 2.0, "bpm_sync": 0.0, "division": 1.0, "phase_reset": 0.0, "destination": 0.0 }
+  }
+}

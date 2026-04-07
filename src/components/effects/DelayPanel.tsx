@@ -1,8 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDelayStore } from '../../stores/delayStore';
 import { useTempoMapStore } from '../../stores/tempoMapStore';
 import { Knob } from '../instruments/Knob';
-import type { NoteDivision } from '../../lib/ipc';
+import type { NoteDivision, PresetMeta } from '../../lib/ipc';
+import { PresetBar } from '../daw/PresetBar';
+import { PresetBrowser } from '../daw/PresetBrowser';
+import { usePresets } from '../../hooks/usePresets';
 
 interface DelayPanelProps {
   channelId: string;
@@ -54,6 +57,22 @@ const DelayPanel: React.FC<DelayPanelProps> = ({ channelId }) => {
 
   const bpm = useTempoMapStore((s) => (s.points.length > 0 ? s.points[0].bpm : 120));
 
+  const [currentPresetName, setCurrentPresetName] = useState<string | null>(null);
+  const [showBrowser, setShowBrowser] = useState(false);
+  const { captureAndSave, loadAndApply } = usePresets('delay', channelId);
+
+  async function handleSavePreset(name: string) {
+    await captureAndSave(name);
+    setCurrentPresetName(name);
+  }
+
+  async function handleLoadPreset(meta: PresetMeta) {
+    const preset = await loadAndApply(meta);
+    setCurrentPresetName(preset.name);
+    loadChannel(channelId);
+    setShowBrowser(false);
+  }
+
   useEffect(() => {
     loadChannel(channelId);
   }, [channelId, loadChannel]);
@@ -87,6 +106,22 @@ const DelayPanel: React.FC<DelayPanelProps> = ({ channelId }) => {
 
   return (
     <div className="delay-panel" aria-label={`Delay panel for channel ${channelId}`}>
+      <PresetBar
+        presetType="delay"
+        currentPresetName={currentPresetName}
+        onSave={(name) => { void handleSavePreset(name); }}
+        onBrowse={() => setShowBrowser((v) => !v)}
+      />
+      {showBrowser && (
+        <div className="absolute z-50">
+          <PresetBrowser
+            presetType="delay"
+            onLoad={(meta) => { void handleLoadPreset(meta); }}
+            onClose={() => setShowBrowser(false)}
+            channelId={channelId}
+          />
+        </div>
+      )}
       <h3 className="delay-panel__title">Delay</h3>
 
       <div className="delay-panel__time-row">

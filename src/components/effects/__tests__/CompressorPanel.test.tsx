@@ -33,6 +33,19 @@ vi.mock('../SidechainHpfControl', () => ({
   default: () => <div data-testid="sidechain-hpf-control" />,
 }));
 
+vi.mock('../../../hooks/usePresets', () => ({
+  usePresets: () => ({
+    presets: [],
+    filteredPresets: [],
+    isLoading: false,
+    error: null,
+    fetchPresets: vi.fn(),
+    captureAndSave: vi.fn(),
+    loadAndApply: vi.fn(),
+    deletePreset: vi.fn(),
+  }),
+}));
+
 const mockLoadChannel = vi.fn();
 const mockSetParam = vi.fn();
 

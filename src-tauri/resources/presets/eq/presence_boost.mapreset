@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "preset_type": "eq",
+  "name": "Presence Boost",
+  "params": [
+    { "filter_type": "HighPass", "frequency": 20.0, "gain_db": 0.0, "q": 1.0, "enabled": false },
+    { "filter_type": "LowShelf", "frequency": 200.0, "gain_db": -1.5, "q": 1.0, "enabled": true },
+    { "filter_type": "Peaking", "frequency": 500.0, "gain_db": -1.0, "q": 1.0, "enabled": true },
+    { "filter_type": "Peaking", "frequency": 1000.0, "gain_db": 0.0, "q": 1.0, "enabled": true },
+    { "filter_type": "Peaking", "frequency": 3500.0, "gain_db": 3.0, "q": 1.5, "enabled": true },
+    { "filter_type": "Peaking", "frequency": 8000.0, "gain_db": 2.0, "q": 1.0, "enabled": true },
+    { "filter_type": "HighShelf", "frequency": 12000.0, "gain_db": 1.5, "q": 1.0, "enabled": true },
+    { "filter_type": "LowPass", "frequency": 20000.0, "gain_db": 0.0, "q": 1.0, "enabled": false }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "preset_type": "synth",
+  "name": "Keys Electric",
+  "params": {
+    "waveform": 3.0,
+    "attack": 0.003,
+    "decay": 0.4,
+    "sustain": 0.3,
+    "release": 0.5,
+    "cutoff": 4000.0,
+    "resonance": 0.2,
+    "env_amount": 0.6,
+    "volume": 0.72,
+    "detune": 2.0,
+    "pulse_width": 0.5,
+    "lfo1": { "rate": 1.0, "depth": 0.0, "waveform": 0.0, "bpm_sync": 0.0, "division": 1.0, "phase_reset": 0.0, "destination": 0.0 },
+    "lfo2": { "rate": 1.0, "depth": 0.0, "waveform": 0.0, "bpm_sync": 0.0, "division": 1.0, "phase_reset": 0.0, "destination": 0.0 }
+  }
+}

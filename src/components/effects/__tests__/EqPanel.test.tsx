@@ -58,6 +58,19 @@ const ctxMock = {
 
 HTMLCanvasElement.prototype.getContext = vi.fn(() => ctxMock) as unknown as typeof HTMLCanvasElement.prototype.getContext;
 
+vi.mock('../../../hooks/usePresets', () => ({
+  usePresets: () => ({
+    presets: [],
+    filteredPresets: [],
+    isLoading: false,
+    error: null,
+    fetchPresets: vi.fn(),
+    captureAndSave: vi.fn(),
+    loadAndApply: vi.fn(),
+    deletePreset: vi.fn(),
+  }),
+}));
+
 // ─── Import after mocks ───────────────────────────────────────────────────────
 
 import EqPanel from '../EqPanel';

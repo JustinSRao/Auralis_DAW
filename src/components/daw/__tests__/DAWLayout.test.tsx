@@ -230,6 +230,23 @@ vi.mock("@/stores/fileStore", () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// presetsStore mock (for SynthPanel / PresetBar — Sprint 34)
+// ---------------------------------------------------------------------------
+
+vi.mock("@/hooks/usePresets", () => ({
+  usePresets: () => ({
+    presets: [],
+    filteredPresets: [],
+    isLoading: false,
+    error: null,
+    fetchPresets: vi.fn(),
+    captureAndSave: vi.fn(),
+    loadAndApply: vi.fn(),
+    deletePreset: vi.fn(),
+  }),
+}));
+
+// ---------------------------------------------------------------------------
 // Transport store defaults
 // ---------------------------------------------------------------------------
 

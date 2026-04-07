@@ -1,10 +1,14 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useCompressorStore } from '../../stores/compressorStore';
 import { useSidechainStore } from '../../stores/sidechainStore';
 import { useMixerStore } from '../../stores/mixerStore';
 import { Knob } from '../instruments/Knob';
 import SidechainSourceSelector from './SidechainSourceSelector';
 import SidechainHpfControl from './SidechainHpfControl';
+import { PresetBar } from '../daw/PresetBar';
+import { PresetBrowser } from '../daw/PresetBrowser';
+import { usePresets } from '../../hooks/usePresets';
+import type { PresetMeta } from '../../lib/ipc';
 
 interface CompressorPanelProps {
   channelId: string;
@@ -41,6 +45,22 @@ const CompressorPanel: React.FC<CompressorPanelProps> = ({ channelId, slotId = '
 
   useEffect(() => { loadChannel(channelId); }, [channelId, loadChannel]);
 
+  const [currentPresetName, setCurrentPresetName] = useState<string | null>(null);
+  const [showBrowser, setShowBrowser] = useState(false);
+  const { captureAndSave, loadAndApply } = usePresets('compressor', channelId);
+
+  async function handleSavePreset(name: string) {
+    await captureAndSave(name);
+    setCurrentPresetName(name);
+  }
+
+  async function handleLoadPreset(meta: PresetMeta) {
+    const preset = await loadAndApply(meta);
+    setCurrentPresetName(preset.name);
+    loadChannel(channelId);
+    setShowBrowser(false);
+  }
+
   if (!channel) {
     return (
       <div className="compressor-panel compressor-panel--loading" aria-label="Compressor panel loading">
@@ -53,6 +73,22 @@ const CompressorPanel: React.FC<CompressorPanelProps> = ({ channelId, slotId = '
 
   return (
     <div className="compressor-panel" aria-label={`Compressor panel for channel ${channelId}`}>
+      <PresetBar
+        presetType="compressor"
+        currentPresetName={currentPresetName}
+        onSave={(name) => { void handleSavePreset(name); }}
+        onBrowse={() => setShowBrowser((v) => !v)}
+      />
+      {showBrowser && (
+        <div className="absolute z-50">
+          <PresetBrowser
+            presetType="compressor"
+            onLoad={(meta) => { void handleLoadPreset(meta); }}
+            onClose={() => setShowBrowser(false)}
+            channelId={channelId}
+          />
+        </div>
+      )}
       <h3 className="compressor-panel__title">Compressor</h3>
 
       <div className="compressor-panel__knobs">

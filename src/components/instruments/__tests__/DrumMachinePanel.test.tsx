@@ -61,6 +61,19 @@ vi.mock("../../../stores/drumMachineStore", () => ({
   useDrumMachineStore: () => mockStoreState,
 }));
 
+vi.mock("../../../hooks/usePresets", () => ({
+  usePresets: () => ({
+    presets: [],
+    filteredPresets: [],
+    isLoading: false,
+    error: null,
+    fetchPresets: vi.fn(),
+    captureAndSave: vi.fn(),
+    loadAndApply: vi.fn(),
+    deletePreset: vi.fn(),
+  }),
+}));
+
 import { DrumMachinePanel } from "../DrumMachinePanel";
 
 describe("DrumMachinePanel", () => {

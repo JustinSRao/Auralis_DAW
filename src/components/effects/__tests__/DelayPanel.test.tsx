@@ -45,6 +45,19 @@ vi.mock('../../../stores/tempoMapStore', () => ({
   },
 }));
 
+vi.mock('../../../hooks/usePresets', () => ({
+  usePresets: () => ({
+    presets: [],
+    filteredPresets: [],
+    isLoading: false,
+    error: null,
+    fetchPresets: vi.fn(),
+    captureAndSave: vi.fn(),
+    loadAndApply: vi.fn(),
+    deletePreset: vi.fn(),
+  }),
+}));
+
 // ─── Import component ─────────────────────────────────────────────────────────
 
 import DelayPanel from '../DelayPanel';

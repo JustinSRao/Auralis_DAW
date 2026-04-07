@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "preset_type": "synth",
+  "name": "Pluck Short",
+  "params": {
+    "waveform": 0.0,
+    "attack": 0.001,
+    "decay": 0.3,
+    "sustain": 0.0,
+    "release": 0.1,
+    "cutoff": 3000.0,
+    "resonance": 0.4,
+    "env_amount": 0.8,
+    "volume": 0.7,
+    "detune": 0.0,
+    "pulse_width": 0.5,
+    "lfo1": { "rate": 1.0, "depth": 0.0, "waveform": 0.0, "bpm_sync": 0.0, "division": 1.0, "phase_reset": 0.0, "destination": 0.0 },
+    "lfo2": { "rate": 1.0, "depth": 0.0, "waveform": 0.0, "bpm_sync": 0.0, "division": 1.0, "phase_reset": 0.0, "destination": 0.0 }
+  }
+}

@@ -1,6 +1,9 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useEqStore } from '../../stores/eqStore';
-import type { EqBandParams } from '../../lib/ipc';
+import type { EqBandParams, PresetMeta } from '../../lib/ipc';
+import { PresetBar } from '../daw/PresetBar';
+import { PresetBrowser } from '../daw/PresetBrowser';
+import { usePresets } from '../../hooks/usePresets';
 import BiquadBandControl from './BiquadBandControl';
 import {
   drawBackground,
@@ -120,6 +123,22 @@ const EqPanel = React.memo(function EqPanel({ channelId }: Props) {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const [currentPresetName, setCurrentPresetName] = useState<string | null>(null);
+  const [showBrowser, setShowBrowser] = useState(false);
+  const { captureAndSave, loadAndApply } = usePresets('eq', channelId);
+
+  async function handleSavePreset(name: string) {
+    await captureAndSave(name);
+    setCurrentPresetName(name);
+  }
+
+  async function handleLoadPreset(meta: PresetMeta) {
+    const preset = await loadAndApply(meta);
+    setCurrentPresetName(preset.name);
+    await loadChannel(channelId);
+    setShowBrowser(false);
+  }
 
   // ── Drag state ──────────────────────────────────────────────────────────────
   const dragBandRef = useRef<number | null>(null);
@@ -320,12 +339,28 @@ const EqPanel = React.memo(function EqPanel({ channelId }: Props) {
       className="flex flex-col bg-gray-900 border border-gray-700 rounded select-none"
       aria-label="EQ panel"
     >
-      {/* Header */}
+      {/* Header / Preset bar */}
       <div className="flex items-center justify-between px-2 py-1 border-b border-gray-700">
         <span className="text-[10px] text-gray-400 font-semibold tracking-wider uppercase">
           Parametric EQ
         </span>
+        <PresetBar
+          presetType="eq"
+          currentPresetName={currentPresetName}
+          onSave={(name) => { void handleSavePreset(name); }}
+          onBrowse={() => setShowBrowser((v) => !v)}
+        />
       </div>
+      {showBrowser && (
+        <div className="absolute z-50">
+          <PresetBrowser
+            presetType="eq"
+            onLoad={(meta) => { void handleLoadPreset(meta); }}
+            onClose={() => setShowBrowser(false)}
+            channelId={channelId}
+          />
+        </div>
+      )}
 
       {/* Frequency response canvas */}
       <div ref={containerRef} className="w-full" style={{ height: CANVAS_HEIGHT }}>

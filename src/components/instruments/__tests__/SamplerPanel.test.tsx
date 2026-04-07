@@ -46,6 +46,19 @@ vi.mock("../../../stores/samplerStore", () => ({
   useSamplerStore: () => mockStoreState,
 }));
 
+vi.mock("../../../hooks/usePresets", () => ({
+  usePresets: () => ({
+    presets: [],
+    filteredPresets: [],
+    isLoading: false,
+    error: null,
+    fetchPresets: vi.fn(),
+    captureAndSave: vi.fn(),
+    loadAndApply: vi.fn(),
+    deletePreset: vi.fn(),
+  }),
+}));
+
 import { SamplerPanel } from "../SamplerPanel";
 
 describe("SamplerPanel", () => {

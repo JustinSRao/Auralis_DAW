@@ -7,12 +7,14 @@ pub mod config;
 pub mod effects;
 pub mod instruments;
 pub mod midi;
+pub mod presets;
 pub mod project;
 pub mod sequencer;
 pub mod vst3;
 
 use midi::mapping::MappingRegistryState;
 use audio::freeze::FreezeEngineState;
+use presets::PresetManagerState;
 
 use std::sync::{Arc, Mutex};
 
@@ -687,6 +689,13 @@ pub fn run() {
             app.manage(pm_state.clone());
             log::info!("Project manager initialized");
 
+            // --- Sprint 34: Preset manager ---
+            // PresetManager is stateless (pure filesystem I/O), so Arc alone is sufficient.
+            let preset_manager: PresetManagerState =
+                Arc::new(presets::PresetManager::new(app_data_dir.clone()));
+            app.manage(preset_manager);
+            log::info!("Preset manager initialized");
+
             // Spawn ~60 fps transport state poller.
             // Reads the shared TransportSnapshot (updated by the audio thread via try_lock)
             // and emits a "transport-state" Tauri event only when the snapshot changes.
@@ -1052,6 +1061,12 @@ pub fn run() {
             audio::freeze_commands::bounce_track_in_place,
             audio::freeze_commands::cancel_freeze,
             audio::freeze_commands::get_freeze_progress,
+            presets::list_presets,
+            presets::load_preset,
+            presets::save_preset,
+            presets::delete_preset,
+            presets::capture_preset,
+            presets::apply_preset,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

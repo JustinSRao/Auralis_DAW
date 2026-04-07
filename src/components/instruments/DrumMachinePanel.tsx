@@ -2,6 +2,10 @@ import { useEffect, useState, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { Knob } from "./Knob";
 import { useDrumMachineStore } from "../../stores/drumMachineStore";
+import { PresetBar } from "../daw/PresetBar";
+import { PresetBrowser } from "../daw/PresetBrowser";
+import { usePresets } from "../../hooks/usePresets";
+import type { PresetMeta } from "../../lib/ipc";
 
 // ── Velocity popover ──────────────────────────────────────────────────────────
 
@@ -293,6 +297,23 @@ export function DrumMachinePanel() {
     setCurrentStep,
   } = useDrumMachineStore();
 
+  // ─── Preset state ──────────────────────────────────────────────────────────
+  const [currentPresetName, setCurrentPresetName] = useState<string | null>(null);
+  const [showBrowser, setShowBrowser] = useState(false);
+  const { captureAndSave, loadAndApply } = usePresets('drum_machine');
+
+  async function handleSavePreset(name: string) {
+    await captureAndSave(name);
+    setCurrentPresetName(name);
+  }
+
+  async function handleLoadPreset(meta: PresetMeta) {
+    const preset = await loadAndApply(meta);
+    setCurrentPresetName(preset.name);
+    await initialize();
+    setShowBrowser(false);
+  }
+
   // Listen for step-changed events and update the highlighted column
   const unlistenRef = useRef<(() => void) | null>(null);
   useEffect(() => {
@@ -326,9 +347,26 @@ export function DrumMachinePanel() {
 
   return (
     <div
-      className="bg-[#1e1e1e] border-t border-[#3a3a3a] px-4 py-2 flex flex-col gap-1 overflow-auto flex-shrink-0"
+      className="bg-[#1e1e1e] border-t border-[#3a3a3a] flex flex-col flex-shrink-0"
       style={{ minHeight: 120 }}
     >
+      {/* Preset bar */}
+      <PresetBar
+        presetType="drum_machine"
+        currentPresetName={currentPresetName}
+        onSave={(name) => { void handleSavePreset(name); }}
+        onBrowse={() => setShowBrowser((v) => !v)}
+      />
+      {showBrowser && (
+        <div className="absolute z-50 mt-8">
+          <PresetBrowser
+            presetType="drum_machine"
+            onLoad={(meta) => { void handleLoadPreset(meta); }}
+            onClose={() => setShowBrowser(false)}
+          />
+        </div>
+      )}
+      <div className="px-4 py-2 flex flex-col gap-1 overflow-auto">
       {/* Step grid */}
       <div className="flex flex-col gap-0.5">
         {/* Step number header */}
@@ -386,6 +424,7 @@ export function DrumMachinePanel() {
       {error && (
         <div className="text-[10px] text-red-400 font-mono">{error}</div>
       )}
+      </div>
     </div>
   );
 }

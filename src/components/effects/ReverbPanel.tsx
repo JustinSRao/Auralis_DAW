@@ -1,6 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useReverbStore } from '../../stores/reverbStore';
 import { Knob } from '../instruments/Knob';
+import { PresetBar } from '../daw/PresetBar';
+import { PresetBrowser } from '../daw/PresetBrowser';
+import { usePresets } from '../../hooks/usePresets';
+import type { PresetMeta } from '../../lib/ipc';
 
 interface ReverbPanelProps {
   channelId: string;
@@ -23,6 +27,22 @@ const ReverbPanel: React.FC<ReverbPanelProps> = ({ channelId }) => {
   const loadChannel = useReverbStore((s) => s.loadChannel);
   const setParam = useReverbStore((s) => s.setParam);
 
+  const [currentPresetName, setCurrentPresetName] = useState<string | null>(null);
+  const [showBrowser, setShowBrowser] = useState(false);
+  const { captureAndSave, loadAndApply } = usePresets('reverb', channelId);
+
+  async function handleSavePreset(name: string) {
+    await captureAndSave(name);
+    setCurrentPresetName(name);
+  }
+
+  async function handleLoadPreset(meta: PresetMeta) {
+    const preset = await loadAndApply(meta);
+    setCurrentPresetName(preset.name);
+    loadChannel(channelId);
+    setShowBrowser(false);
+  }
+
   useEffect(() => {
     loadChannel(channelId);
   }, [channelId, loadChannel]);
@@ -37,6 +57,22 @@ const ReverbPanel: React.FC<ReverbPanelProps> = ({ channelId }) => {
 
   return (
     <div className="reverb-panel" aria-label={`Reverb panel for channel ${channelId}`}>
+      <PresetBar
+        presetType="reverb"
+        currentPresetName={currentPresetName}
+        onSave={(name) => { void handleSavePreset(name); }}
+        onBrowse={() => setShowBrowser((v) => !v)}
+      />
+      {showBrowser && (
+        <div className="absolute z-50">
+          <PresetBrowser
+            presetType="reverb"
+            onLoad={(meta) => { void handleLoadPreset(meta); }}
+            onClose={() => setShowBrowser(false)}
+            channelId={channelId}
+          />
+        </div>
+      )}
       <h3 className="reverb-panel__title">Reverb</h3>
       <div className="reverb-panel__knobs">
         <Knob
