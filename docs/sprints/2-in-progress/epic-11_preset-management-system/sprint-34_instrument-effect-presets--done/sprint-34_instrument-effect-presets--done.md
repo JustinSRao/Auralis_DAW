@@ -3,13 +3,14 @@ sprint: 34
 title: "Instrument & Effect Presets"
 type: fullstack
 epic: 11
-status: in-progress
+status: done
 created: 2026-02-23T00:00:00Z
 started: 2026-04-07T14:29:19Z
-completed: null
+completed: 2026-04-07
 hours: null
 workflow_version: "3.1.0"
 coverage_threshold: 80
+
 
 
 ---

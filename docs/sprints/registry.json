@@ -336,13 +336,13 @@
     },
     "34": {
       "title": "Instrument & Effect Presets",
-      "status": "planning",
+      "status": "done",
       "epic": 11,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-04-07",
+      "hours": 8.0
     },
     "36": {
       "title": "MIDI Recording",
@@ -553,7 +553,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 1,
-      "completedSprints": 0
+      "completedSprints": 1
     }
   },
   "nextEpicNumber": 12,
