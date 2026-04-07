@@ -386,13 +386,13 @@
     },
     "40": {
       "title": "Track Freeze and Bounce in Place",
-      "status": "planning",
+      "status": "done",
       "epic": 10,
       "type": "fullstack",
       "created": "2026-02-23",
       "started": null,
-      "completed": null,
-      "hours": null
+      "completed": "2026-04-06",
+      "hours": 8.5
     },
     "41": {
       "title": "Tempo Automation",
@@ -544,7 +544,7 @@
       "started": null,
       "completed": null,
       "totalSprints": 3,
-      "completedSprints": 2
+      "completedSprints": 3
     },
     "11": {
       "title": "Preset Management System",

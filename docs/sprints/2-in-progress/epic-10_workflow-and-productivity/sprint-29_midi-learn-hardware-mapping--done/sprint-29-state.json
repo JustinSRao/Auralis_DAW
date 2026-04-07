@@ -1,0 +1,29 @@
+{
+  "sprint_number": 29,
+  "sprint_file": "docs\\sprints\\2-in-progress\\epic-10_workflow-and-productivity\\sprint-29_midi-learn-hardware-mapping\\sprint-29_midi-learn-hardware-mapping.md",
+  "sprint_title": "MIDI Learn & Hardware Controller Mapping",
+  "status": "complete",
+  "current_phase": 2,
+  "current_step": "2.1",
+  "started_at": "2026-04-05T14:10:34Z",
+  "workflow_version": "3.0",
+  "completed_steps": [
+    {
+      "step": "1.1",
+      "completed_at": "2026-04-05T14:10:50.818685"
+    },
+    {
+      "step": "1.2",
+      "completed_at": "2026-04-05T14:17:03.784602"
+    },
+    {
+      "step": "1.3",
+      "completed_at": "2026-04-06T15:54:26.535834"
+    },
+    {
+      "step": "1.4",
+      "completed_at": "2026-04-06T15:54:33.932102"
+    }
+  ],
+  "completed_at": "2026-04-06T16:11:11.756533-07:00"
+}

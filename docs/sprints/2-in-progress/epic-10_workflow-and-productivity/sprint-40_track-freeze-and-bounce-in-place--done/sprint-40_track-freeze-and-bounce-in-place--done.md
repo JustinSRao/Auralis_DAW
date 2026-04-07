@@ -3,13 +3,14 @@ sprint: 40
 title: "Track Freeze and Bounce in Place"
 type: fullstack
 epic: 10
-status: in-progress
+status: done
 created: 2026-02-23T17:05:53Z
 started: 2026-04-06T16:11:22Z
-completed: null
+completed: 2026-04-06
 hours: null
 workflow_version: "3.1.0"
 coverage_threshold: 75
+
 
 ---
 
@@ -331,3 +332,7 @@ Created: 2026-02-23
 **Architecture risk — AudioNode cloning for TripleBuffer swap**: Sprint 2's `TripleBuffer` requires publishing a complete new `AudioGraph`. This means that to freeze one track, the `FreezeEngine` must reconstruct the entire graph with all other nodes intact. This requires either (a) all `AudioNode` impls to be cheaply cloneable, or (b) `FreezeEngine` to hold an `Arc<>` reference to each non-frozen node that is shared between the old and new graph instances. Option (b) is preferred since it avoids deep-copying DSP state. The `AudioNode` trait will need to be extended with `fn as_shared(self: Box<Self>) -> Arc<Mutex<dyn AudioNode>>` or an equivalent mechanism. This design decision must be resolved in Phase 1 planning before implementation begins.
 
 **Dependency note**: Sprint 22 (`OfflineRenderer`) and Sprint 37 (`AudioClipPlayer`) are not yet implemented at the time this sprint is planned. This sprint assumes both will be completed before Sprint 40 executes, in accordance with the dependency order documented in `CLAUDE.md`.
+
+## Postmortem
+
+See [Sprint 40 Postmortem](./sprint-40_postmortem.md)
