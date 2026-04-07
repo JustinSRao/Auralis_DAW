@@ -27,6 +27,9 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  optimizeDeps: {
+    exclude: ["src-tauri"],
+  },
   envPrefix: ["VITE_", "TAURI_ENV_*"],
   build: {
     target:
