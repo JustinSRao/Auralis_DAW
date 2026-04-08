@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { listen } from '@tauri-apps/api/event';
+import { useShallow } from 'zustand/react/shallow';
 import { useMixerStore } from '../../stores/mixerStore';
 import { ipcGetMixerState } from '../../lib/ipc';
 import ChannelStrip from './ChannelStrip';
@@ -18,7 +19,7 @@ interface MasterLevelPayload {
 
 export default function MixerView() {
   const { hydrate, applyChannelLevel, applyMasterLevel } = useMixerStore();
-  const channelIds = useMixerStore((s) => Object.keys(s.channels));
+  const channelIds = useMixerStore(useShallow((s) => Object.keys(s.channels)));
 
   // Hydrate mixer state on mount
   useEffect(() => {

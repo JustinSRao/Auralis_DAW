@@ -11,6 +11,7 @@
  */
 
 import { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { save } from '@tauri-apps/plugin-dialog';
 import { usePatternStore } from '@/stores/patternStore';
 import { useArrangementStore } from '@/stores/arrangementStore';
@@ -67,10 +68,10 @@ export function ExportMidiDialog({ onClose }: ExportMidiDialogProps) {
   const [status, setStatus] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const patterns = usePatternStore((s) => Object.values(s.patterns));
+  const patterns = usePatternStore(useShallow((s) => Object.values(s.patterns)));
   const midiPatterns = patterns.filter((p) => isMidiContent(p.content));
 
-  const clips = useArrangementStore((s) => Object.values(s.clips));
+  const clips = useArrangementStore(useShallow((s) => Object.values(s.clips)));
   const snapshot = useTransportStore((s) => s.snapshot);
   const tempoPoints = useTempoMapStore((s) => s.points);
 
