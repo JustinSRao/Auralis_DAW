@@ -62,55 +62,86 @@ Produces a Windows NSIS installer at `src-tauri/target/release/bundle/nsis/`.
 src/                          # React/TypeScript frontend
   components/
     auth/                     # Login, register UI
-    daw/                      # Main DAW shell and track management
-    instruments/              # Synth, sampler, drum machine, LFO UI
-    effects/                  # EQ, reverb, compressor UI
-    mixer/                    # Mixer channel strips
+    daw/                      # Main DAW shell, track management, menus
+    instruments/              # Synth, sampler, drum machine UI
+    effects/                  # EQ, reverb, compressor, delay UI
+    mixer/                    # Mixer channel strips and master
     timeline/                 # Song timeline, piano roll, step sequencer
-  stores/                     # Zustand state stores
+    ErrorBoundary.tsx         # Root error boundary (last-resort crash display)
+  stores/                     # Zustand + Immer state stores
+  hooks/                      # Shared React hooks (MIDI learn, undo/redo, etc.)
   lib/
     ipc.ts                    # All Tauri IPC calls (typed wrappers)
   styles/                     # Global CSS + Tailwind config
 
 src-tauri/src/                # Rust backend
-  audio/                      # Audio engine, device management, graph, transport clock
-  midi/                       # MIDI I/O, event bus, CC mapping, MIDI import
+  audio/                      # Audio engine, device management, transport clock
+  midi/                       # MIDI I/O, event bus, CC mapping, MIDI import/export
   instruments/                # DSP: synth, sampler, drum machine, LFO modulation
   effects/                    # DSP: EQ, reverb, compressor, delay
   project/                    # Project file save/load (.mapp format)
-  auth/                       # SQLite authentication
-  config/                     # App preferences persistence
+  auth/                       # SQLite authentication (argon2)
+  config/                     # App preferences persistence (TOML)
   browser/                    # File system browser + audio preview
   presets/                    # Instrument & effect preset management
   vst3/                       # VST3 plugin host
 
-docs/sprints/                 # Maestro sprint workflow
+docs/sprints/                 # Maestro sprint workflow docs
 ```
 
-## Sprint Plan
+## Features
 
-46 sprints across 11 epics. See `docs/sprints/` for the full plan.
+### Implemented (46 sprints across 11 epics)
 
-### Completed
+| Area | Features |
+|------|---------|
+| **Foundation** | Tauri 2 scaffold, ASIO/WASAPI audio engine, MIDI I/O, project file system (.mapp), transport & tempo engine, global undo/redo, main DAW shell |
+| **Auth** | Local user accounts with argon2 password hashing, SQLite storage |
+| **Instruments** | Subtractive synthesizer, sample player/sampler, drum machine, audio recording (live input), LFO modulation routing |
+| **Composition** | Step sequencer, piano roll editor, pattern system, song timeline/playlist, automation editor, arrangement playback engine, MIDI file import/export, MIDI recording, punch in/out, loop recording & take lanes, tempo automation |
+| **Audio Editing** | Waveform editor (cut, trim, reverse, splice), time stretch & pitch shift |
+| **Mixer & Effects** | Full mixer (tracks, routing, sends, buses), EQ & filter, reverb & delay, compression & dynamics, effect chain & modular routing, audio clip playback, sidechain compression, sub-group bus routing, audio clip fades |
+| **Export** | Audio export (stereo mix & stems) |
+| **VST3** | VST3 plugin host (Rust), VST3 UI bridge & plugin management |
+| **Settings** | Settings & preferences UI, keyboard shortcut remapping |
+| **Workflow** | Sample & content browser, MIDI learn & hardware controller mapping, track freeze & bounce in place |
+| **Presets** | Instrument & effect preset management, factory presets (synth, drum, EQ) |
 
-| Epic | Title | Sprints | Status |
-|------|-------|---------|--------|
-| 1 | Foundation & Infrastructure | 1, 2, 3, 4, 25, 26, 30 | Done |
-| 2 | Authentication & User Management | 5 | Done |
-| 3 | Software Instruments | 6, 7, 8, 9, 33 | Done |
+### Known Limitations / Active Backlog (Sprints 47–61)
 
-### Planned
+- EQ settings do not persist across project save/load (Sprint 47)
+- Clip dragging feels unresponsive until first transport tick (Sprint 47)
+- Track freeze does not apply the effect chain (Sprint 47)
+- Sampler and drum machine parameters cannot be MIDI-mapped (Sprint 52)
+- Rust tests do not run in CI — cargo not available in codespace (Sprint 60)
+- No factory presets for Reverb, Delay, or Compressor (Sprint 57)
 
-| Epic | Title | Sprints |
-|------|-------|---------|
-| 4 | Composition Tools | 10, 11, 12, 13, 14, 36, 31, 32, 38, 44, 41, 43 |
-| 5 | Audio Editing | 15, 16 |
-| 6 | Mixer & Effects | 17, 18, 19, 20, 21, 37, 39, 42, 45 |
-| 7 | Export & Finalization | 22 |
-| 8 | VST3 Plugin Support | 23, 24 |
-| 9 | Settings & Preferences | 27, 46 |
-| 10 | Workflow & Productivity | 28, 29, 40 |
-| 11 | Preset Management | 34 |
+## Architecture Notes
+
+### Async runtime in Tauri setup
+
+All background tasks in `src-tauri/src/lib.rs` use `tauri::async_runtime::spawn` (not `tokio::spawn`). Tauri 2's `.setup()` callback runs before the Tokio reactor is active — `tokio::spawn` panics there. `tauri::async_runtime::spawn` uses Tauri's own managed runtime handle and is safe from the setup context.
+
+### Zustand selector stability
+
+Any selector that constructs a derived collection must use `useShallow` from `zustand/react/shallow`:
+
+```ts
+// WRONG — returns new array reference every render → infinite re-render loop
+const ids = useStore((s) => Object.keys(s.items));
+
+// CORRECT — shallow comparison stops the loop
+const ids = useStore(useShallow((s) => Object.keys(s.items)));
+```
+
+This applies to `Object.keys`, `Object.values`, `Object.entries`, `.map()`, `.filter()`, and any spread that produces a new array/object.
+
+### Audio thread rules
+
+- The audio callback (`process()`) must **never** allocate memory, block, or acquire a `std::sync::Mutex`
+- Continuous param changes use `Arc<AtomicF32>` (lock-free reads)
+- Discrete commands use `crossbeam-channel` (non-blocking send from control thread)
+- All background tasks in the control thread use `tauri::async_runtime::spawn`
 
 ## Repository
 
