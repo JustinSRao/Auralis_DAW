@@ -1,6 +1,6 @@
 {
   "counters": {
-    "next_sprint": 47,
+    "next_sprint": 62,
     "next_epic": 12
   },
   "sprints": {
@@ -453,6 +453,156 @@
       "started": null,
       "completed": "2026-04-03",
       "hours": 7.5
+    },
+    "47": {
+      "title": "EQ Persistence, samplesPerBar, PPQN & Freeze Effect Chain Fixes",
+      "status": "planning",
+      "epic": 12,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "48": {
+      "title": "UI Accessibility & Code Correctness",
+      "status": "planning",
+      "epic": 12,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "49": {
+      "title": "Audio Thread Performance & Safety",
+      "status": "planning",
+      "epic": 13,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "50": {
+      "title": "DSP Quality Improvements",
+      "status": "planning",
+      "epic": 13,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "51": {
+      "title": "Sampler Enhancements",
+      "status": "planning",
+      "epic": 14,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "52": {
+      "title": "MIDI CC Expansion",
+      "status": "planning",
+      "epic": 14,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "53": {
+      "title": "Drum Machine Enhancements",
+      "status": "planning",
+      "epic": 14,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "54": {
+      "title": "Sequencer & Pattern UX",
+      "status": "planning",
+      "epic": 15,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "55": {
+      "title": "Automation & Timeline UX",
+      "status": "planning",
+      "epic": 15,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "56": {
+      "title": "Audio Editing Enhancements",
+      "status": "planning",
+      "epic": 15,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "57": {
+      "title": "Preset Completion & Browser Enhancements",
+      "status": "planning",
+      "epic": 16,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "58": {
+      "title": "Frontend Code Quality",
+      "status": "planning",
+      "epic": 17,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "59": {
+      "title": "Backend Code Quality",
+      "status": "planning",
+      "epic": 17,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "60": {
+      "title": "CI & Build Pipeline",
+      "status": "planning",
+      "epic": 18,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
+    },
+    "61": {
+      "title": "Test Suite Quality",
+      "status": "planning",
+      "epic": 18,
+      "type": "fullstack",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "hours": null
     }
   },
   "epics": {
@@ -554,8 +704,71 @@
       "completed": null,
       "totalSprints": 1,
       "completedSprints": 1
+    },
+    "12": {
+      "title": "Critical Bug Fixes",
+      "status": "planning",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "totalSprints": 2,
+      "completedSprints": 0
+    },
+    "13": {
+      "title": "Audio Engine & Performance",
+      "status": "planning",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "totalSprints": 2,
+      "completedSprints": 0
+    },
+    "14": {
+      "title": "Instrument & Controller Enhancements",
+      "status": "planning",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "totalSprints": 3,
+      "completedSprints": 0
+    },
+    "15": {
+      "title": "Composition & Editing Enhancements",
+      "status": "planning",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "totalSprints": 3,
+      "completedSprints": 0
+    },
+    "16": {
+      "title": "Preset & Content Enhancements",
+      "status": "planning",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "totalSprints": 1,
+      "completedSprints": 0
+    },
+    "17": {
+      "title": "Code Quality & Technical Debt",
+      "status": "planning",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "totalSprints": 2,
+      "completedSprints": 0
+    },
+    "18": {
+      "title": "Testing & CI Infrastructure",
+      "status": "planning",
+      "created": "2026-04-07",
+      "started": null,
+      "completed": null,
+      "totalSprints": 2,
+      "completedSprints": 0
     }
   },
-  "nextEpicNumber": 12,
-  "nextSprintNumber": 47
+  "nextEpicNumber": 19,
+  "nextSprintNumber": 62
 }
